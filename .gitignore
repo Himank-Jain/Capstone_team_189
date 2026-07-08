@@ -1,4 +1,21 @@
-model_registry/*.pt
-*.parquet
-*.faiss
-*.pkl
+﻿# Virtual environment
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Large data / model artifacts - exceed GitHub's 100MB hard limit per file,
+# or are just bad practice to commit directly.
+pretrain_corpus.parquet
+model_registry/behavioral_space.faiss
+model_registry/behavioral_space_meta.pkl
+model_registry/behavioral_space.meta.pkl
+
+# Local test/debug output
+dead_letter_queue*.jsonl
+model_registry_test/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
