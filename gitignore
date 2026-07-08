@@ -1,0 +1,26 @@
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Large data / model artifacts — exceed or approach GitHub's 100MB hard
+# limit per file, or are just bad practice to commit directly.
+# Use Git LFS (https://git-lfs.github.com) if these need to be version
+# controlled, or share them via a separate storage location (S3, shared
+# drive) and reference the path in docs instead.
+*.parquet
+*.faiss
+model_registry/*.pt
+model_registry/*.pkl
+*.meta.pkl
+*_meta.pkl
+
+# Local test/debug output
+dead_letter_queue*.jsonl
+model_registry_test/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/

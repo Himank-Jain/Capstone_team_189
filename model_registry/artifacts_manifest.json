@@ -1,0 +1,711 @@
+{
+  "versions": {
+    "0.1.0": {
+      "version_str": "0.1.0",
+      "encoder_path": "model_registry\\tstcc_encoder_final.pt",
+      "faiss_index_path": "model_registry\\behavioral_space",
+      "config_dict": {
+        "model_name": "TSTCC",
+        "embedding_dim": 128,
+        "sequence_length": 32,
+        "batch_size": 512,
+        "faiss_index_type": "IndexIVFFlat",
+        "faiss_nlist": 100,
+        "projection_head": false
+      },
+      "feature_meta_dict": {
+        "vocab_maps": {
+          "cloud": {
+            "AWS": 1,
+            "Azure": 2,
+            "GCP": 3
+          },
+          "entity_type": {
+            "Appservice_Plan": 1,
+            "AutoScaling_Groups": 2,
+            "Buckets": 3,
+            "Container_Groups": 4,
+            "Disks": 5,
+            "Event_Hub_Namespaces": 6,
+            "Factories": 7,
+            "File_systems": 8,
+            "Functions": 9,
+            "Instances": 10,
+            "MS-SQL_DB": 11,
+            "Private_DNS_Zones": 12,
+            "Public_IP_Address": 13,
+            "Recovery_Service_Vaults": 14,
+            "Storage_Accounts": 15,
+            "VM_Instances": 16,
+            "Vaults": 17,
+            "Virtual_Machines": 18,
+            "Volumes": 19,
+            "Web_Apps": 20
+          },
+          "namespace": {
+            "": 1,
+            "AWS/AutoScaling": 2,
+            "AWS/EBS": 3,
+            "AWS/EC2": 4,
+            "AWS/EFS": 5,
+            "AWS/Lambda": 6,
+            "CWAgent": 7,
+            "Microsoft.Compute/disks": 8,
+            "Microsoft.Compute/virtualMachines": 9,
+            "Microsoft.ContainerInstance/containerGroups": 10,
+            "Microsoft.DataFactory/factories": 11,
+            "Microsoft.EventHub/namespaces": 12,
+            "Microsoft.KeyVault/vaults": 13,
+            "Microsoft.Network/privateDnsZones": 14,
+            "Microsoft.Network/publicIPAddresses": 15,
+            "Microsoft.RecoveryServices/vaults": 16,
+            "Microsoft.Sql/servers/databases": 17,
+            "Microsoft.Storage/storageAccounts": 18,
+            "Microsoft.Web/serverfarms": 19,
+            "Microsoft.Web/sites": 20
+          },
+          "metric_name": {
+            "ActivityFailedRuns": 1,
+            "ActivitySucceededRuns": 2,
+            "AppConnections": 3,
+            "Availability": 4,
+            "Available Memory Bytes": 5,
+            "AverageMemoryWorkingSet": 6,
+            "AverageResponseTime": 7,
+            "BackupHealthEvent": 8,
+            "BurstCreditBalance": 9,
+            "BytesReceived": 10,
+            "BytesSent": 11,
+            "CPU Credits Consumed": 12,
+            "CPU Credits Remaining": 13,
+            "CPUCreditBalance": 14,
+            "CPUCreditUsage": 15,
+            "CPUUtilization": 16,
+            "Composite Disk Read Bytes/sec": 17,
+            "Composite Disk Read Operations/sec": 18,
+            "Composite Disk Write Bytes/sec": 19,
+            "Composite Disk Write Operations/sec": 20,
+            "ConcurrentExecutions": 21,
+            "CpuPercentage": 22,
+            "CpuUsage": 23,
+            "Data Disk Read Bytes/sec": 24,
+            "Data Disk Read Operations/Sec": 25,
+            "Data Disk Write Bytes/sec": 26,
+            "Disk Read Bytes": 27,
+            "Disk Read Operations/Sec": 28,
+            "Disk Write Bytes": 29,
+            "Disk Write Operations/Sec": 30,
+            "DiskQueueLength": 31,
+            "Duration": 32,
+            "Egress": 33,
+            "Errors": 34,
+            "FunctionExecutionCount": 35,
+            "FunctionExecutionUnits": 36,
+            "GroupDesiredCapacity": 37,
+            "GroupInServiceCapacity": 38,
+            "GroupInServiceInstances": 39,
+            "GroupMaxSize": 40,
+            "GroupMinSize": 41,
+            "GroupTotalCapacity": 42,
+            "GroupTotalInstances": 43,
+            "Http4xx": 44,
+            "HttpResponseTime": 45,
+            "Inbound Flows": 46,
+            "Inbound Flows Maximum Creation Rate": 47,
+            "Ingress": 48,
+            "IntegrationRuntimeAvailableMemory": 49,
+            "IntegrationRuntimeAvailableNodeNumber": 50,
+            "IntegrationRuntimeAverageTaskPickupDelay": 51,
+            "IntegrationRuntimeCpuPercentage": 52,
+            "IntegrationRuntimeQueueLength": 53,
+            "Invocations": 54,
+            "MaxAllowedResourceCount": 55,
+            "MemoryPercentage": 56,
+            "MemoryUsage": 57,
+            "MemoryWorkingSet": 58,
+            "Network In": 59,
+            "Network In Total": 60,
+            "Network Out": 61,
+            "Network Out Total": 62,
+            "NetworkIn": 63,
+            "NetworkOut": 64,
+            "NetworkPacketsIn": 65,
+            "NetworkPacketsOut": 66,
+            "OS Disk Queue Depth": 67,
+            "OS Disk Read Bytes/sec": 68,
+            "OS Disk Read Operations/Sec": 69,
+            "OS Disk Write Bytes/sec": 70,
+            "OS Disk Write Operations/Sec": 71,
+            "Outbound Flows": 72,
+            "Outbound Flows Maximum Creation Rate": 73,
+            "Percentage CPU": 74,
+            "PermittedThroughput": 75,
+            "PipelineFailedRuns": 76,
+            "PipelineSucceededRuns": 77,
+            "Premium Data Disk Cache Read Miss": 78,
+            "RecordSetCount": 79,
+            "Requests": 80,
+            "ResourceCount": 81,
+            "SaturationShoebox": 82,
+            "ServiceApiHit": 83,
+            "ServiceApiLatency": 84,
+            "ServiceApiResult": 85,
+            "SuccessE2ELatency": 86,
+            "SuccessServerLatency": 87,
+            "SuccessfulRequests": 88,
+            "SynCount": 89,
+            "Transactions": 90,
+            "TriggerSucceededRuns": 91,
+            "UsedCapacity": 92,
+            "VipAvailability": 93,
+            "VirtualNetworkLinkCount": 94,
+            "VolumeIdleTime": 95,
+            "VolumeQueueLength": 96,
+            "VolumeReadBytes": 97,
+            "VolumeReadOps": 98,
+            "VolumeTotalReadTime": 99,
+            "VolumeTotalWriteTime": 100,
+            "VolumeWriteBytes": 101,
+            "VolumeWriteOps": 102,
+            "allocated_data_storage": 103,
+            "compute.googleapis.com/instance/cpu/utilization": 104,
+            "compute.googleapis.com/instance/disk/max_write_bytes_count": 105,
+            "compute.googleapis.com/instance/disk/read_ops_count": 106,
+            "compute.googleapis.com/instance/disk/write_ops_count": 107,
+            "compute.googleapis.com/instance/network/received_bytes_count": 108,
+            "compute.googleapis.com/instance/network/sent_bytes_count": 109,
+            "cpu_percent": 110,
+            "cpu_usage_idle": 111,
+            "cpu_usage_iowait": 112,
+            "cpu_usage_system": 113,
+            "cpu_usage_user": 114,
+            "disk_inodes_free": 115,
+            "disk_used_percent": 116,
+            "diskio_io_time": 117,
+            "dtu_consumption_percent": 118,
+            "dtu_used": 119,
+            "mem_used_percent": 120,
+            "sessions_count": 121,
+            "storage": 122,
+            "storage.googleapis.com/api/request_count": 123,
+            "storage.googleapis.com/storage/total_byte_seconds": 124,
+            "storage_percent": 125,
+            "swap_used_percent": 126
+          }
+        },
+        "metric_value_stats": {
+          "Availability": {
+            "mean": 99.99517328296318,
+            "std": 4.999667871994458
+          },
+          "Available Memory Bytes": {
+            "mean": 14753076935.12949,
+            "std": 20023466461.51124
+          },
+          "Egress": {
+            "mean": 97001.6119837914,
+            "std": 544003.3156709907
+          },
+          "HttpResponseTime": {
+            "mean": 2.525365970505912,
+            "std": 12.636369615356102
+          },
+          "SuccessE2ELatency": {
+            "mean": 14.367542990679917,
+            "std": 47.57186845941032
+          },
+          "Transactions": {
+            "mean": 1.0000880478549727,
+            "std": 0.05002530415037239
+          },
+          "VolumeQueueLength": {
+            "mean": 0.0023343626881348967,
+            "std": 0.002124640415512813
+          },
+          "Ingress": {
+            "mean": 46065.41330313255,
+            "std": 610634.7414354997
+          },
+          "IntegrationRuntimeCpuPercentage": {
+            "mean": 5.217605484028831,
+            "std": 3.9125286311508747
+          },
+          "NetworkOut": {
+            "mean": 1422973.1667642407,
+            "std": 2473245.0621663644
+          },
+          "compute.googleapis.com/instance/network/sent_bytes_count": {
+            "mean": 8449.140631138616,
+            "std": 5536.4122457785015
+          },
+          "IntegrationRuntimeAvailableMemory": {
+            "mean": 10559513248.730864,
+            "std": 15764270115.33882
+          },
+          "SuccessServerLatency": {
+            "mean": 7.769234460286367,
+            "std": 17.19487188765526
+          },
+          "UsedCapacity": {
+            "mean": 3335108313.045046,
+            "std": 14328560465.243752
+          },
+          "VolumeWriteOps": {
+            "mean": 108.52681981552252,
+            "std": 145.1050588162297
+          },
+          "BytesReceived": {
+            "mean": 3932.018923570063,
+            "std": 4816.328033629727
+          },
+          "Composite Disk Write Bytes/sec": {
+            "mean": 95228.91233133902,
+            "std": 336360.105923783
+          },
+          "Network In Total": {
+            "mean": 33399183.12732032,
+            "std": 86514864.15236346
+          },
+          "NetworkPacketsOut": {
+            "mean": 1069.5731567821997,
+            "std": 1602.3176786838926
+          },
+          "AverageMemoryWorkingSet": {
+            "mean": 41808747.719039686,
+            "std": 78606585.72836348
+          },
+          "BytesSent": {
+            "mean": 6263.698357117859,
+            "std": 24982.480116103623
+          },
+          "CPUCreditBalance": {
+            "mean": 479.9721874612349,
+            "std": 171.6506473406526
+          },
+          "Disk Read Operations/Sec": {
+            "mean": 2.626965350894527,
+            "std": 4.455679471692557
+          },
+          "Composite Disk Read Operations/sec": {
+            "mean": 13.555555583370436,
+            "std": 55.657751450127655
+          },
+          "CPU Credits Remaining": {
+            "mean": 746.8372178660962,
+            "std": 587.0851432928363
+          },
+          "CPUUtilization": {
+            "mean": 2.271476116415449,
+            "std": 1.30775624511215
+          },
+          "Disk Write Bytes": {
+            "mean": 6285949.9122545505,
+            "std": 17822823.343433365
+          },
+          "NetworkPacketsIn": {
+            "mean": 476.9808411939539,
+            "std": 547.4893732026376
+          },
+          "OS Disk Write Operations/Sec": {
+            "mean": 2.591037832977354,
+            "std": 3.5819135429931506
+          },
+          "VolumeTotalReadTime": {
+            "mean": 0.030745445146215664,
+            "std": 0.3426614902457757
+          },
+          "Inbound Flows": {
+            "mean": 117.52070581285989,
+            "std": 106.74951401038238
+          },
+          "disk_used_percent": {
+            "mean": 12.990128182185193,
+            "std": 10.842273818007596
+          },
+          "storage.googleapis.com/storage/total_byte_seconds": {
+            "mean": 1187988995289735.2,
+            "std": 3506578254335617.5
+          },
+          "Inbound Flows Maximum Creation Rate": {
+            "mean": 8.557334605960124,
+            "std": 7.114235363379853
+          },
+          "Composite Disk Read Bytes/sec": {
+            "mean": 754028.6503251422,
+            "std": 3128196.5506821587
+          },
+          "OS Disk Queue Depth": {
+            "mean": 0.01133287514884113,
+            "std": 0.07454967338695015
+          },
+          "VolumeTotalWriteTime": {
+            "mean": 0.10025452178482701,
+            "std": 0.09095731496449304
+          },
+          "Network In": {
+            "mean": 253328.0817403344,
+            "std": 781987.1629153598
+          },
+          "Network Out Total": {
+            "mean": 26120861.652868554,
+            "std": 74893608.37369445
+          },
+          "VolumeReadOps": {
+            "mean": 15.069913684124325,
+            "std": 42.520880852139406
+          },
+          "VolumeWriteBytes": {
+            "mean": 5811551.659025481,
+            "std": 9102351.692996848
+          },
+          "compute.googleapis.com/instance/disk/read_ops_count": {
+            "mean": 14.06258548669746,
+            "std": 64.19123809918842
+          },
+          "IntegrationRuntimeQueueLength": {
+            "mean": 0.5967748978852162,
+            "std": 0.4910999169856229
+          },
+          "Outbound Flows Maximum Creation Rate": {
+            "mean": 7.241865135864576,
+            "std": 8.632731884605727
+          },
+          "storage_percent": {
+            "mean": 59.72339182893435,
+            "std": 8.01495271059074
+          },
+          "Errors": {
+            "mean": 1.0001617486526568,
+            "std": 0.049789039853508195
+          },
+          "IntegrationRuntimeAverageTaskPickupDelay": {
+            "mean": 1.4470369694906469,
+            "std": 0.6505467240026315
+          },
+          "AppConnections": {
+            "mean": 2.684458033715478,
+            "std": 0.9113335791568843
+          },
+          "compute.googleapis.com/instance/network/received_bytes_count": {
+            "mean": 7707.533312433792,
+            "std": 11530.086465129521
+          },
+          "cpu_percent": {
+            "mean": 29.471635167129325,
+            "std": 31.305069448612294
+          },
+          "ServiceApiResult": {
+            "mean": 0.9999895356161884,
+            "std": 0.050316661291524865
+          },
+          "FunctionExecutionCount": {
+            "mean": 1.0341533403607115,
+            "std": 0.13972307989003646
+          },
+          "OS Disk Read Operations/Sec": {
+            "mean": 9.260704141548484,
+            "std": 12.883717248722633
+          },
+          "VolumeReadBytes": {
+            "mean": 3922202.164539979,
+            "std": 37034989.231264055
+          },
+          "VolumeIdleTime": {
+            "mean": 59.926615022453994,
+            "std": 3.089126955849771
+          },
+          "Percentage CPU": {
+            "mean": 2.8536251344636168,
+            "std": 4.3363943198093935
+          },
+          "cpu_usage_user": {
+            "mean": 0.2139990998759728,
+            "std": 0.09082488804412597
+          },
+          "Composite Disk Write Operations/sec": {
+            "mean": 2.811430979370046,
+            "std": 5.410937568752326
+          },
+          "Network Out": {
+            "mean": 156597.52116571332,
+            "std": 651193.2136436581
+          },
+          "ServiceApiHit": {
+            "mean": 1.0000239703206368,
+            "std": 0.049741519114192854
+          },
+          "SuccessfulRequests": {
+            "mean": 1.0142796883119478,
+            "std": 0.0686474114854209
+          },
+          "RecordSetCount": {
+            "mean": 1.1668235152683877,
+            "std": 0.3772814449793547
+          },
+          "ServiceApiLatency": {
+            "mean": 130.22879849795228,
+            "std": 142.41786235664893
+          },
+          "dtu_consumption_percent": {
+            "mean": 79.53762838206339,
+            "std": 34.167479814348916
+          },
+          "CPU Credits Consumed": {
+            "mean": 0.03156391294688621,
+            "std": 0.030069126192383597
+          },
+          "NetworkIn": {
+            "mean": 454984.6512493665,
+            "std": 584642.5270219941
+          },
+          "compute.googleapis.com/instance/cpu/utilization": {
+            "mean": 0.01551952969384729,
+            "std": 0.004746840987481709
+          },
+          "ActivitySucceededRuns": {
+            "mean": 0.9992413818456785,
+            "std": 0.05001713505274387
+          },
+          "Outbound Flows": {
+            "mean": 93.53482711556705,
+            "std": 103.00435574241861
+          },
+          "storage": {
+            "mean": 411304646497.9753,
+            "std": 214496514959.74274
+          },
+          "CpuUsage": {
+            "mean": 0.021547701725113357,
+            "std": 0.03882575189312901
+          },
+          "GroupTotalInstances": {
+            "mean": 1.4986216416623857,
+            "std": 0.5054766457497254
+          },
+          "sessions_count": {
+            "mean": 34.43593342952898,
+            "std": 33.62012281117443
+          },
+          "CpuPercentage": {
+            "mean": 10.036833120764248,
+            "std": 9.240405500806315
+          },
+          "SynCount": {
+            "mean": 1.6306562966783433,
+            "std": 2.8414641941736676
+          },
+          "OS Disk Read Bytes/sec": {
+            "mean": 325554.50408167165,
+            "std": 564497.0670280684
+          },
+          "Requests": {
+            "mean": 2.533722519988265,
+            "std": 2.06345115539031
+          },
+          "DiskQueueLength": {
+            "mean": 1.4028965332605703,
+            "std": 0.484266277272718
+          },
+          "MemoryUsage": {
+            "mean": 31573516.72190171,
+            "std": 3090692.7907651225
+          },
+          "OS Disk Write Bytes/sec": {
+            "mean": 93301.12892633819,
+            "std": 292302.63881901075
+          },
+          "compute.googleapis.com/instance/disk/max_write_bytes_count": {
+            "mean": 237695.8260661994,
+            "std": 201725.29206846643
+          },
+          "BurstCreditBalance": {
+            "mean": 2308591999689.0073,
+            "std": 116593133931.0193
+          },
+          "GroupDesiredCapacity": {
+            "mean": 1.6250362282877582,
+            "std": 0.4915172327985494
+          },
+          "PermittedThroughput": {
+            "mean": 104829158.30079365,
+            "std": 5252070.084734971
+          },
+          "CPUCreditUsage": {
+            "mean": 0.20422735537285916,
+            "std": 0.12495693267390127
+          },
+          "Duration": {
+            "mean": 3486.8413342136805,
+            "std": 8773.133756662883
+          },
+          "BackupHealthEvent": {
+            "mean": 4293231022.0,
+            "std": 215680077.62357298
+          },
+          "GroupMaxSize": {
+            "mean": 1.400733586827086,
+            "std": 0.4958876085715226
+          },
+          "Http4xx": {
+            "mean": 1.01496877353121,
+            "std": 0.12235007890771422
+          },
+          "ActivityFailedRuns": {
+            "mean": 1.000074518021242,
+            "std": 0.04960944204748463
+          },
+          "dtu_used": {
+            "mean": 489.08551913078827,
+            "std": 275.3360205116364
+          },
+          "MemoryPercentage": {
+            "mean": 60.48967661876527,
+            "std": 11.370452814480265
+          },
+          "TriggerSucceededRuns": {
+            "mean": 0.9996166186391289,
+            "std": 0.04983645170511826
+          },
+          "allocated_data_storage": {
+            "mean": 547231950728.0957,
+            "std": 389483516104.3579
+          },
+          "ConcurrentExecutions": {
+            "mean": 1.0010878493299797,
+            "std": 0.04975213213930234
+          },
+          "AverageResponseTime": {
+            "mean": 0.8243270737823023,
+            "std": 2.736386024579708
+          },
+          "GroupInServiceCapacity": {
+            "mean": 1.4581351982410604,
+            "std": 0.5792065729842183
+          },
+          "Disk Read Bytes": {
+            "mean": 21709736.92935001,
+            "std": 36275159.07814687
+          },
+          "FunctionExecutionUnits": {
+            "mean": 384864.7500077505,
+            "std": 111212.63458242877
+          },
+          "PipelineFailedRuns": {
+            "mean": 1.0007189124790776,
+            "std": 0.05008339383676723
+          },
+          "ResourceCount": {
+            "mean": 740.3311328464084,
+            "std": 36.51950227301735
+          },
+          "SaturationShoebox": {
+            "mean": 0.02377809641832084,
+            "std": 0.026467593292319763
+          },
+          "compute.googleapis.com/instance/disk/write_ops_count": {
+            "mean": 57.85582764852378,
+            "std": 25.15271595759283
+          },
+          "Disk Write Operations/Sec": {
+            "mean": 1.473739987521262,
+            "std": 2.5188741435318267
+          },
+          "Invocations": {
+            "mean": 0.9997388141988605,
+            "std": 0.05001317395848902
+          },
+          "GroupMinSize": {
+            "mean": 1.749969287853067,
+            "std": 0.4420723133397087
+          },
+          "IntegrationRuntimeAvailableNodeNumber": {
+            "mean": 0.999816968404348,
+            "std": 0.04966336349664216
+          },
+          "PipelineSucceededRuns": {
+            "mean": 1.0002866803254518,
+            "std": 0.04964466288889658
+          },
+          "cpu_usage_idle": {
+            "mean": 99.69132636653052,
+            "std": 4.957958988633569
+          },
+          "GroupTotalCapacity": {
+            "mean": 1.4995192378552424,
+            "std": 0.5053790356244547
+          },
+          "Data Disk Write Bytes/sec": {
+            "mean": 93.79098851565375,
+            "std": 158.46426598877744
+          },
+          "swap_used_percent": {
+            "mean": 7.391364798280928,
+            "std": 0.4635030967028225
+          },
+          "GroupInServiceInstances": {
+            "mean": 1.5554008522013456,
+            "std": 0.5030502565515526
+          },
+          "MaxAllowedResourceCount": {
+            "mean": 5013.132285224066,
+            "std": 255.4929167191228
+          },
+          "cpu_usage_iowait": {
+            "mean": 0.030401394507336792,
+            "std": 0.016571679179107186
+          },
+          "Data Disk Read Bytes/sec": {
+            "mean": 29.29000788902243,
+            "std": 21.99995710604173
+          },
+          "storage.googleapis.com/api/request_count": {
+            "mean": 3.8773563713115426,
+            "std": 4.89887917510531
+          },
+          "VipAvailability": {
+            "mean": 100.03507090409597,
+            "std": 4.910452611773073
+          },
+          "mem_used_percent": {
+            "mean": 43.16438058769261,
+            "std": 11.361622153151623
+          },
+          "disk_inodes_free": {
+            "mean": 94623.81225857206,
+            "std": 30455.153958894938
+          },
+          "cpu_usage_system": {
+            "mean": 0.1390256009064615,
+            "std": 0.04768740683297252
+          },
+          "diskio_io_time": {
+            "mean": 11.435331720776029,
+            "std": 5.077759527746898
+          },
+          "MemoryWorkingSet": {
+            "mean": 549449191.9111111,
+            "std": 29943392.736588817
+          },
+          "VirtualNetworkLinkCount": {
+            "mean": 1.0020103322135077,
+            "std": 0.051668136470892356
+          },
+          "Premium Data Disk Cache Read Miss": {
+            "mean": 100.01748300658332,
+            "std": 5.076245017783467
+          },
+          "Data Disk Read Operations/Sec": {
+            "mean": 0.016938886623009075,
+            "std": 0.018583664788140657
+          }
+        },
+        "source_parquet": "C:\\Users\\Swathi Kumar\\OneDrive\\Desktop\\capstone\\capstone\\datasets\\aug_pairs.parquet",
+        "generated_at": "2026-07-07T07:28:56.008677+00:00"
+      },
+      "time2vec_params_dict": {},
+      "training_timestamp": "2026-07-07T07:41:22.646926+00:00",
+      "val_loss_float": 0.0
+    }
+  },
+  "latest_version": "0.1.0"
+}
