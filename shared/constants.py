@@ -1,64 +1,45 @@
-﻿"""
-shared/constants.py  --  complete constant registry
-=======================================================
-CAPSTONE-189
+"""
+shared/constants.py
+====================
+CAPSTONE-189  |  UPPER_SNAKE_CASE constants, grouped by module prefix.
 
-Single source of truth for ALL UPPER_SNAKE + ModulePrefix constants used
-across phase1/ and phase2/.
+Scope note
+----------
+Only the constants needed by P2-M1 (Ingestion) and P2-M2 (Encoding) are
+defined here. The AUG_* / ENC_* values below are copied verbatim from the
+as-built phase1/data/streaming_aug_pairs_dataset.py and
+phase1/models/tstcc_encoder.py so that P2-M2 cannot silently drift from
+the training-time preprocessing contract. If those two files are ever
+updated, update the matching constants here in the same PR.
 """
 
-# -- Encoder (P1-M3, P2-M3, P2-M4) -----------------------------
-ENC_EMBED_DIM        = 128
-ENC_FEATURE_DIM      = 256
-ENC_GRU_HIDDEN       = 128
-ENC_GRU_N_LAYERS     = 2
-ENC_TIME2VEC_K       = 8
-ENC_PROJ_DIM         = 128
-ENC_DROPOUT          = 0.1
+# -- Ingestion (P2-M1) -------------------------------------------------
+INGEST_BATCH_WIN_SEC: int = 300     # 5-minute batch window (configurable; 30s for demos)
+INGEST_POLL_MS: int = 100           # Kafka/Kinesis/PubSub poll timeout per cycle
 
-# -- Augmentation Pairs / Encoder Input (P1-M2, P1-M3) --
-AUG_PAIRS_NUMERIC_COLS      = ['value_norm', 'hour_of_day', 'day_of_week']
-AUG_PAIRS_NUM_NUMERIC       = 3
-AUG_PAIRS_CATEGORICAL_COLS  = ['cloud', 'entity_type', 'namespace', 'metric_name']
-AUG_VALUE_NORM_EPS          = 1e-6
+# -- Augmentation Pairs / Encoder Input (P1-M2, P1-M3, P2-M2) -----------
+# Column order is the CONTRACT — must match streaming_aug_pairs_dataset.py's
+# AUG_CATEGORICAL_COLS exactly, since TstccEncoder.EmbeddingLayer reads
+# categorical_input_tensor[..., i] positionally, not by name.
+AUG_CATEGORICAL_COLS: list[str] = ["cloud", "entity_type", "namespace", "metric_name"]
+AUG_TIME_SCALAR_COLS: list[str] = ["hour_of_day", "day_of_week"]
+AUG_NUMERIC_COLS: list[str] = ["value_norm"] + AUG_TIME_SCALAR_COLS  # = 3, order matters
+AUG_PAIRS_NUM_NUMERIC: int = 3
+AUG_VALUE_NORM_EPS: float = 1e-6    # floors per-metric std to avoid divide-by-zero
 
-# -- Training (P1-M4) -------------------------------------------
-TRAIN_TEMPERATURE    = 0.07
-TRAIN_LR             = 1e-4
-TRAIN_WEIGHT_DECAY   = 1e-4
-TRAIN_GRAD_CLIP_NORM = 1.0
-TRAIN_BATCH_SIZE     = 256
+# -- Encoder (P1-M3, P2-M3, P2-M4) — for reference / vocab sizing only --
+ENC_EMBED_DIM: int = 128
+ENC_FEATURE_DIM: int = 256
 
-# -- FAISS (P1-M5, P2-M9) ----------------------------------------
-FAISS_N_LIST          = 100
-FAISS_N_PROBE         = 20
-FAISS_TOP_K           = 10
-EPISODE_CACHE_TTL_SEC = 1800
+# -- Reference encoder (P2-M4) ------------------------------------------
+REF_HISTORY_DAYS: int = 90          # historical window encoded on (re)build
+REF_HISTORY_LEN: int = 30           # max window-embeddings kept per entity
+REF_CENTROID_ALPHA: float = 0.1     # EMA update factor for incremental refresh
+REF_DRIFT_ALARM_STD: float = 3.0    # flag entity if new emb is > N std from centroid
+REF_SEQ_LEN: int = 32               # events per window, matches P1-M3 training default
 
-# -- Ingestion (P2-M1) --------------------------------------------
-INGEST_BATCH_WIN_SEC = 300
-INGEST_POLL_MS       = 100
+# -- Entity Store / Redis (P2-M6) — referenced by P2-M4 --------------------
+REDIS_HISTORY_LEN: int = 30         # rolling history window (mirrors REF_HISTORY_LEN)
 
-# -- Entity Store / Redis (P2-M6) ----------------------------------
-REDIS_HISTORY_LEN     = 30
-REDIS_EMB_BYTES       = 256
-REDIS_DEDUP_TTL       = 300
-REDIS_DRIFT_CACHE_TTL = 1800
 
-# -- Detection Thresholds (P2-M7, P2-M8, P2-M10) --------------------
-SCORE_W_DEVIATION    = 0.4
-SCORE_W_DRIFT        = 0.4
-SCORE_W_SIMILARITY   = 0.2
-SCORE_GLOBAL_THRESH  = 0.3
-SCORE_LOCAL_THRESH   = 0.25
-SCORE_DRIFT_THRESH   = 0.5
-SCORE_SEV_MEDIUM     = 0.3
-SCORE_SEV_HIGH       = 0.6
-SCORE_SEV_CRITICAL   = 0.8
-
-# -- Reference encoder (P2-M4) --------------------------------------
-REF_HISTORY_DAYS    = 90
-REF_CENTROID_ALPHA  = 0.1
-REF_HISTORY_LEN     = 30
-REF_DRIFT_ALARM_STD = 3.0
-REF_SEQ_LEN         = 32
+REDIS_EMB_BYTES = 128 * 2

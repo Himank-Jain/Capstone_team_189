@@ -1,0 +1,18 @@
+{
+  "total_rows": 8969760,
+  "unique_entities": 268,
+  "unique_metrics": 126,
+  "cloud_distribution": {
+    "Azure": 7195680,
+    "AWS": 1460160,
+    "GCP": 313920
+  },
+  "anomaly_rows": 0,
+  "anomaly_fraction": 0.0,
+  "date_range": [
+    "2025-11-01 00:00:00+00:00",
+    "2025-11-30 23:59:00+00:00"
+  ],
+  "output_path": "./corpus_output\\pretrain_corpus.parquet",
+  "file_size_mb": 91.12
+}

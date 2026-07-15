@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 
@@ -140,8 +140,13 @@ class CurrentEmbedding:
     One entity's "current behavior fingerprint" for a single ingestion
     batch — output of CurrentEmbeddingAggregator (P2-M5), written to the
     entity store's current_embedding field and consumed directly by
-    CosineDeviationScorer (P2-M7) and EpisodeRetriever (P2-M9, as the
-    search query).
+    CosineDeviationScorer (P2-M7).
+
+    Field names here are the canonical contract from the Directory
+    Structure Addendum, Section 5 (`emb` / `batch_ts` / `n_records`) —
+    NOT the `embedding` / `batch_timestamp` / `record_count` names used
+    in the P2-M5 planner prose, which predate this file. Do not rename
+    without a team PR (this file is frozen per its own module docstring).
 
     Parameters
     ----------
@@ -165,41 +170,3 @@ class CurrentEmbedding:
     batch_ts: datetime
     n_records: int
     cloud_provider: str
-
-
-@dataclass
-class EpisodeSearchResult:
-    """
-    One retrieved historical episode from EpisodeRetriever (P2-M9)'s
-    FAISS search, ready for P2-M10 (similarity input) and P2-M14
-    (Explainable Alert's 'similar_incidents' field).
-
-    Parameters
-    ----------
-    similarity_score:
-        Cosine similarity in [0,1] (converted from FAISS's squared-L2
-        distance — see EpisodeRetriever for the exact formula). Higher =
-        more similar to the query.
-    episode_id:
-        Stable identifier for this historical episode. The real FAISS
-        metadata (behavioral_space_meta.pkl) carries no explicit
-        episode/incident id field, so this is synthesized from the
-        vector's FAISS internal index position — stable per
-        FaissIndexer's own append-only invariant (never reordered).
-    entity_id:
-        Which monitored resource this historical episode belongs to.
-    timestamp:
-        UTC datetime of the historical episode (as stored in FAISS metadata).
-    cloud_provider:
-        AWS | Azure | GCP | OCI, from the historical episode's metadata.
-    severity_label:
-        Optional severity tag from the historical episode's metadata —
-        None if the real corpus never populated it (observed to be the
-        common case in the current FAISS build).
-    """
-    similarity_score: float
-    episode_id: str
-    entity_id: str
-    timestamp: Optional[datetime]
-    cloud_provider: str
-    severity_label: Optional[str] = None
