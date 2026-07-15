@@ -27,7 +27,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List
+from typing import List, Optional
+
+import numpy as np
 
 
 @dataclass
@@ -88,3 +90,116 @@ class EventBatch:
     batch_ts: datetime = field(default_factory=datetime.utcnow)
     source: str = "unknown"
     n_invalid: int = 0
+
+
+@dataclass
+class EntityProfile:
+    """
+    Per-entity behavioral baseline, written by ReferenceEncoderService
+    (P2-M4) and read by CosineDeviationScorer (P2-M7) / MmdDriftMonitor
+    (P2-M8) via EntityStoreReader. This is the P2-M6 store's payload shape
+    for one entity — see Directory Structure Addendum Section 5.
+
+    Parameters
+    ----------
+    entity_id:
+        Unique identifier for the monitored resource.
+    centroid_emb:
+        Shape (128,), L2-normalised. Mean of the last `n_records` window
+        embeddings (or updated incrementally via EMA — see
+        REF_CENTROID_ALPHA in shared/constants.py).
+    history_embs:
+        Up to REDIS_HISTORY_LEN most recent window embeddings, each
+        shape (128,), L2-normalised, chronological (oldest first).
+    emb_variance:
+        Scalar spread measure — trace of the covariance matrix of
+        history_embs. Higher = more behaviorally volatile entity.
+    n_records:
+        Count of window-embeddings that contributed to centroid_emb
+        (NOT raw event count). Distinct from len(history_embs) once
+        history_embs is capped at REDIS_HISTORY_LEN.
+    last_update_ts:
+        UTC datetime this profile was last written or EMA-updated.
+    cold_start_flag:
+        True when this entity had no (or insufficient) history and
+        centroid_emb was seeded from the global mean instead of the
+        entity's own data.
+    """
+    entity_id: str
+    centroid_emb: np.ndarray
+    history_embs: List[np.ndarray]
+    emb_variance: float
+    n_records: int
+    last_update_ts: datetime
+    cold_start_flag: bool = False
+
+
+@dataclass
+class CurrentEmbedding:
+    """
+    One entity's "current behavior fingerprint" for a single ingestion
+    batch — output of CurrentEmbeddingAggregator (P2-M5), written to the
+    entity store's current_embedding field and consumed directly by
+    CosineDeviationScorer (P2-M7) and EpisodeRetriever (P2-M9, as the
+    search query).
+
+    Parameters
+    ----------
+    entity_id:
+        Unique identifier for the monitored resource.
+    emb:
+        Shape (128,), L2-normalised. Mean-pooled across every window
+        embedding this entity produced within the batch, normalised
+        AFTER pooling (not before — see CurrentEmbeddingAggregator).
+    batch_ts:
+        UTC datetime of the ingestion batch this embedding summarises.
+    n_records:
+        Count of window-embeddings that were pooled into `emb` for this
+        entity in this batch (1 if the entity appeared only once).
+    cloud_provider:
+        AWS | Azure | GCP | OCI — carried through from the entity's
+        RawRecords for downstream filtering/dashboarding.
+    """
+    entity_id: str
+    emb: np.ndarray
+    batch_ts: datetime
+    n_records: int
+    cloud_provider: str
+
+
+@dataclass
+class EpisodeSearchResult:
+    """
+    One retrieved historical episode from EpisodeRetriever (P2-M9)'s
+    FAISS search, ready for P2-M10 (similarity input) and P2-M14
+    (Explainable Alert's 'similar_incidents' field).
+
+    Parameters
+    ----------
+    similarity_score:
+        Cosine similarity in [0,1] (converted from FAISS's squared-L2
+        distance — see EpisodeRetriever for the exact formula). Higher =
+        more similar to the query.
+    episode_id:
+        Stable identifier for this historical episode. The real FAISS
+        metadata (behavioral_space_meta.pkl) carries no explicit
+        episode/incident id field, so this is synthesized from the
+        vector's FAISS internal index position — stable per
+        FaissIndexer's own append-only invariant (never reordered).
+    entity_id:
+        Which monitored resource this historical episode belongs to.
+    timestamp:
+        UTC datetime of the historical episode (as stored in FAISS metadata).
+    cloud_provider:
+        AWS | Azure | GCP | OCI, from the historical episode's metadata.
+    severity_label:
+        Optional severity tag from the historical episode's metadata —
+        None if the real corpus never populated it (observed to be the
+        common case in the current FAISS build).
+    """
+    similarity_score: float
+    episode_id: str
+    entity_id: str
+    timestamp: Optional[datetime]
+    cloud_provider: str
+    severity_label: Optional[str] = None

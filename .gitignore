@@ -1,11 +1,13 @@
-﻿# Virtual environment
+# Virtual environment
 venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 
-# Large data / model artifacts - exceed GitHub's 100MB hard limit per file,
-# or are just bad practice to commit directly.
+# Large data / model artifacts — exceed GitHub's 100MB hard limit per file,
+# or are just bad practice to commit directly. Use Git LFS
+# (https://git-lfs.github.com) if these need version control, or share via
+# separate storage (S3, shared drive) and reference the path in docs.
 pretrain_corpus.parquet
 model_registry/behavioral_space.faiss
 model_registry/behavioral_space_meta.pkl
