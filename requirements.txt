@@ -2,3 +2,11 @@ pandas
 numpy
 pyarrow
 pytest
+torch
+faiss-cpu
+networkx
+redis
+fakeredis
+confluent-kafka
+boto3
+google-cloud-pubsub

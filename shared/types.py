@@ -54,6 +54,65 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
 
+import numpy as np
+
+
+@dataclass
+class RawRecord:
+    entity_id: str
+    timestamp: datetime
+    cloud: str
+    entity_type: str
+    namespace: str
+    metric_name: str
+    value: float
+
+
+@dataclass
+class EventBatch:
+    records: List[RawRecord] = field(default_factory=list)
+    batch_ts: datetime = field(default_factory=datetime.utcnow)
+    source: str = "unknown"
+    n_invalid: int = 0
+
+
+@dataclass
+class EntityProfile:
+    entity_id: str
+    centroid_emb: np.ndarray
+    history_embs: List[np.ndarray]
+    emb_variance: float
+    n_records: int
+    last_update_ts: datetime
+    cold_start_flag: bool = False
+
+
+@dataclass
+class CurrentEmbedding:
+    entity_id: str
+    emb: np.ndarray
+    batch_ts: datetime
+    n_records: int
+    cloud_provider: str
+
+
+@dataclass
+class DeviationResult:
+    entity_id: str
+    global_score: float
+    local_score: float
+    global_flag: bool
+    local_flag: bool
+    batch_ts: datetime
+
+
+@dataclass
+class DriftScore:
+    entity_id: str
+    drift_score: float
+    drift_flag: bool
+    computed_at: datetime
+
 
 # =========================================================================
 # Section 1 -- Alert Deduplication (P2-M11)

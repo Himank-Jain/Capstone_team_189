@@ -1,5 +1,40 @@
 """
-shared/constants.py -- COMBINED ADDITIONS for P2-M11, P2-M12, P2-M10
+"""
+
+INGEST_BATCH_WIN_SEC: int = 300
+INGEST_POLL_MS: int = 100
+
+AUG_CATEGORICAL_COLS: list[str] = ["cloud", "entity_type", "namespace", "metric_name"]
+AUG_PAIRS_CATEGORICAL_COLS = AUG_CATEGORICAL_COLS
+AUG_TIME_SCALAR_COLS: list[str] = ["hour_of_day", "day_of_week"]
+AUG_NUMERIC_COLS: list[str] = ["value_norm", *AUG_TIME_SCALAR_COLS]
+AUG_PAIRS_NUM_NUMERIC: int = 3
+AUG_VALUE_NORM_EPS: float = 1e-6
+
+ENC_EMBED_DIM: int = 128
+ENC_FEATURE_DIM: int = 256
+REF_HISTORY_DAYS: int = 90
+REF_HISTORY_LEN: int = 30
+REF_CENTROID_ALPHA: float = 0.1
+REF_DRIFT_ALARM_STD: float = 3.0
+REF_SEQ_LEN: int = 32
+REDIS_HISTORY_LEN: int = 30
+REDIS_EMB_BYTES: int = 128 * 2
+REDIS_DRIFT_CACHE_TTL: int = 1800
+SCORE_GLOBAL_THRESH: float = 0.3
+SCORE_LOCAL_THRESH: float = 0.25
+SCORE_DRIFT_THRESH: float = 0.5
+FAISS_TOP_K: int = 10
+FAISS_N_LIST: int = 100
+FAISS_N_PROBE: int = 20
+EPISODE_CACHE_TTL_SEC: int = 1800
+MMD_DEFAULT_SIGMA: float = 1.0
+MMD_MAX_SAMPLES_PER_DIST: int = 200
+MMD_RECENT_FRACTION: float = 1.0 / 3.0
+MMD_MIN_SAMPLES_PER_DIST: int = 5
+MMD_NULL_CALIBRATION_PAIRS: int = 1000
+MMD_NULL_CALIBRATION_PERCENTILE: float = 99.0
+"""shared/constants.py -- COMBINED ADDITIONS for P2-M11, P2-M12, P2-M10
 =======================================================================
 CAPSTONE-189
 
