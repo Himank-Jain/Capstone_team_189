@@ -79,6 +79,38 @@ def test_knowledge_builder_returns_explanation_and_recommendations(sample_rca_ca
     assert all(getattr(item, "check", None) for item in recommendations)
 
 
+@pytest.mark.parametrize(
+    ("features", "category"),
+    [
+        (["iam_policy_change", "suspicious_login_location", "credential_reset_spike"], "CREDENTIAL_THEFT"),
+        (["file_access_spike", "privilege_escalation_attempt", "new_data_exfiltration_pattern"], "PRIVILEGE_ESCALATION"),
+        (["port_scan_count", "new_ip_discovery", "lateral_probe_burst"], "NETWORK_RECONNAISSANCE"),
+    ],
+)
+def test_attack_feature_sets_select_specific_hypothesis(sample_rca_case, features, category):
+    sample_rca_case.final_score = 0.82
+    sample_rca_case.changed_features = features
+
+    candidate = HypothesisEngine().generate(sample_rca_case)[0]
+
+    assert candidate.cause_category == category
+    assert candidate.confidence == "HIGH"
+
+
+def test_every_hypothesis_category_has_knowledge_entry():
+    from phase3.knowledge.knowledge_loader import KnowledgeLoader
+
+    rule_categories = {
+        rule["cause_category"] for rule in HypothesisEngine()._rules
+    }
+    knowledge_categories = {
+        entry["cause_category"]
+        for entry in KnowledgeLoader()._data["causes"]
+    }
+
+    assert rule_categories <= knowledge_categories
+
+
 def test_tenant_isolation_rejects_cross_tenant_access():
     class FakeMembershipReader:
         def fetch_membership(self, user_id, tenant_id):
