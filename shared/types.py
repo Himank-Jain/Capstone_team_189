@@ -27,9 +27,36 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional
+from enum import Enum
+from typing import Dict, List, Optional
 
 import numpy as np
+
+
+class Severity(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class GroupType(str, Enum):
+    ISOLATED = "ISOLATED"
+    CORRELATED = "CORRELATED"
+    REGIONAL_OUTAGE = "REGIONAL_OUTAGE"
+
+
+class SevLevel(str, Enum):
+    SEV1 = "SEV1"
+    SEV2 = "SEV2"
+    SEV3 = "SEV3"
+    SEV4 = "SEV4"
+
+
+class NotifyMethod(str, Enum):
+    PAGE = "PAGE"
+    SLACK = "SLACK"
+    EMAIL = "EMAIL"
 
 
 @dataclass
@@ -203,3 +230,33 @@ class EpisodeSearchResult:
     timestamp: Optional[datetime]
     cloud_provider: str
     severity_label: Optional[str] = None
+
+
+@dataclass
+class EpisodeMatch:
+    similarity_score: float
+    episode_id: str
+    entity_id: str
+    timestamp: datetime
+    cloud_provider: str
+    severity_label: Optional[str]
+
+
+@dataclass
+class AlertPayload:
+    alert_id: str
+    entity_id: str
+    batch_ts: datetime
+    final_score: float
+    severity: Severity
+    sev_level: SevLevel
+    deviation_score: float
+    drift_score: float
+    similarity_score: float
+    similar_episodes: List[EpisodeMatch]
+    related_ids: List[str]
+    group_type: GroupType
+    target_team: str
+    notify_method: NotifyMethod
+    cloud_provider: str
+    region: str

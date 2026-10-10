@@ -1,0 +1,26 @@
+version: "2026.10.09"
+rules:
+  - id: "rca.behavior_change"
+    cause_category: "BEHAVIOR_CHANGE"
+    confidence: "HIGH"
+    condition: "case.final_score >= 0.75 or scores.get('deviation', 0.0) >= 0.75"
+    supporting_evidence_keys: ["component_scores", "behavioral_deviation"]
+    contradicting_evidence_keys: []
+  - id: "rca.drift"
+    cause_category: "DRIFT"
+    confidence: "MEDIUM"
+    condition: "scores.get('drift', 0.0) >= 0.65"
+    supporting_evidence_keys: ["component_scores", "drift_evidence"]
+    contradicting_evidence_keys: []
+  - id: "rca.resource_change"
+    cause_category: "RESOURCE_CHANGE"
+    confidence: "MEDIUM"
+    condition: "scores.get('similarity', 0.0) >= 0.6 or bool(case.related_incidents)"
+    supporting_evidence_keys: ["similar_episodes", "related_incidents"]
+    contradicting_evidence_keys: []
+  - id: "rca.unknown"
+    cause_category: "UNKNOWN"
+    confidence: "LOW"
+    condition: "True"
+    supporting_evidence_keys: []
+    contradicting_evidence_keys: ["component_scores"]
