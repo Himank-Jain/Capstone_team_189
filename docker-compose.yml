@@ -29,3 +29,19 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --save "" --appendonly no
+
+  platform_postgres:
+    image: pgvector/pgvector:pg16
+    container_name: capstone-platform-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: platform
+      # Local development only; never use this credential in a deployed environment.
+      POSTGRES_PASSWORD: platform
+    volumes:
+      - platform_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  platform_postgres_data:
