@@ -1,0 +1,9 @@
+{
+  "model_name": "TSTCC",
+  "embedding_dim": 128,
+  "sequence_length": 32,
+  "batch_size": 512,
+  "faiss_index_type": "IndexIVFFlat",
+  "faiss_nlist": 100,
+  "projection_head": false
+}

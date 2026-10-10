@@ -1,0 +1,19 @@
+# Apply with:
+#   gcloud iam roles create capstone189LiveIngestionReadOnly \
+#     --project=<YOUR_PROJECT_ID> --file=gcp_custom_role.yaml
+# Then bind to the Service Account:
+#   gcloud projects add-iam-policy-binding <YOUR_PROJECT_ID> \
+#     --member="serviceAccount:<SA_EMAIL>" \
+#     --role="projects/<YOUR_PROJECT_ID>/roles/capstone189LiveIngestionReadOnly"
+
+title: "CAPSTONE-189 Live Ingestion Read-Only"
+description: "Read-only access to Cloud Audit Logs and Monitoring metrics. No write/delete permissions."
+stage: "GA"
+includedPermissions:
+  - logging.logEntries.list
+  - logging.logs.list
+  - monitoring.timeSeries.list
+  - monitoring.metricDescriptors.list
+  - compute.instances.list
+  - storage.buckets.list
+  - resourcemanager.projects.get

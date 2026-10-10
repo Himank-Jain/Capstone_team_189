@@ -1,0 +1,13 @@
+# Run these as Policy statements in the root compartment (or a specific compartment)
+# after creating a Group "Capstone189-LiveIngestion-ReadOnly" and adding your
+# dedicated API user to it. Attach an API signing key to that user for auth.
+
+Allow group Capstone189-LiveIngestion-ReadOnly to read audit-events in tenancy
+Allow group Capstone189-LiveIngestion-ReadOnly to inspect all-resources in tenancy
+Allow group Capstone189-LiveIngestion-ReadOnly to read metrics in tenancy
+Allow group Capstone189-LiveIngestion-ReadOnly to read instances in tenancy
+Allow group Capstone189-LiveIngestion-ReadOnly to read volumes in tenancy
+Allow group Capstone189-LiveIngestion-ReadOnly to read buckets in tenancy
+
+# Explicitly NOT granted: manage/use verbs on any resource family.
+# This group can only ever read/inspect, never create/update/delete/attach.

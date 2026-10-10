@@ -21,3 +21,12 @@ model_registry_test/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Final sibling local artifacts
+*.py[cod]
+*.tsbuildinfo
+capstone_phase3_*.db
+frontend/.env
+frontend/node_modules/
+frontend/dist/
+backend/api_demo_ext/email_logs/

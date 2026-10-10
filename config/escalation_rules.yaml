@@ -1,0 +1,73 @@
+# config/escalation_rules.yaml
+# ==========================================
+# P2-M13 Escalation Engine — versioned rules file
+# CAPSTONE-189
+#
+# Evaluated in order, FIRST MATCH WINS (Team Planner P2-M13, step 2).
+# Every condition key on a rule must match for that rule to fire; a rule
+# with an empty `conditions: {}` matches unconditionally, so the final
+# rule below acts as the catch-all. RulesEngine raises at load time if
+# this file is missing or has no rules at all -- always keep the
+# catch-all rule last.
+#
+# actions.severity_level, if present, OVERRIDES SeverityMapper's default
+# sev_level for that firing (see escalation_engine.py design note 4). If
+# omitted, SeverityMapper's Severity x GroupType default is used as-is.
+
+rules:
+  - name: critical_regional_page
+    conditions:
+      entity_criticality: critical
+      group_type: REGIONAL_OUTAGE
+    actions:
+      severity_level: SEV1
+      target_team: on_call
+      notify_method: PAGE
+
+  - name: critical_high_score_page
+    conditions:
+      entity_criticality: critical
+      min_final_score: 0.8
+    actions:
+      severity_level: SEV1
+      target_team: on_call
+      notify_method: PAGE
+
+  - name: high_criticality_business_hours
+    conditions:
+      entity_criticality: high
+      business_hours: true
+    actions:
+      target_team: platform_reliability
+      notify_method: SLACK
+
+  - name: high_criticality_after_hours_urgent
+    conditions:
+      entity_criticality: high
+      business_hours: false
+      min_final_score: 0.6
+    actions:
+      severity_level: SEV2
+      target_team: on_call
+      notify_method: PAGE
+
+  - name: medium_criticality_default
+    conditions:
+      entity_criticality: medium
+    actions:
+      target_team: platform_reliability
+      notify_method: SLACK
+
+  - name: low_criticality_default
+    conditions:
+      entity_criticality: low
+    actions:
+      target_team: platform_reliability
+      notify_method: EMAIL
+
+  # Catch-all -- must remain last. Empty conditions always match.
+  - name: default_fallback
+    conditions: {}
+    actions:
+      target_team: on_call
+      notify_method: SLACK
