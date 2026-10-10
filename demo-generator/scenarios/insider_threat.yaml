@@ -1,0 +1,4 @@
+name: insider_threat
+description: Slow drift with low immediate deviation and rising drift
+entity_ids:
+  - vol-0a12

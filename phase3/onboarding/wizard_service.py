@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 
 class OnboardingWizardService:
@@ -13,7 +14,7 @@ class OnboardingWizardService:
         self._sessions: dict[str, dict[str, Any]] = {}
 
     def start_onboarding(self, user_id: str, tenant_name: str, source_mode: str = "synthetic") -> dict[str, Any]:
-        session_id = f"onboarding-{user_id}-{len(self._sessions) + 1}"
+        session_id = f"onboarding-{user_id}-{uuid4().hex}"
         session = {
             "session_id": session_id,
             "user_id": user_id,
@@ -49,6 +50,11 @@ class OnboardingWizardService:
 
     def get_session(self, session_id: str) -> dict[str, Any]:
         return self._sessions[session_id]
+
+    def restore_session(self, session: dict[str, Any]) -> dict[str, Any]:
+        session_id = str(session["session_id"])
+        self._sessions[session_id] = session
+        return session
 
     def get_sessions_for_user(self, user_id: str) -> list[dict[str, Any]]:
         return [session for session in self._sessions.values() if session.get("user_id") == user_id]

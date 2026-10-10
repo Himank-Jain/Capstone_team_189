@@ -15,15 +15,20 @@ class PlatformSessionFactory:
 
     def __init__(self, cfg: dict | None):
         self._cfg = cfg or {}
+        self._engine: Engine | None = None
 
     @property
     def cfg(self) -> dict:
         return self._cfg
 
     def build_engine(self) -> Engine:
+        if self._engine is not None:
+            return self._engine
         db_url = self._cfg.get("database_url") or self._cfg.get("DATABASE_URL") or "sqlite:///:memory:"
         echo = bool(self._cfg.get("db_echo", False) or self._cfg.get("DB_ECHO", False))
-        return create_engine(db_url, echo=echo, future=True)
+        connect_args = {"check_same_thread": False} if db_url.startswith("sqlite:") else {}
+        self._engine = create_engine(db_url, echo=echo, future=True, connect_args=connect_args)
+        return self._engine
 
     def create_session(self) -> Session:
         engine = self.build_engine()

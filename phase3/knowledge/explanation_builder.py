@@ -20,6 +20,7 @@ class ExplanationBuilder:
         entry = self._loader.retrieve_knowledge_entry(candidate.cause_category)
         kb_version = entry.extra.get("kb_version") or "unknown"
         sections = [
+            ExplanationSection("Summary", entry.title),
             ExplanationSection("What this means", entry.definition),
             ExplanationSection("How it was detected", entry.how_it_shows_up),
             ExplanationSection("Common causes", "; ".join(entry.common_causes) if entry.common_causes else entry.definition),
@@ -54,6 +55,8 @@ class ExplanationBuilder:
         for key in candidate.supporting_evidence_keys:
             if key == "component_scores":
                 details.append(f"component_scores={rca_case.component_scores}")
+            elif key == "changed_features":
+                details.append(f"changed_features={rca_case.changed_features}")
             elif key == "behavioral_deviation":
                 details.append(f"behavioral_deviation={rca_case.behavioral_deviation}")
             elif key == "drift_evidence":

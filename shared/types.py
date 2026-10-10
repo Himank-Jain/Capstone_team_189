@@ -260,3 +260,98 @@ class AlertPayload:
     notify_method: NotifyMethod
     cloud_provider: str
     region: str
+
+
+@dataclass
+class AugmentedPair:
+    entity_id: str
+    view_1: np.ndarray
+    view_2: np.ndarray
+    batch_ts: datetime
+
+
+@dataclass
+class DeviationResult:
+    entity_id: str
+    global_score: float
+    local_score: float
+    global_flag: bool
+    local_flag: bool
+    batch_ts: datetime
+
+
+@dataclass
+class DriftResult:
+    entity_id: str
+    drift_score: float
+    drift_flag: bool
+    computed_at: datetime
+    is_stale: bool = False
+
+
+DriftScore = DriftResult
+
+
+@dataclass
+class SimilarityResult:
+    entity_id: str
+    mean_similarity: float
+    episode_matches: List[EpisodeMatch]
+    batch_ts: datetime
+
+
+@dataclass
+class ScoringInput:
+    entity_id: str
+    deviation_score: float
+    drift_score: Optional[float]
+    similarity_score: Optional[float]
+    batch_ts: datetime
+    component_scores: Dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class AnomalyResult:
+    entity_id: str
+    final_score: float
+    severity: Severity
+    deviation_contribution: float
+    drift_contribution: float
+    similarity_contribution: float
+    batch_ts: datetime
+
+
+@dataclass
+class DedupResult:
+    entity_id: str
+    is_duplicate: bool
+    canonical_incident_id: str
+    first_seen_ts: datetime
+    recurrence_count: int
+
+
+@dataclass
+class EntityAttributesData:
+    entity_id: str
+    cloud_provider: str
+    region: str
+    op_id: str
+
+
+@dataclass
+class CorrelationResult:
+    entity_id: str
+    incident_group_id: str
+    related_ids: List[str]
+    group_size: int
+    group_type: GroupType
+
+
+@dataclass
+class EscalationResult:
+    entity_id: str
+    sev_level: SevLevel
+    target_team: str
+    notify_method: NotifyMethod
+    policy_applied: str
+    business_hours_flag: bool = False

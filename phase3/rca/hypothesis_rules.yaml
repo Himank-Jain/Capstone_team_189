@@ -1,5 +1,23 @@
-version: "2026.10.09"
+version: "2026.10.09.1"
 rules:
+  - id: "rca.credential_theft"
+    cause_category: "CREDENTIAL_THEFT"
+    confidence: "HIGH"
+    condition: "case.final_score >= 0.65 and 'suspicious_login_location' in case.changed_features and ('credential_reset_spike' in case.changed_features or 'iam_policy_change' in case.changed_features)"
+    supporting_evidence_keys: ["changed_features", "behavioral_deviation"]
+    contradicting_evidence_keys: []
+  - id: "rca.privilege_escalation"
+    cause_category: "PRIVILEGE_ESCALATION"
+    confidence: "HIGH"
+    condition: "case.final_score >= 0.65 and 'privilege_escalation_attempt' in case.changed_features and ('new_data_exfiltration_pattern' in case.changed_features or 'file_access_spike' in case.changed_features)"
+    supporting_evidence_keys: ["changed_features", "behavioral_deviation"]
+    contradicting_evidence_keys: []
+  - id: "rca.network_reconnaissance"
+    cause_category: "NETWORK_RECONNAISSANCE"
+    confidence: "HIGH"
+    condition: "case.final_score >= 0.65 and 'port_scan_count' in case.changed_features and ('new_ip_discovery' in case.changed_features or 'lateral_probe_burst' in case.changed_features)"
+    supporting_evidence_keys: ["changed_features", "behavioral_deviation"]
+    contradicting_evidence_keys: []
   - id: "rca.behavior_change"
     cause_category: "BEHAVIOR_CHANGE"
     confidence: "HIGH"

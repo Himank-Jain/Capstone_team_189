@@ -1,0 +1,58 @@
+:root {
+  --p3-bg: #0e1714;
+  --p3-panel: #15211d;
+  --p3-panel-raised: #1b2b25;
+  --p3-border: #30443a;
+  --p3-text: #f1f4ec;
+  --p3-muted: #a7b8ad;
+  --p3-green: #a3e635;
+  --p3-cyan: #67e8d0;
+  --p3-amber: #f5bc57;
+  --p3-red: #fb8079;
+}
+
+.p3-shell { min-height: 100vh; padding: 32px clamp(18px, 4vw, 56px); background: var(--p3-bg); color: var(--p3-text); }
+.p3-content { width: min(1180px, 100%); margin: 0 auto; }
+.p3-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+.p3-kicker { margin: 0 0 9px; color: var(--p3-cyan); font: 700 12px/1.3 'Bahnschrift', 'Trebuchet MS', sans-serif; text-transform: uppercase; }
+.p3-title { margin: 0; font: 700 30px/1.15 'Bahnschrift', 'Trebuchet MS', sans-serif; }
+.p3-subtitle { max-width: 680px; margin: 10px 0 0; color: var(--p3-muted); line-height: 1.6; }
+.p3-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.p3-button, .p3-link-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--p3-border); border-radius: 6px; background: var(--p3-panel-raised); color: var(--p3-text); font: inherit; font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer; }
+.p3-button:hover, .p3-link-button:hover { border-color: var(--p3-cyan); }
+.p3-button-primary { border-color: var(--p3-green); background: var(--p3-green); color: #152018; }
+.p3-button:disabled { opacity: .5; cursor: not-allowed; }
+.p3-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.p3-panel { min-width: 0; padding: 20px; border: 1px solid var(--p3-border); border-radius: 7px; background: var(--p3-panel); }
+.p3-panel h2, .p3-panel h3 { margin: 0 0 13px; font: 650 18px/1.3 'Bahnschrift', 'Trebuchet MS', sans-serif; }
+.p3-panel p { color: var(--p3-muted); line-height: 1.55; }
+.p3-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-top: 1px solid var(--p3-border); }
+.p3-row:first-child { border-top: 0; }
+.p3-label { display: block; margin-bottom: 7px; color: var(--p3-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.p3-input, .p3-select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--p3-border); border-radius: 5px; background: #0f1915; color: var(--p3-text); font: inherit; }
+.p3-field { margin-bottom: 16px; }
+.p3-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 9px; border: 1px solid var(--p3-border); border-radius: 999px; color: var(--p3-muted); font-size: 12px; font-weight: 700; }
+.p3-badge-high { border-color: #698e2e; color: var(--p3-green); }
+.p3-badge-medium { border-color: #9b722e; color: var(--p3-amber); }
+.p3-badge-low { border-color: #586a61; color: #c1cdc5; }
+.p3-notice { padding: 14px 16px; border-left: 3px solid var(--p3-amber); background: #282315; color: #f7dfad; line-height: 1.5; }
+.p3-notice-fallback { border-color: var(--p3-cyan); background: #142723; color: #c3f5e9; }
+.p3-step-list { display: grid; gap: 7px; padding: 0; list-style: none; }
+.p3-step { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--p3-border); border-radius: 5px; background: #111b17; }
+.p3-step-current { border-color: var(--p3-cyan); }
+.p3-step-done { color: var(--p3-green); }
+.p3-step-number { display: grid; place-items: center; width: 28px; aspect-ratio: 1; border: 1px solid var(--p3-border); border-radius: 50%; color: var(--p3-muted); font-size: 12px; }
+.p3-tabs { display: flex; gap: 4px; overflow-x: auto; margin: 0 0 14px; border-bottom: 1px solid var(--p3-border); }
+.p3-tab { min-height: 42px; padding: 0 13px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--p3-muted); font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.p3-tab[aria-selected='true'] { border-bottom-color: var(--p3-green); color: var(--p3-text); }
+.p3-metric { color: var(--p3-green); font: 700 26px/1.2 'Bahnschrift', 'Trebuchet MS', sans-serif; }
+.p3-error { color: var(--p3-red) !important; }
+.p3-footer { margin-top: 22px; color: var(--p3-muted); font-size: 12px; }
+
+@media (max-width: 640px) {
+  .p3-shell { padding-top: 22px; }
+  .p3-header { display: block; }
+  .p3-header .p3-actions { margin-top: 16px; }
+  .p3-title { font-size: 26px; }
+  .p3-panel { padding: 16px; }
+}

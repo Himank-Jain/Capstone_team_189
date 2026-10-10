@@ -1,0 +1,6 @@
+name: network_scan
+description: Rapid-fire Describe* calls across many resources
+entity_ids:
+  - vol-0a12
+  - vol-0a13
+  - vol-0a14
