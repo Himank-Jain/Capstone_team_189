@@ -24,7 +24,11 @@ class PlatformSessionFactory:
     def build_engine(self) -> Engine:
         if self._engine is not None:
             return self._engine
-        db_url = self._cfg.get("database_url") or self._cfg.get("DATABASE_URL") or "sqlite:///:memory:"
+        db_url = (
+            self._cfg.get("database_url")
+            or self._cfg.get("DATABASE_URL")
+            or "sqlite:///./capstone_phase3_demo.db"
+        )
         echo = bool(self._cfg.get("db_echo", False) or self._cfg.get("DB_ECHO", False))
         connect_args = {"check_same_thread": False} if db_url.startswith("sqlite:") else {}
         self._engine = create_engine(db_url, echo=echo, future=True, connect_args=connect_args)

@@ -17,11 +17,12 @@ faiss-cpu==1.14.3
 fastapi==0.140.13
 google-cloud-pubsub==2.39.0
 httpx==0.28.1
-networkx==3.6.1
-numpy==2.5.1
-pandas==3.0.5
+networkx==3.4.2
+numpy==2.2.6
+pandas==2.2.3
 pyarrow==25.0.0
 redis==8.0.1
+scipy==1.15.3
 torch==2.13.0
 uvicorn[standard]==0.51.0
 websockets==16.1.1

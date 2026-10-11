@@ -5,12 +5,12 @@ AI-assisted, multi-cloud anomaly and security-alerting capstone. The runnable sy
 ## Current Status
 
 - Synthetic end-to-end flow: tested.
-- Phase 0-3 Python suite: `211 passed` at the 2026-10-09 assessment.
+- Phase 0-3 Python suite: `214 passed` on both Python 3.10.11 and diagnostic Python 3.14.3.
 - Dashboard production build: passed.
 - Live cloud credentials, Postgres deployment, and external SMS/Webhook/PagerDuty delivery: not configured by the synthetic demo.
 - `Capstone_team_189/` remains as a preserved Git source tree; Phase 3 source/tests were merged into this runnable tree, but conflicting legacy files were not wholesale overwritten.
 
-See [the end-to-end assessment](docs/END_TO_END_PROJECT_ASSESSMENT.md) for the full stack, module/function map, data flow, sister-tree reconciliation, verification evidence, and prioritized gaps.
+See [the end-to-end assessment](docs/END_TO_END_PROJECT_ASSESSMENT.md) for the full stack, module/function map, data flow, sister-tree reconciliation, verification evidence, and prioritized gaps. See [the final project working report](FINAL_PROJECT_REPORT.md) for the current planner comparison, runtime results, and remaining gaps.
 
 ## Quick Start
 

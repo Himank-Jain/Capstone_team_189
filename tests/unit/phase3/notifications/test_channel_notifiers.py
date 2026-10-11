@@ -84,7 +84,12 @@ def test_webhook_notifier_signs_payload_and_posts_json():
 def test_sms_notifier_requires_critical_and_skips_noncritical():
     async def _run():
         client = FakeHttpClient()
-        notifier = SmsNotifier(phone_number="MASKED_PHONE", http_client=client, allow_after_hours=False)
+        notifier = SmsNotifier(
+            phone_number="MASKED_PHONE",
+            http_client=client,
+            allow_after_hours=False,
+            now_provider=lambda: datetime(2026, 7, 27, 12, 0, tzinfo=timezone.utc),
+        )
 
         skipped = await notifier.notify(_sample_payload(severity=Severity.HIGH))
         assert skipped["success"] is False

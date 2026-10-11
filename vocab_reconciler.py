@@ -28,11 +28,10 @@ class VocabReconciler:
         the active ArtifactBundle (P1-M6). Never load a different copy."""
         with open(feature_meta_path, "r") as f:
             meta = json.load(f)
+        nested_maps = meta.get("vocab_maps", {})
         self.vocab_maps: Dict[str, Dict[str, int]] = {
-            "cloud": meta.get("cloud_vocab", {}),
-            "entity_type": meta.get("entity_type_vocab", {}),
-            "namespace": meta.get("namespace_vocab", {}),
-            "metric_name": meta.get("metric_name_vocab", {}),
+            field: dict(nested_maps.get(field, meta.get(f"{field}_vocab", {})))
+            for field in ("cloud", "entity_type", "namespace", "metric_name")
         }
 
     def resolve(self, field: str, value: str) -> tuple[str, bool]:

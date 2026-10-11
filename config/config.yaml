@@ -1,0 +1,21 @@
+database:
+  url: sqlite:///./capstone_phase3_demo.db
+  echo: false
+
+encoder:
+  embedding_dim: 128
+  sequence_length: 32
+  projection_head: false
+
+ingestion:
+  batch_window_seconds: 30
+  poll_timeout_ms: 1000
+
+scoring:
+  deviation_weight: 0.4
+  drift_weight: 0.4
+  similarity_weight: 0.2
+
+demo:
+  host: 127.0.0.1
+  port: 8001

@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from shared.types import AlertPayload, Severity
 
@@ -63,15 +63,20 @@ class SmsNotifier(BaseNotifier):
         *,
         allow_after_hours: bool = False,
         sms_url: str = "https://sms.internal.local/dispatch",
+        now_provider: Optional[Callable[[], datetime]] = None,
     ) -> None:
         super().__init__("sms", http_client)
         self._phone_number = phone_number
         self._allow_after_hours = allow_after_hours
         self._sms_url = sms_url
+        self._now_provider = now_provider or (lambda: datetime.now(timezone.utc))
 
-    @staticmethod
-    def _is_after_hours() -> bool:
-        now = datetime.now(timezone.utc)
+    def _is_after_hours(self) -> bool:
+        now = self._now_provider()
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+        else:
+            now = now.astimezone(timezone.utc)
         hour = now.hour
         return hour < 7 or hour >= 19
 

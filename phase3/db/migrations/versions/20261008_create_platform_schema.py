@@ -14,7 +14,7 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("user_id", sa.String(length=64), primary_key=True),
-        sa.Column("email", sa.String(length=255), nullable=False, unique=True),
+        sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
     )
@@ -28,11 +28,11 @@ def upgrade() -> None:
         sa.Column("onboarding_state", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
     )
-    op.create_check_constraint(
-        "ck_tenants_source_mode",
-        "tenants",
-        "source_mode IN ('synthetic', 'live')",
-    )
+    with op.batch_alter_table("tenants") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_tenants_source_mode",
+            "source_mode IN ('synthetic', 'live')",
+        )
 
     op.create_table(
         "tenant_memberships",
@@ -43,11 +43,11 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
         sa.UniqueConstraint("user_id", "tenant_id", name="uq_tenant_membership_user_tenant"),
     )
-    op.create_check_constraint(
-        "ck_tenant_membership_role",
-        "tenant_memberships",
-        "role IN ('OWNER', 'OPERATOR', 'VIEWER')",
-    )
+    with op.batch_alter_table("tenant_memberships") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_tenant_membership_role",
+            "role IN ('OWNER', 'OPERATOR', 'VIEWER')",
+        )
 
     op.create_table(
         "cloud_connections",
@@ -107,11 +107,23 @@ def upgrade() -> None:
         sa.Column("error", sa.String(length=512), nullable=True),
         sa.Column("attempted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.UniqueConstraint(
+            "alert_id",
+            "endpoint_id",
+            name="uq_notification_delivery_alert_endpoint",
+        ),
     )
-    op.create_unique_constraint(
-        "uq_notification_delivery_alert_endpoint",
+    op.create_index(
+        op.f("ix_notification_deliveries_alert_id"),
         "notification_deliveries",
-        ["alert_id", "endpoint_id"],
+        ["alert_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_notification_deliveries_endpoint_id"),
+        "notification_deliveries",
+        ["endpoint_id"],
+        unique=False,
     )
 
     op.create_table(
@@ -126,6 +138,8 @@ def upgrade() -> None:
         sa.Column("metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
     )
+    op.create_index(op.f("ix_incidents_tenant_id"), "incidents", ["tenant_id"], unique=False)
+    op.create_index(op.f("ix_incidents_entity_id"), "incidents", ["entity_id"], unique=False)
 
     op.create_table(
         "rca_cases",
@@ -136,6 +150,8 @@ def upgrade() -> None:
         sa.Column("body", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
     )
+    op.create_index(op.f("ix_rca_cases_tenant_id"), "rca_cases", ["tenant_id"], unique=False)
+    op.create_index(op.f("ix_rca_cases_incident_id"), "rca_cases", ["incident_id"], unique=False)
 
     op.create_table(
         "audit_events",
@@ -146,6 +162,18 @@ def upgrade() -> None:
         sa.Column("target", sa.String(length=255), nullable=False),
         sa.Column("details", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+    )
+    op.create_index(
+        op.f("ix_audit_events_actor_user_id"),
+        "audit_events",
+        ["actor_user_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_audit_events_tenant_id"),
+        "audit_events",
+        ["tenant_id"],
+        unique=False,
     )
 
 
