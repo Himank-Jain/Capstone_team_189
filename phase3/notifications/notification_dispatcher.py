@@ -8,8 +8,6 @@ from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from shared.types import AlertPayload, Severity
-
 from phase3.shared.constants import (
     PLATFORM_DEFAULT_TENANT_ID,
     PLATFORM_DISPATCH_TIMEOUT_SECONDS,
@@ -18,6 +16,7 @@ from phase3.shared.constants import (
     PLATFORM_RETRY_BACKOFF_SECONDS,
 )
 from phase3.shared.types import NotificationDeliveryResult, NotificationEndpoint, NotificationPolicy
+from shared.types import AlertPayload, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -107,12 +106,17 @@ class NotificationDispatcher:
         idempotency_store: Optional[IdempotencyStore] = None,
     ) -> None:
         self._notifiers = list(notifiers or [])
-        self._endpoint_repository = endpoint_repository or InMemoryNotificationEndpointRepository(endpoints)
+        self._endpoint_repository = endpoint_repository or InMemoryNotificationEndpointRepository(
+            endpoints
+        )
         self._delivery_recorder = delivery_recorder or InMemoryNotificationDeliveryRecorder()
         self._idempotency_store = idempotency_store or InMemoryIdempotencyStore()
 
     def _channel_map(self) -> Dict[str, Any]:
-        return {str(getattr(notifier, "channel_name", "")).lower(): notifier for notifier in self._notifiers}
+        return {
+            str(getattr(notifier, "channel_name", "")).lower(): notifier
+            for notifier in self._notifiers
+        }
 
     def _policy_allowed_channels(self, policy: NotificationPolicy) -> Optional[set[str]]:
         if not policy.allowed_channels:
@@ -121,7 +125,10 @@ class NotificationDispatcher:
 
     @staticmethod
     def _entity_to_tenant_id(payload: Any) -> str:
-        entity_id = str(getattr(payload, "entity_id", "") or (payload.get("entity_id") if isinstance(payload, dict) else "")).strip()
+        entity_id = str(
+            getattr(payload, "entity_id", "")
+            or (payload.get("entity_id") if isinstance(payload, dict) else "")
+        ).strip()
         if not entity_id:
             return PLATFORM_DEFAULT_TENANT_ID
         mapping = {
@@ -133,8 +140,12 @@ class NotificationDispatcher:
         }
         return mapping.get(entity_id.lower(), PLATFORM_DEFAULT_TENANT_ID)
 
-    async def resolve_policy_for_alert(self, payload: Any, *, tenant_id: Optional[str] = None) -> NotificationPolicy:
-        resolved_tenant = tenant_id or getattr(payload, "tenant_id", None) or self._entity_to_tenant_id(payload)
+    async def resolve_policy_for_alert(
+        self, payload: Any, *, tenant_id: Optional[str] = None
+    ) -> NotificationPolicy:
+        resolved_tenant = (
+            tenant_id or getattr(payload, "tenant_id", None) or self._entity_to_tenant_id(payload)
+        )
         notify_method = getattr(payload, "notify_method", None)
         if notify_method is None and isinstance(payload, dict):
             notify_method = payload.get("notify_method")
@@ -145,7 +156,9 @@ class NotificationDispatcher:
             channel = notify_method.lower()
         if channel is None:
             channel = "email"
-        return NotificationPolicy(tenant_id=resolved_tenant or PLATFORM_DEFAULT_TENANT_ID, allowed_channels=[channel])
+        return NotificationPolicy(
+            tenant_id=resolved_tenant or PLATFORM_DEFAULT_TENANT_ID, allowed_channels=[channel]
+        )
 
     def _severity_allowed(self, current: Severity, minimum: Optional[Severity]) -> bool:
         if minimum is None:
@@ -164,7 +177,9 @@ class NotificationDispatcher:
         try:
             tz = ZoneInfo(policy.quiet_hours_tz)
         except Exception:
-            logger.warning("[NotificationDispatcher] invalid quiet_hours_tz=%s", policy.quiet_hours_tz)
+            logger.warning(
+                "[NotificationDispatcher] invalid quiet_hours_tz=%s", policy.quiet_hours_tz
+            )
             return False
 
         now = datetime.now(tz)
@@ -181,7 +196,9 @@ class NotificationDispatcher:
         hours, minutes = value.split(":", 1)
         return int(hours) * 60 + int(minutes)
 
-    def _resolve_endpoints_for_policy(self, policy: NotificationPolicy) -> List[NotificationEndpoint]:
+    def _resolve_endpoints_for_policy(
+        self, policy: NotificationPolicy
+    ) -> List[NotificationEndpoint]:
         tenant_id = policy.tenant_id or PLATFORM_DEFAULT_TENANT_ID
         endpoints = self._endpoint_repository.list_for_tenant(tenant_id)
         allowed_channels = self._policy_allowed_channels(policy)
@@ -211,7 +228,14 @@ class NotificationDispatcher:
             return []
 
         tasks = [
-            self._deliver_endpoint(payload, endpoint, policy, timeout_seconds=timeout_seconds or policy.timeout_seconds or PLATFORM_DISPATCH_TIMEOUT_SECONDS)
+            self._deliver_endpoint(
+                payload,
+                endpoint,
+                policy,
+                timeout_seconds=timeout_seconds
+                or policy.timeout_seconds
+                or PLATFORM_DISPATCH_TIMEOUT_SECONDS,
+            )
             for endpoint in endpoints
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -240,7 +264,9 @@ class NotificationDispatcher:
         policy: NotificationPolicy,
         timeout_seconds: float,
     ) -> NotificationDeliveryResult:
-        if policy.min_severity is not None and not self._severity_allowed(payload.severity, policy.min_severity):
+        if policy.min_severity is not None and not self._severity_allowed(
+            payload.severity, policy.min_severity
+        ):
             return NotificationDeliveryResult(
                 endpoint_id=endpoint.endpoint_id,
                 channel=endpoint.channel,
@@ -341,7 +367,9 @@ class NotificationDispatcher:
         return result
 
     @staticmethod
-    def _normalize_notifier_result(endpoint: NotificationEndpoint, raw: Any) -> NotificationDeliveryResult:
+    def _normalize_notifier_result(
+        endpoint: NotificationEndpoint, raw: Any
+    ) -> NotificationDeliveryResult:
         if isinstance(raw, NotificationDeliveryResult):
             return raw
         if isinstance(raw, dict):

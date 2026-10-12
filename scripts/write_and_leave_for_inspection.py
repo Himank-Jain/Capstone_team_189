@@ -9,11 +9,12 @@ Then in another terminal:
     > KEYS entity:*
     > LRANGE entity:inspect-me:history 0 -1
 """
+
 from datetime import datetime, timezone
 
 import numpy as np
 
-from phase2.store.redis_entity_store import build_redis_client, RedisEntityStore
+from phase2.store.redis_entity_store import RedisEntityStore, build_redis_client
 from shared.types import EntityProfile
 
 

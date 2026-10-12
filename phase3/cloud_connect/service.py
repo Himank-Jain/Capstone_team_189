@@ -41,7 +41,9 @@ class ResourceDiscoveryService:
     def __init__(self, cloud_connection_service: CloudConnectionService | None = None):
         self._cloud_connection_service = cloud_connection_service or CloudConnectionService()
 
-    def discover(self, connection: CloudConnection, connector: Any | None = None) -> list[ResourceSummary]:
+    def discover(
+        self, connection: CloudConnection, connector: Any | None = None
+    ) -> list[ResourceSummary]:
         return self._cloud_connection_service.list_resources(connection, connector)
 
 
@@ -59,7 +61,9 @@ class CloudConnectionService:
         connection.status = "registered"
         return connection
 
-    def validate_connection(self, connection: CloudConnection, connector: Any | None = None) -> bool:
+    def validate_connection(
+        self, connection: CloudConnection, connector: Any | None = None
+    ) -> bool:
         if connector is None:
             connection.status = "validated"
             connection.last_validated_at = datetime.now(timezone.utc)
@@ -70,7 +74,9 @@ class CloudConnectionService:
             connection.last_validated_at = datetime.now(timezone.utc)
         return ok
 
-    def list_resources(self, connection: CloudConnection, connector: Any | None = None) -> list[ResourceSummary]:
+    def list_resources(
+        self, connection: CloudConnection, connector: Any | None = None
+    ) -> list[ResourceSummary]:
         if connector is None:
             return []
         raw_items = connector.list_resources() if hasattr(connector, "list_resources") else []
@@ -87,10 +93,27 @@ class CloudConnectionService:
                     resource_type=str(raw.get("resource_type") or raw.get("type") or "unknown"),
                     resource_name=str(raw.get("resource_name") or raw.get("name") or "unknown"),
                     provider=connection.provider,
-                    metadata={k: v for k, v in raw.items() if k not in {"resource_id", "id", "resource_type", "type", "resource_name", "name"}},
+                    metadata={
+                        k: v
+                        for k, v in raw.items()
+                        if k
+                        not in {
+                            "resource_id",
+                            "id",
+                            "resource_type",
+                            "type",
+                            "resource_name",
+                            "name",
+                        }
+                    },
                 )
             )
         return summary
 
 
-__all__ = ["CloudConnection", "CloudConnectionService", "ResourceDiscoveryService", "ResourceSummary"]
+__all__ = [
+    "CloudConnection",
+    "CloudConnectionService",
+    "ResourceDiscoveryService",
+    "ResourceSummary",
+]

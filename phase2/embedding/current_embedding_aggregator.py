@@ -151,6 +151,8 @@ class CurrentEmbeddingAggregator:
         logger_obj.info(
             "[CurrentEmbeddingAggregator] Aggregated %d rows -> %d unique entities "
             "(batch_ts=%s)",
-            embeddings.shape[0], len(current_embeddings), batch_ts,
+            embeddings.shape[0],
+            len(current_embeddings),
+            batch_ts,
         )
         return current_embeddings

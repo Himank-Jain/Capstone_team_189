@@ -5,14 +5,21 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Iterable
 
-from shared.types import AlertPayload
 from phase3.rca.types import CandidateCause, RCACase
+from shared.types import AlertPayload
 
 
 class EvidenceBuilder:
     """Build a structured RCACase from existing alert and similarity evidence."""
 
-    def build(self, alert_payload: AlertPayload, tenant_id: str = "default", incident_id: str | None = None, cloud_provider: str | None = None, region: str | None = None) -> RCACase:
+    def build(
+        self,
+        alert_payload: AlertPayload,
+        tenant_id: str = "default",
+        incident_id: str | None = None,
+        cloud_provider: str | None = None,
+        region: str | None = None,
+    ) -> RCACase:
         if incident_id is None:
             incident_id = alert_payload.alert_id
 
@@ -30,7 +37,11 @@ class EvidenceBuilder:
             cloud_provider=cloud_provider,
             region=region,
             final_score=float(alert_payload.final_score),
-            severity=str(alert_payload.severity.value if hasattr(alert_payload.severity, "value") else alert_payload.severity),
+            severity=str(
+                alert_payload.severity.value
+                if hasattr(alert_payload.severity, "value")
+                else alert_payload.severity
+            ),
             component_scores={
                 "deviation": float(alert_payload.deviation_score),
                 "drift": float(alert_payload.drift_score),
@@ -43,26 +54,48 @@ class EvidenceBuilder:
             },
             drift_evidence={
                 "score": float(alert_payload.drift_score),
-                "group_type": getattr(alert_payload.group_type, "value", str(alert_payload.group_type)),
+                "group_type": getattr(
+                    alert_payload.group_type, "value", str(alert_payload.group_type)
+                ),
             },
             similar_episodes=list(getattr(alert_payload, "similar_episodes", []) or []),
             related_incidents=list(getattr(alert_payload, "related_ids", []) or []),
             timeline=[
                 {
                     "event": "alert_created",
-                    "timestamp": alert_payload.batch_ts.isoformat() if hasattr(alert_payload.batch_ts, "isoformat") else str(alert_payload.batch_ts),
+                    "timestamp": (
+                        alert_payload.batch_ts.isoformat()
+                        if hasattr(alert_payload.batch_ts, "isoformat")
+                        else str(alert_payload.batch_ts)
+                    ),
                     "severity": str(alert_payload.severity),
                 }
             ],
-            observed_window={"entity_id": alert_payload.entity_id, "batch_ts": str(alert_payload.batch_ts)},
+            observed_window={
+                "entity_id": alert_payload.entity_id,
+                "batch_ts": str(alert_payload.batch_ts),
+            },
             baseline_window={"expected_behavior": "historical baseline"},
             unknowns=[],
             candidate_causes=candidate_causes,
             confidence=confidence,
         )
 
-    def build_case(self, alert_payload: AlertPayload, tenant_id: str = "default", incident_id: str | None = None, cloud_provider: str | None = None, region: str | None = None) -> RCACase:
-        return self.build(alert_payload, tenant_id=tenant_id, incident_id=incident_id, cloud_provider=cloud_provider, region=region)
+    def build_case(
+        self,
+        alert_payload: AlertPayload,
+        tenant_id: str = "default",
+        incident_id: str | None = None,
+        cloud_provider: str | None = None,
+        region: str | None = None,
+    ) -> RCACase:
+        return self.build(
+            alert_payload,
+            tenant_id=tenant_id,
+            incident_id=incident_id,
+            cloud_provider=cloud_provider,
+            region=region,
+        )
 
     def _candidate_causes(self, alert_payload: AlertPayload) -> list[CandidateCause]:
         causes: list[CandidateCause] = []
@@ -108,8 +141,13 @@ class EvidenceBuilder:
             )
         return causes
 
-    def _resolve_confidence(self, alert_payload: AlertPayload, candidate_causes: Iterable[CandidateCause]) -> str:
-        highest = max((candidate.confidence for candidate in candidate_causes), key=lambda label: {"HIGH": 3, "MEDIUM": 2, "LOW": 1}.get(label, 0))
+    def _resolve_confidence(
+        self, alert_payload: AlertPayload, candidate_causes: Iterable[CandidateCause]
+    ) -> str:
+        highest = max(
+            (candidate.confidence for candidate in candidate_causes),
+            key=lambda label: {"HIGH": 3, "MEDIUM": 2, "LOW": 1}.get(label, 0),
+        )
         if highest == "HIGH" or alert_payload.final_score >= 0.85:
             return "HIGH"
         if highest == "MEDIUM" or alert_payload.final_score >= 0.6:

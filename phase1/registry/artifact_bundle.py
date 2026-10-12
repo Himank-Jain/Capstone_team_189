@@ -46,6 +46,7 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # ArtifactBundle — immutable artifact-grouping dataclass
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ArtifactBundle:
     """
@@ -91,6 +92,7 @@ class ArtifactBundle:
     val_loss_float : float
         Validation loss at the end of training, for comparing versions.
     """
+
     version_str: str
     encoder_path: Path
     faiss_index_path: Path
@@ -126,7 +128,9 @@ class ArtifactBundle:
 
     # ── Live artifact loading ────────────────────────────────────────────────
 
-    def load(self, device_str: Optional[str] = None, strict_bool: bool = True) -> Tuple[TstccEncoder, FaissIndexer]:
+    def load(
+        self, device_str: Optional[str] = None, strict_bool: bool = True
+    ) -> Tuple[TstccEncoder, FaissIndexer]:
         """
         Instantiate a live, ready-to-use encoder + FAISS index from this
         bundle's paths and metadata.
@@ -171,9 +175,11 @@ class ArtifactBundle:
             entity_type_vocab_size_int=len(vocab_maps_dict["entity_type"]),
             namespace_vocab_size_int=len(vocab_maps_dict["namespace"]),
             metric_name_vocab_size_int=len(vocab_maps_dict["metric_name"]),
-            use_projection_bool=True,   # load with head present in the checkpoint, then disable
+            use_projection_bool=True,  # load with head present in the checkpoint, then disable
         )
-        encoder.load_weights(str(self.encoder_path), map_location=device_str, strict_bool=strict_bool)
+        encoder.load_weights(
+            str(self.encoder_path), map_location=device_str, strict_bool=strict_bool
+        )
         encoder.disable_projection()
         encoder.to(torch.device(device_str))
         encoder.eval()
@@ -182,7 +188,9 @@ class ArtifactBundle:
 
         logger_obj.info(
             "[ArtifactBundle.load] version=%s  encoder<-%s  faiss<-%s.faiss",
-            self.version_str, self.encoder_path, self.faiss_index_path,
+            self.version_str,
+            self.encoder_path,
+            self.faiss_index_path,
         )
 
         return encoder, faiss_indexer
@@ -224,6 +232,7 @@ class ArtifactBundle:
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — extract Time2Vec params for the manifest (interpretability only)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def extract_time2vec_params(encoder: TstccEncoder) -> Dict[str, Any]:
     """

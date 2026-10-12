@@ -47,8 +47,11 @@ def _connect_redis(host: str, port: int, force_fake: bool):
             print(f"Connected to real Redis at {host}:{port}")
             return client
         except Exception as exc:
-            print(f"Could not reach real Redis at {host}:{port} ({exc}) -- falling back to fakeredis")
+            print(
+                f"Could not reach real Redis at {host}:{port} ({exc}) -- falling back to fakeredis"
+            )
     import fakeredis
+
     return fakeredis.FakeRedis(decode_responses=False)
 
 
@@ -58,7 +61,9 @@ def _unit(v: np.ndarray) -> np.ndarray:
 
 def _cluster_embs(n: int, center: np.ndarray, noise_scale: float, seed: int):
     rng = np.random.default_rng(seed)
-    return [_unit(center + rng.normal(scale=noise_scale, size=128).astype(np.float32)) for _ in range(n)]
+    return [
+        _unit(center + rng.normal(scale=noise_scale, size=128).astype(np.float32)) for _ in range(n)
+    ]
 
 
 def seed_demo_profile(writer: EntityStoreWriter, entity_id: str) -> None:
@@ -84,9 +89,11 @@ def seed_demo_profile(writer: EntityStoreWriter, entity_id: str) -> None:
         cold_start_flag=False,
     )
     writer.write_entity_profile(profile)
-    print(f"Seeded demo profile for entity_id={entity_id}: "
-          f"{len(past)} 'past'-cluster + {len(recent)} 'recent'-cluster embeddings "
-          "written through the real P2-M6 EntityStoreWriter.")
+    print(
+        f"Seeded demo profile for entity_id={entity_id}: "
+        f"{len(past)} 'past'-cluster + {len(recent)} 'recent'-cluster embeddings "
+        "written through the real P2-M6 EntityStoreWriter."
+    )
 
 
 def main():
@@ -94,9 +101,12 @@ def main():
     parser.add_argument("entity_id")
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=6379)
-    parser.add_argument("--fake", action="store_true", help="force in-process fakeredis, skip real-Redis probe")
     parser.add_argument(
-        "--seed-demo-drift", action="store_true",
+        "--fake", action="store_true", help="force in-process fakeredis, skip real-Redis probe"
+    )
+    parser.add_argument(
+        "--seed-demo-drift",
+        action="store_true",
         help="write a synthetic drifted history for entity_id before scoring, via the real P2-M6 writer",
     )
     args = parser.parse_args()
@@ -119,8 +129,10 @@ def main():
     drift_monitor = MmdDriftMonitor(entity_store_reader=reader, null_calibration_pairs=300)
     drift_worker = AsyncDriftWorker(drift_monitor=drift_monitor, redis_client_sync=redis_client)
 
-    print("\nSubmitting MMD drift computation to the background thread pool "
-          "(NOT the hot inference path)...")
+    print(
+        "\nSubmitting MMD drift computation to the background thread pool "
+        "(NOT the hot inference path)..."
+    )
     future = drift_worker.submit_compute(args.entity_id)
     drift_result = future.result(timeout=30)
 
@@ -132,23 +144,31 @@ def main():
     # return value -- this is what the hot inference path actually calls.
     cached = drift_worker.get_cached_drift(args.entity_id)
     assert cached is not None, "expected a cached DriftScore immediately after compute"
-    print(f"  re-read from Redis cache (TTL={drift_worker._cache_ttl_sec}s): "
-          f"drift_score={cached.drift_score:.4f} matches={abs(cached.drift_score - drift_result.drift_score) < 1e-9}")
+    print(
+        f"  re-read from Redis cache (TTL={drift_worker._cache_ttl_sec}s): "
+        f"drift_score={cached.drift_score:.4f} matches={abs(cached.drift_score - drift_result.drift_score) < 1e-9}"
+    )
 
     # ── P2-M7 preview, for context: the two real P2-M10 inputs side by side ─
     if profile is not None:
         scorer = CosineDeviationScorer()
         current_emb = CurrentEmbedding(
             entity_id=args.entity_id,
-            emb=profile.history_embs[-1],  # most recent window-embedding as a stand-in "current" batch
+            emb=profile.history_embs[
+                -1
+            ],  # most recent window-embedding as a stand-in "current" batch
             batch_ts=datetime.now(timezone.utc),
             n_records=1,
             cloud_provider="AWS",
         )
         deviation_result = scorer.compute_scores(current_emb, profile)
         print("\nDeviationResult (P2-M7, for context -- P2-M10's other real input):")
-        print(f"  global_score: {deviation_result.global_score:.4f}  (flag={deviation_result.global_flag})")
-        print(f"  local_score:  {deviation_result.local_score:.4f}  (flag={deviation_result.local_flag})")
+        print(
+            f"  global_score: {deviation_result.global_score:.4f}  (flag={deviation_result.global_flag})"
+        )
+        print(
+            f"  local_score:  {deviation_result.local_score:.4f}  (flag={deviation_result.local_flag})"
+        )
 
     drift_worker.shutdown()
 

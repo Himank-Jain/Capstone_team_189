@@ -84,7 +84,9 @@ class BatchAccumulator:
             )
             logger_obj.info(
                 "[BatchAccumulator] Flushed EventBatch: %d records, %d invalid, source=%s",
-                len(self._buffer), self._n_invalid, self._source,
+                len(self._buffer),
+                self._n_invalid,
+                self._source,
             )
             self._buffer = []
             self._n_invalid = 0

@@ -92,6 +92,7 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Pure MMD math -- no store, no I/O
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def rbf_kernel_matrix(A: np.ndarray, B: np.ndarray, sigma: float) -> np.ndarray:
     """k(a,b) = exp(-||a-b||^2 / (2*sigma^2)) for every pair (a in A, b in B).
 
@@ -106,10 +107,10 @@ def rbf_kernel_matrix(A: np.ndarray, B: np.ndarray, sigma: float) -> np.ndarray:
         raise ValueError(f"[mmd_drift_monitor] sigma must be > 0, got {sigma}")
     A = np.asarray(A, dtype=np.float64)
     B = np.asarray(B, dtype=np.float64)
-    sq_a = np.sum(A * A, axis=1)[:, None]        # (N,1)
-    sq_b = np.sum(B * B, axis=1)[None, :]        # (1,M)
-    sq_dists = sq_a + sq_b - 2.0 * (A @ B.T)      # (N,M)
-    sq_dists = np.clip(sq_dists, 0.0, None)       # guard against tiny negative fp noise
+    sq_a = np.sum(A * A, axis=1)[:, None]  # (N,1)
+    sq_b = np.sum(B * B, axis=1)[None, :]  # (1,M)
+    sq_dists = sq_a + sq_b - 2.0 * (A @ B.T)  # (N,M)
+    sq_dists = np.clip(sq_dists, 0.0, None)  # guard against tiny negative fp noise
     return np.exp(-sq_dists / (2.0 * sigma * sigma))
 
 
@@ -162,7 +163,9 @@ def mmd_rbf(X: np.ndarray, Y: np.ndarray, sigma: float = 1.0) -> float:
     return float(sum_xx + sum_yy - 2.0 * sum_xy)
 
 
-def median_heuristic_sigma(X: np.ndarray, Y: np.ndarray, default_sigma: float = MMD_DEFAULT_SIGMA) -> float:
+def median_heuristic_sigma(
+    X: np.ndarray, Y: np.ndarray, default_sigma: float = MMD_DEFAULT_SIGMA
+) -> float:
     """
     sigma = median(pairwise distances of the POOLED X+Y sample) / sqrt(2).
 
@@ -171,7 +174,9 @@ def median_heuristic_sigma(X: np.ndarray, Y: np.ndarray, default_sigma: float = 
     e.g. every embedding in the pool is identical, which would otherwise
     produce sigma=0 and a divide-by-zero in the RBF kernel.
     """
-    pooled = np.concatenate([np.asarray(X, dtype=np.float64), np.asarray(Y, dtype=np.float64)], axis=0)
+    pooled = np.concatenate(
+        [np.asarray(X, dtype=np.float64), np.asarray(Y, dtype=np.float64)], axis=0
+    )
     if pooled.shape[0] < 2:
         return default_sigma
     pairwise = pdist(pooled, metric="euclidean")
@@ -182,7 +187,8 @@ def median_heuristic_sigma(X: np.ndarray, Y: np.ndarray, default_sigma: float = 
         logger_obj.warning(
             "[mmd_drift_monitor] median heuristic degenerated (median pairwise "
             "distance ~= 0, pool size=%d) -- falling back to default sigma=%.3f",
-            pooled.shape[0], default_sigma,
+            pooled.shape[0],
+            default_sigma,
         )
         return default_sigma
     return med / np.sqrt(2.0)
@@ -192,11 +198,13 @@ def median_heuristic_sigma(X: np.ndarray, Y: np.ndarray, default_sigma: float = 
 # MmdDriftMonitor
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class _NullCalibration:
     """Cached per-entity calibration: the scale denominator plus the sigma
     it was computed with, so a stale calibration (computed under a
     different sigma) is never silently reused."""
+
     scale_99th: float
     sigma: float
 
@@ -279,7 +287,10 @@ class MmdDriftMonitor:
             logger_obj.info(
                 "[MmdDriftMonitor] entity_id=%s insufficient history for a trustworthy "
                 "MMD estimate (past=%d, recent=%d, need >=%d each) -- neutral fallback",
-                entity_id, len(past), len(recent), self._min_samples_per_dist,
+                entity_id,
+                len(past),
+                len(recent),
+                self._min_samples_per_dist,
             )
             return self._neutral_fallback(entity_id)
 
@@ -289,9 +300,7 @@ class MmdDriftMonitor:
         sigma = median_heuristic_sigma(past_sub, recent_sub)
         raw_mmd2 = mmd_rbf(past_sub, recent_sub, sigma=sigma)
 
-        scale_99th = self._get_or_calibrate_null_scale(
-            entity_id, past_sub, recent_sub, sigma
-        )
+        scale_99th = self._get_or_calibrate_null_scale(entity_id, past_sub, recent_sub, sigma)
         drift_score = self._scale_to_unit_interval(raw_mmd2, scale_99th)
         drift_flag = drift_score > self._drift_threshold
 
@@ -339,7 +348,11 @@ class MmdDriftMonitor:
         recent_count = max(1, round(n * self._recent_fraction))
         recent_count = min(recent_count, n - 1) if n > 1 else recent_count
         past_count = n - recent_count
-        stacked = np.stack([np.asarray(h, dtype=np.float64) for h in history_embs]) if n > 0 else np.zeros((0, 128))
+        stacked = (
+            np.stack([np.asarray(h, dtype=np.float64) for h in history_embs])
+            if n > 0
+            else np.zeros((0, 128))
+        )
         past = stacked[:past_count]
         recent = stacked[past_count:]
         return past, recent

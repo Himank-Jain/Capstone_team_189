@@ -33,7 +33,13 @@ class AuditLogger:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self._sink.append(event)
-        logger.info("audit_event actor=%s tenant=%s action=%s target=%s", actor_user_id, tenant_id, action, target)
+        logger.info(
+            "audit_event actor=%s tenant=%s action=%s target=%s",
+            actor_user_id,
+            tenant_id,
+            action,
+            target,
+        )
         return event
 
 

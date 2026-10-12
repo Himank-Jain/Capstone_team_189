@@ -23,8 +23,13 @@ logger_obj = logging.getLogger(__name__)
 # minus the training-only pair_id/view columns, which don't exist on a live
 # single event).
 REQUIRED_FIELDS: list[str] = [
-    "entity_id", "timestamp", "cloud", "entity_type", "namespace",
-    "metric_name", "value",
+    "entity_id",
+    "timestamp",
+    "cloud",
+    "entity_type",
+    "namespace",
+    "metric_name",
+    "value",
 ]
 
 

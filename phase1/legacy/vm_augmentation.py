@@ -33,39 +33,43 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
-
 # ─── Configuration ────────────────────────────────────────────────────────────
+
 
 @dataclass
 class AugmentationConfig:
     # --- Temporal Jitter ---
-    jitter_min_minutes: float = 1.0    # minimum time shift applied to timestamp
-    jitter_max_minutes: float = 5.0    # maximum time shift (positive or negative)
+    jitter_min_minutes: float = 1.0  # minimum time shift applied to timestamp
+    jitter_max_minutes: float = 5.0  # maximum time shift (positive or negative)
 
     # --- Attribute Masking ---
-    mask_ratio_min: float = 0.10       # mask at least 10% of numeric features
-    mask_ratio_max: float = 0.30       # mask at most  30% of numeric features
+    mask_ratio_min: float = 0.10  # mask at least 10% of numeric features
+    mask_ratio_max: float = 0.30  # mask at most  30% of numeric features
     mask_fill_value: float = 0.0
-    batch_size: int = 10_000       # value used to replace masked features
-                                       # (use -1.0 or a learned token if preferred)
+    batch_size: int = 10_000  # value used to replace masked features
+    # (use -1.0 or a learned token if preferred)
 
     # --- Column Roles ---
     # These columns carry raw numeric sensor readings — safe to mask / jitter-derive
-    numeric_cols: list[str] = field(default_factory=lambda: [
-        "cpu_usage",
-        "memory_usage",
-        "disk_io_read",
-        "disk_io_write",
-        "net_throughput_in",
-        "net_throughput_out",
-    ])
+    numeric_cols: list[str] = field(
+        default_factory=lambda: [
+            "cpu_usage",
+            "memory_usage",
+            "disk_io_read",
+            "disk_io_write",
+            "net_throughput_in",
+            "net_throughput_out",
+        ]
+    )
 
     # These columns define VM identity — NEVER masked or distorted
-    protected_cols: list[str] = field(default_factory=lambda: [
-        "vm_role",      # web / db / cache — semantic label, must stay intact
-        "region",       # geographic tag — part of behavioral context
-        "os_type",      # OS family — affects valid metric ranges
-    ])
+    protected_cols: list[str] = field(
+        default_factory=lambda: [
+            "vm_role",  # web / db / cache — semantic label, must stay intact
+            "region",  # geographic tag — part of behavioral context
+            "os_type",  # OS family — affects valid metric ranges
+        ]
+    )
 
     # Raw timestamp column name in the parquet file
     timestamp_col: str = "timestamp"
@@ -75,6 +79,7 @@ class AugmentationConfig:
 
 
 # ─── Time2Vec ─────────────────────────────────────────────────────────────────
+
 
 def time2vec(t: float, dim: int) -> list[float]:
     """
@@ -113,6 +118,7 @@ def extract_time_features(ts: pd.Timestamp, dim: int) -> list[float]:
 
 # ─── Augmentation Functions ───────────────────────────────────────────────────
 
+
 def apply_temporal_jitter(
     record: dict,
     config: AugmentationConfig,
@@ -144,9 +150,9 @@ def apply_temporal_jitter(
 
     # Recompute every time-derived feature from the new timestamp
     time_feats = extract_time_features(shifted_ts, config.time2vec_dim)
-    out["hour_of_day"]   = time_feats[0]
-    out["day_of_week"]   = time_feats[1]
-    out["time2vec"]      = time_feats[2:]   # list of floats, flattened later
+    out["hour_of_day"] = time_feats[0]
+    out["day_of_week"] = time_feats[1]
+    out["time2vec"] = time_feats[2:]  # list of floats, flattened later
 
     return out
 
@@ -176,9 +182,9 @@ def apply_attribute_masking(
 
     # Decide *how many* columns to mask this call (stochastic ratio)
     n_numeric = len(config.numeric_cols)
-    n_to_mask = max(1, round(
-        random.uniform(config.mask_ratio_min, config.mask_ratio_max) * n_numeric
-    ))
+    n_to_mask = max(
+        1, round(random.uniform(config.mask_ratio_min, config.mask_ratio_max) * n_numeric)
+    )
 
     # Pick which columns are masked — fresh random selection every __getitem__
     cols_to_mask = random.sample(config.numeric_cols, n_to_mask)
@@ -191,7 +197,7 @@ def apply_attribute_masking(
             out[f"{col}_masked"] = 1.0
         # If the column is absent in this record (e.g. sparse parquet),
         # silently skip — the encoder already has to handle missing cols
-    
+
     # Set mask=0 for unmasked cols (gives encoder a clean binary signal)
     for col in config.numeric_cols:
         if f"{col}_masked" not in out:
@@ -212,6 +218,7 @@ def augment_record(record: dict, config: AugmentationConfig) -> dict:
 
 
 # ─── Record → Tensor ──────────────────────────────────────────────────────────
+
 
 def record_to_tensor(record: dict, config: AugmentationConfig) -> torch.Tensor:
     """
@@ -244,6 +251,7 @@ def record_to_tensor(record: dict, config: AugmentationConfig) -> torch.Tensor:
 
 
 # ─── Dataset ──────────────────────────────────────────────────────────────────
+
 
 class VMContrastiveDataset(Dataset):
     """
@@ -280,9 +288,7 @@ class VMContrastiveDataset(Dataset):
 
         # ── Ensure timestamp column is proper datetime ─────────────────────
         if self.config.timestamp_col in self.df.columns:
-            self.df[self.config.timestamp_col] = pd.to_datetime(
-                self.df[self.config.timestamp_col]
-            )
+            self.df[self.config.timestamp_col] = pd.to_datetime(self.df[self.config.timestamp_col])
 
         # ── Pre-compute base time features on original timestamps ──────────
         # (augmentation will re-derive these per call; this seeds the dict)
@@ -292,7 +298,7 @@ class VMContrastiveDataset(Dataset):
             )
             self.df["hour_of_day"] = feats.apply(lambda x: x[0])
             self.df["day_of_week"] = feats.apply(lambda x: x[1])
-            self.df["time2vec"]    = feats.apply(lambda x: x[2:])
+            self.df["time2vec"] = feats.apply(lambda x: x[2:])
 
         # Pre-init mask flag columns to 0.0 so record dicts are complete
         for col in self.config.numeric_cols:
@@ -340,19 +346,21 @@ if __name__ == "__main__":
     N = 500
     rng = np.random.default_rng(42)
 
-    synthetic = pd.DataFrame({
-        "timestamp":         pd.date_range("2024-01-01", periods=N, freq="5min"),
-        "vm_id":             [f"vm-{i % 20:03d}" for i in range(N)],
-        "vm_role":           rng.choice(["web", "db", "cache"], N),
-        "region":            rng.choice(["us-east", "eu-west", "ap-south"], N),
-        "os_type":           rng.choice(["linux", "windows"], N),
-        "cpu_usage":         rng.uniform(0, 100, N),
-        "memory_usage":      rng.uniform(20, 95, N),
-        "disk_io_read":      rng.uniform(0, 500, N),
-        "disk_io_write":     rng.uniform(0, 300, N),
-        "net_throughput_in": rng.uniform(0, 1000, N),
-        "net_throughput_out":rng.uniform(0, 800, N),
-    })
+    synthetic = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2024-01-01", periods=N, freq="5min"),
+            "vm_id": [f"vm-{i % 20:03d}" for i in range(N)],
+            "vm_role": rng.choice(["web", "db", "cache"], N),
+            "region": rng.choice(["us-east", "eu-west", "ap-south"], N),
+            "os_type": rng.choice(["linux", "windows"], N),
+            "cpu_usage": rng.uniform(0, 100, N),
+            "memory_usage": rng.uniform(20, 95, N),
+            "disk_io_read": rng.uniform(0, 500, N),
+            "disk_io_write": rng.uniform(0, 300, N),
+            "net_throughput_in": rng.uniform(0, 1000, N),
+            "net_throughput_out": rng.uniform(0, 800, N),
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
         tmp_path = f.name
@@ -388,13 +396,11 @@ if __name__ == "__main__":
 
     # ── 5. Verify pair count and tensor dim ───────────────────────────────
     expected_dim = (
-        len(config.numeric_cols) * 2   # metric + mask flag per numeric col
-        + 2                            # hour_of_day, day_of_week
-        + config.time2vec_dim          # Time2Vec vector
+        len(config.numeric_cols) * 2  # metric + mask flag per numeric col
+        + 2  # hour_of_day, day_of_week
+        + config.time2vec_dim  # Time2Vec vector
     )
-    assert v1.shape[0] == expected_dim, (
-        f"Dim mismatch: got {v1.shape[0]}, expected {expected_dim}"
-    )
+    assert v1.shape[0] == expected_dim, f"Dim mismatch: got {v1.shape[0]}, expected {expected_dim}"
     print(f"\n  Expected tensor dim : {expected_dim}")
     print(f"  Actual tensor dim   : {v1.shape[0]}  ✓")
 

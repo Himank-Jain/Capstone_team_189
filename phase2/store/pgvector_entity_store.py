@@ -132,6 +132,7 @@ LIMIT %(limit)s;
 @dataclass
 class NearestEntityResult:
     """One row of an analytical nearest-centroid query."""
+
     entity_id: str
     cosine_similarity: float
 
@@ -181,7 +182,9 @@ class PgVectorEntityStore:
                     cur.execute(_CREATE_HISTORY_TABLE_SQL)
                     cur.execute(_CREATE_HISTORY_INDEX_SQL)
             conn.commit()
-        logger_obj.info("[PgVectorEntityStore] schema ensured (with_history=%s)", with_history_table_bool)
+        logger_obj.info(
+            "[PgVectorEntityStore] schema ensured (with_history=%s)", with_history_table_bool
+        )
 
     # ── Writes (called alongside, never instead of, EntityStoreWriter) ──────
 
@@ -245,7 +248,10 @@ class PgVectorEntityStore:
     # ── Analytical reads ─────────────────────────────────────────────────────
 
     def find_nearest_entities(
-        self, query_emb: np.ndarray, exclude_entity_id: str, k_int: int = 10,
+        self,
+        query_emb: np.ndarray,
+        exclude_entity_id: str,
+        k_int: int = 10,
     ) -> List[NearestEntityResult]:
         """
         Cosine-nearest entities to query_emb via pgvector's `<=>` (cosine
@@ -263,10 +269,14 @@ class PgVectorEntityStore:
                     {"query_emb": query_arr, "exclude_entity_id": exclude_entity_id, "k": k_int},
                 )
                 rows = cur.fetchall()
-        return [NearestEntityResult(entity_id=row[0], cosine_similarity=float(row[1])) for row in rows]
+        return [
+            NearestEntityResult(entity_id=row[0], cosine_similarity=float(row[1])) for row in rows
+        ]
 
     def find_high_variance_entities(
-        self, min_variance_float: float, limit_int: int = 100,
+        self,
+        min_variance_float: float,
+        limit_int: int = 100,
     ) -> List[Tuple[str, float, int, datetime]]:
         """Entities with emb_variance >= min_variance_float, most volatile first."""
         with self._connect() as conn:

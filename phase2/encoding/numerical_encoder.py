@@ -47,7 +47,9 @@ class NumericalEncoder:
 
     def encode(self, metric_name: str, raw_value: float) -> float:
         """Z-score `raw_value` using metric_name's precomputed (mean, std)."""
-        value = 0.0 if raw_value is None or raw_value != raw_value else float(raw_value)  # NaN check
+        value = (
+            0.0 if raw_value is None or raw_value != raw_value else float(raw_value)
+        )  # NaN check
         mean, std = self._stats_dict.get(metric_name, (0.0, 1.0))
         if metric_name not in self._stats_dict:
             self._oov_metric_count += 1

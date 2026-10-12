@@ -33,8 +33,8 @@ from redis import Redis
 from redis.asyncio import Redis as AsyncRedis
 
 from phase2.store.base_entity_store import (
-    BaseEntityStoreReader,
     STATS_KEY_GLOB,
+    BaseEntityStoreReader,
     centroid_key,
     current_key,
     deserialize_emb_f16,
@@ -144,7 +144,8 @@ class EntityStoreReader(BaseEntityStoreReader):
             return None
 
         centroid_emb = (
-            deserialize_emb_f16(centroid_raw) if centroid_raw is not None
+            deserialize_emb_f16(centroid_raw)
+            if centroid_raw is not None
             else np.zeros(128, dtype=np.float32)
         )
 
@@ -156,7 +157,9 @@ class EntityStoreReader(BaseEntityStoreReader):
                 "[EntityStoreReader] entity_id=%s history longer than expected "
                 "(%d > %d) -- LTRIM cap may not be enforced by the writer that "
                 "produced it.",
-                entity_id, len(history_embs), self._history_len_int,
+                entity_id,
+                len(history_embs),
+                self._history_len_int,
             )
 
         def _stat(field_name: str, default: str) -> bytes:

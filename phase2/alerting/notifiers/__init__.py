@@ -12,7 +12,12 @@ DashboardWriter time-series sink.
 """
 
 from .base_notifier import BaseNotifier
-from .dashboard_writer import BaseDashboardStore, DashboardWriter, InMemoryDashboardStore, PostgresDashboardStore
+from .dashboard_writer import (
+    BaseDashboardStore,
+    DashboardWriter,
+    InMemoryDashboardStore,
+    PostgresDashboardStore,
+)
 from .email_notifier import EmailNotifier
 from .pagerduty_notifier import PagerDutyNotifier
 from .rate_limiter import AsyncRateLimiter

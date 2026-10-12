@@ -364,9 +364,7 @@ class CorrelationEngine:
         digest = hashlib.sha256(members_key.encode("utf-8")).hexdigest()[:12]
         return f"grp_{digest}"
 
-    def _collect_related_incident_ids(
-        self, entity_id: str, community: Set[str]
-    ) -> List[str]:
+    def _collect_related_incident_ids(self, entity_id: str, community: Set[str]) -> List[str]:
         other_member_ids = sorted(node_id for node_id in community if node_id != entity_id)
         related_incident_ids = []
         for other_id in other_member_ids:

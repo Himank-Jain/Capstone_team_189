@@ -45,6 +45,7 @@ class FeatureMetaStore:
     metric_value_stats_dict:
         {metric_name: (mean, std)} — MUST match compute_metric_value_stats().
     """
+
     vocab_maps_dict: Dict[str, Dict[str, int]]
     metric_value_stats_dict: Dict[str, Tuple[float, float]]
 
@@ -105,7 +106,9 @@ class FeatureMetaStore:
 
         logger_obj.info(
             "[FeatureMetaStore] Loaded %d categorical cols, %d metric stats from %s",
-            len(vocab_maps), len(metric_value_stats), path,
+            len(vocab_maps),
+            len(metric_value_stats),
+            path,
         )
         return cls(vocab_maps_dict=vocab_maps, metric_value_stats_dict=metric_value_stats)
 

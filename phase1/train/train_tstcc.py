@@ -40,8 +40,8 @@ from phase1.data.streaming_aug_pairs_dataset import (
 )
 from phase1.losses.ntxent_loss import NTXentLossComputer, NTXentLossConfigData
 from phase1.models.tstcc_encoder import (
-    build_tstcc_encoder_for_aug_pairs,
     ENC_CHECKPOINT_FREQ,
+    build_tstcc_encoder_for_aug_pairs,
 )
 
 logging.basicConfig(
@@ -57,19 +57,37 @@ def parse_args() -> argparse.Namespace:
         description="Train TstccEncoder with NT-Xent contrastive loss on aug_pairs.parquet"
     )
     parser.add_argument("--parquet", required=True, help="Path to aug_pairs.parquet")
-    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs (default: 20)")
+    parser.add_argument(
+        "--epochs", type=int, default=20, help="Number of training epochs (default: 20)"
+    )
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size (default: 64)")
-    parser.add_argument("--seq-len", type=int, default=32, help="Sequence window length (default: 32)")
-    parser.add_argument("--stride", type=int, default=16, help="Window stride (default: 16, 50%% overlap)")
+    parser.add_argument(
+        "--seq-len", type=int, default=32, help="Sequence window length (default: 32)"
+    )
+    parser.add_argument(
+        "--stride", type=int, default=16, help="Window stride (default: 16, 50%% overlap)"
+    )
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate (default: 3e-4)")
-    parser.add_argument("--temperature", type=float, default=0.1, help="NT-Xent temperature (default: 0.1)")
-    parser.add_argument("--num-workers", type=int, default=2, help="DataLoader worker processes (default: 2)")
+    parser.add_argument(
+        "--temperature", type=float, default=0.1, help="NT-Xent temperature (default: 0.1)"
+    )
+    parser.add_argument(
+        "--num-workers", type=int, default=2, help="DataLoader worker processes (default: 2)"
+    )
     parser.add_argument("--checkpoint-dir", default="model_registry", help="Checkpoint output dir")
-    parser.add_argument("--resume", default=None, help="Path to a checkpoint .pt file to resume from")
+    parser.add_argument(
+        "--resume", default=None, help="Path to a checkpoint .pt file to resume from"
+    )
     parser.add_argument("--device", default=None, help="cuda / cpu (default: auto-detect)")
-    parser.add_argument("--log-every", type=int, default=50, help="Log every N batches (default: 50)")
-    parser.add_argument("--max-batches-per-epoch", type=int, default=None,
-                         help="Cap batches/epoch for a quick test run (default: no cap, full file)")
+    parser.add_argument(
+        "--log-every", type=int, default=50, help="Log every N batches (default: 50)"
+    )
+    parser.add_argument(
+        "--max-batches-per-epoch",
+        type=int,
+        default=None,
+        help="Cap batches/epoch for a quick test run (default: no cap, full file)",
+    )
     return parser.parse_args()
 
 
@@ -86,15 +104,20 @@ def main() -> None:
     logger_obj.info("Computing categorical vocab from full file (single pass) …")
     t0 = time.time()
     vocab_maps = compute_vocab_sizes(args.parquet)
-    logger_obj.info("Vocab computed in %.1fs: %s",
-                     time.time() - t0,
-                     {k: len(v) + 1 for k, v in vocab_maps.items()})
+    logger_obj.info(
+        "Vocab computed in %.1fs: %s",
+        time.time() - t0,
+        {k: len(v) + 1 for k, v in vocab_maps.items()},
+    )
 
     logger_obj.info("Computing per-metric value stats (mean/std) from full file …")
     t0 = time.time()
     metric_value_stats = compute_metric_value_stats(args.parquet)
-    logger_obj.info("Per-metric stats computed in %.1fs for %d metrics",
-                     time.time() - t0, len(metric_value_stats))
+    logger_obj.info(
+        "Per-metric stats computed in %.1fs for %d metrics",
+        time.time() - t0,
+        len(metric_value_stats),
+    )
 
     # ── Step 2: Build the encoder, sized to this file's vocab ──────────────
     encoder = build_tstcc_encoder_for_aug_pairs(
@@ -138,17 +161,20 @@ def main() -> None:
     encoder.train()
     logger_obj.info(
         "Starting training: %d epochs, batch_size=%d, seq_len=%d, lr=%g",
-        args.epochs, args.batch_size, args.seq_len, args.lr,
+        args.epochs,
+        args.batch_size,
+        args.seq_len,
+        args.lr,
     )
 
     for epoch_int in range(start_epoch_int, args.epochs + 1):
-        dataset = StreamingAugPairsDataset(dataset_cfg)   # fresh iterator each epoch
+        dataset = StreamingAugPairsDataset(dataset_cfg)  # fresh iterator each epoch
         loader = DataLoader(
             dataset,
             batch_size=args.batch_size,
             collate_fn=contrastive_collate_fn,
             num_workers=args.num_workers,
-            drop_last=True,   # NT-Xent needs a consistent batch size for the positive-index math
+            drop_last=True,  # NT-Xent needs a consistent batch size for the positive-index math
         )
 
         epoch_loss_sum = 0.0
@@ -176,12 +202,17 @@ def main() -> None:
                 running_avg = epoch_loss_sum / n_batches_int
                 logger_obj.info(
                     "  epoch %d  batch %d  loss=%.4f  running_avg=%.4f",
-                    epoch_int, batch_idx, loss.item(), running_avg,
+                    epoch_int,
+                    batch_idx,
+                    loss.item(),
+                    running_avg,
                 )
 
             if args.max_batches_per_epoch and batch_idx >= args.max_batches_per_epoch:
-                logger_obj.info("  reached --max-batches-per-epoch=%d, ending epoch early",
-                                 args.max_batches_per_epoch)
+                logger_obj.info(
+                    "  reached --max-batches-per-epoch=%d, ending epoch early",
+                    args.max_batches_per_epoch,
+                )
                 break
 
         scheduler.step()
@@ -198,8 +229,12 @@ def main() -> None:
         epoch_elapsed_s = time.time() - epoch_start_t
         logger_obj.info(
             "Epoch %d/%d done — avg_loss=%.4f  batches=%d  time=%.1fs  lr=%.2e",
-            epoch_int, args.epochs, epoch_avg_loss, n_batches_int,
-            epoch_elapsed_s, scheduler.get_last_lr()[0],
+            epoch_int,
+            args.epochs,
+            epoch_avg_loss,
+            n_batches_int,
+            epoch_elapsed_s,
+            scheduler.get_last_lr()[0],
         )
 
         if epoch_int % ENC_CHECKPOINT_FREQ == 0 or epoch_int == args.epochs:

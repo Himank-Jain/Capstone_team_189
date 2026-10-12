@@ -86,6 +86,7 @@ class RawRecord:
     value:
         Raw numeric reading for metric_name, on that metric's native scale.
     """
+
     entity_id: str
     timestamp: datetime
     cloud: str
@@ -113,6 +114,7 @@ class EventBatch:
         Count of events that failed schema validation and were routed to
         the DeadLetterWriter instead of appearing in `records`.
     """
+
     records: List[RawRecord] = field(default_factory=list)
     batch_ts: datetime = field(default_factory=datetime.utcnow)
     source: str = "unknown"
@@ -152,6 +154,7 @@ class EntityProfile:
         centroid_emb was seeded from the global mean instead of the
         entity's own data.
     """
+
     entity_id: str
     centroid_emb: np.ndarray
     history_embs: List[np.ndarray]
@@ -187,6 +190,7 @@ class CurrentEmbedding:
         AWS | Azure | GCP | OCI — carried through from the entity's
         RawRecords for downstream filtering/dashboarding.
     """
+
     entity_id: str
     emb: np.ndarray
     batch_ts: datetime
@@ -224,6 +228,7 @@ class EpisodeSearchResult:
         None if the real corpus never populated it (observed to be the
         common case in the current FAISS build).
     """
+
     similarity_score: float
     episode_id: str
     entity_id: str

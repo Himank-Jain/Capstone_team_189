@@ -74,7 +74,8 @@ class KinesisIngestor(BaseIngestor):
         self._shard_iterator = resp["ShardIterator"]
         logger_obj.info(
             "[KinesisIngestor] Reading stream=%s shard=%s",
-            self._stream_name, self._shard_id,
+            self._stream_name,
+            self._shard_id,
         )
 
     def stop(self) -> None:
@@ -100,6 +101,13 @@ class KinesisIngestor(BaseIngestor):
                 self.last_poll_invalid_count += 1
                 logger_obj.warning("[KinesisIngestor] Invalid record: %s", exc)
                 if self._dlq_writer is not None:
-                    self._dlq_writer.write(payload if payload is not None else {"raw": str(kinesis_record.get("Data"))}, str(exc))
+                    self._dlq_writer.write(
+                        (
+                            payload
+                            if payload is not None
+                            else {"raw": str(kinesis_record.get("Data"))}
+                        ),
+                        str(exc),
+                    )
 
         return records

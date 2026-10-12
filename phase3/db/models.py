@@ -64,12 +64,20 @@ class TenantMembershipRow(Base):
     __tablename__ = "tenant_memberships"
     __table_args__ = (
         UniqueConstraint("user_id", "tenant_id", name="uq_tenant_membership_user_tenant"),
-        CheckConstraint("role IN ('OWNER', 'OPERATOR', 'VIEWER')", name="ck_tenant_membership_role"),
+        CheckConstraint(
+            "role IN ('OWNER', 'OPERATOR', 'VIEWER')", name="ck_tenant_membership_role"
+        ),
     )
 
-    membership_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"tm-{__import__('uuid').uuid4()}" )
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    membership_id: Mapped[str] = mapped_column(
+        String(64), primary_key=True, default=lambda: f"tm-{__import__('uuid').uuid4()}"
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -85,12 +93,18 @@ class CloudConnectionRow(Base):
     __tablename__ = "cloud_connections"
 
     connection_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     credentials_ciphertext: Mapped[str | None] = mapped_column(String(1024), nullable=True)
-    dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    dry_run: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     status: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    last_validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_validated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -105,8 +119,12 @@ class CloudResourceRow(Base):
     __tablename__ = "cloud_resources"
 
     resource_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    connection_id: Mapped[str] = mapped_column(ForeignKey("cloud_connections.connection_id", ondelete="CASCADE"), nullable=False)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    connection_id: Mapped[str] = mapped_column(
+        ForeignKey("cloud_connections.connection_id", ondelete="CASCADE"), nullable=False
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     resource_type: Mapped[str] = mapped_column(String(100), nullable=False)
     resource_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -125,7 +143,9 @@ class NotificationEndpointRow(Base):
     __tablename__ = "notification_endpoints"
 
     endpoint_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     channel: Mapped[str] = mapped_column(String(50), nullable=False)
     target: Mapped[str] = mapped_column(String(255), nullable=False)
     secret_ciphertext: Mapped[str | None] = mapped_column(String(512), nullable=True)
@@ -141,7 +161,9 @@ class NotificationPolicyRow(Base):
     __tablename__ = "notification_policies"
 
     policy_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     channel: Mapped[str] = mapped_column(String(50), nullable=False)
     match_criteria: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     retry_policy: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -161,7 +183,9 @@ class NotificationDeliveryRow(Base):
     delivery_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     alert_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     endpoint_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="queued")
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -178,7 +202,9 @@ class IncidentRow(Base):
     __tablename__ = "incidents"
 
     incident_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True
+    )
     entity_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     severity: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
@@ -210,7 +236,9 @@ class RcaCaseRow(Base):
 
     rca_case_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     incident_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -227,7 +255,9 @@ class AuditEventRow(Base):
 
     audit_event_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     actor_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(
+        ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True
+    )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     target: Mapped[str] = mapped_column(String(255), nullable=False)
     details: Mapped[dict | None] = mapped_column(JSON, nullable=True)

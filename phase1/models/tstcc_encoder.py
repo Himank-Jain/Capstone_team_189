@@ -66,21 +66,22 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Module-scoped constants  (prefix: ENC_)
 # ─────────────────────────────────────────────────────────────────────────────
 
-ENC_FEATURE_DIM: int        = 256   # EmbeddingLayer output width (input to GRU pipeline)
-ENC_TIME2VEC_K: int         = 8     # Time2Vec total output (1 linear + 7 sine terms)
-ENC_GRU_INPUT_DIM: int      = ENC_FEATURE_DIM + ENC_TIME2VEC_K  # = 264
-ENC_GRU_HIDDEN: int         = 128   # GRU hidden-state width
-ENC_GRU_LAYERS: int         = 2     # stacked GRU layers
-ENC_GRU_DROPOUT: float      = 0.1   # inter-layer GRU dropout (only active when layers ≥ 2)
-ENC_EMBED_DIM: int          = 128   # final L2-normalised embedding dimension
-ENC_PROJ_HIDDEN: int        = 128   # ProjectionHead intermediate dimension
-ENC_CHECKPOINT_FREQ: int    = 5     # save a checkpoint every N training epochs
+ENC_FEATURE_DIM: int = 256  # EmbeddingLayer output width (input to GRU pipeline)
+ENC_TIME2VEC_K: int = 8  # Time2Vec total output (1 linear + 7 sine terms)
+ENC_GRU_INPUT_DIM: int = ENC_FEATURE_DIM + ENC_TIME2VEC_K  # = 264
+ENC_GRU_HIDDEN: int = 128  # GRU hidden-state width
+ENC_GRU_LAYERS: int = 2  # stacked GRU layers
+ENC_GRU_DROPOUT: float = 0.1  # inter-layer GRU dropout (only active when layers ≥ 2)
+ENC_EMBED_DIM: int = 128  # final L2-normalised embedding dimension
+ENC_PROJ_HIDDEN: int = 128  # ProjectionHead intermediate dimension
+ENC_CHECKPOINT_FREQ: int = 5  # save a checkpoint every N training epochs
 ENC_MODEL_REGISTRY_DIR: str = "model_registry"  # default checkpoint output folder
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Configuration dataclasses  (mirror config/config.yaml §encoder)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class CategoricalFieldConfigData:
@@ -100,6 +101,7 @@ class CategoricalFieldConfigData:
     padding_idx_int:
         Vocabulary index whose gradient is zeroed during back-prop. Default 0.
     """
+
     field_name_str: str
     vocab_size_int: int
     embed_dim_int: int
@@ -127,10 +129,11 @@ class EmbeddingLayerConfigData:
         Defaults to ``output_dim_int // 2`` (128) so numeric and categorical
         halves contribute roughly equally.
     """
+
     categorical_fields_list: List[CategoricalFieldConfigData] = field(default_factory=list)
     num_numeric_int: int = 0
     output_dim_int: int = ENC_FEATURE_DIM
-    numeric_proj_dim_int: int = ENC_FEATURE_DIM // 2   # = 128
+    numeric_proj_dim_int: int = ENC_FEATURE_DIM // 2  # = 128
 
 
 @dataclass
@@ -163,6 +166,7 @@ class TstccEncoderConfigData:
     checkpoint_dir_str:
         Directory path where periodic checkpoints are persisted.
     """
+
     embedding_cfg: EmbeddingLayerConfigData = field(default_factory=EmbeddingLayerConfigData)
     time2vec_k_int: int = ENC_TIME2VEC_K
     gru_hidden_int: int = ENC_GRU_HIDDEN
@@ -177,6 +181,7 @@ class TstccEncoderConfigData:
 # ─────────────────────────────────────────────────────────────────────────────
 # Layer 1 — EmbeddingLayer
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class EmbeddingLayer(nn.Module):
     """
@@ -216,7 +221,7 @@ class EmbeddingLayer(nn.Module):
         super().__init__()
 
         has_categorical_bool: bool = bool(config.categorical_fields_list)
-        has_numeric_bool: bool     = config.num_numeric_int > 0
+        has_numeric_bool: bool = config.num_numeric_int > 0
 
         if not has_categorical_bool and not has_numeric_bool:
             raise ValueError(
@@ -227,14 +232,16 @@ class EmbeddingLayer(nn.Module):
         self._config_data: EmbeddingLayerConfigData = config
 
         # ── Categorical sub-module: one nn.Embedding per column ──────────────
-        self.cat_embed_module_list: nn.ModuleList = nn.ModuleList([
-            nn.Embedding(
-                num_embeddings=f.vocab_size_int,
-                embedding_dim=f.embed_dim_int,
-                padding_idx=f.padding_idx_int,
-            )
-            for f in config.categorical_fields_list
-        ])
+        self.cat_embed_module_list: nn.ModuleList = nn.ModuleList(
+            [
+                nn.Embedding(
+                    num_embeddings=f.vocab_size_int,
+                    embedding_dim=f.embed_dim_int,
+                    padding_idx=f.padding_idx_int,
+                )
+                for f in config.categorical_fields_list
+            ]
+        )
 
         cat_total_dim_int: int = sum(f.embed_dim_int for f in config.categorical_fields_list)
 
@@ -244,17 +251,22 @@ class EmbeddingLayer(nn.Module):
 
         if has_numeric_bool:
             numeric_out_dim_int = config.numeric_proj_dim_int
-            self.numeric_proj_layer: nn.Linear    = nn.Linear(config.num_numeric_int, numeric_out_dim_int)
+            self.numeric_proj_layer: nn.Linear = nn.Linear(
+                config.num_numeric_int, numeric_out_dim_int
+            )
             self.numeric_norm_layer: nn.LayerNorm = nn.LayerNorm(numeric_out_dim_int)
 
         # ── Final fusion projection ───────────────────────────────────────────
         concat_dim_int: int = cat_total_dim_int + numeric_out_dim_int
-        self.output_proj_layer: nn.Linear    = nn.Linear(concat_dim_int, config.output_dim_int)
+        self.output_proj_layer: nn.Linear = nn.Linear(concat_dim_int, config.output_dim_int)
         self.output_norm_layer: nn.LayerNorm = nn.LayerNorm(config.output_dim_int)
 
         logger_obj.debug(
             "[EmbeddingLayer] cat_dim=%d  numeric_dim=%d  concat_dim=%d  output_dim=%d",
-            cat_total_dim_int, numeric_out_dim_int, concat_dim_int, config.output_dim_int,
+            cat_total_dim_int,
+            numeric_out_dim_int,
+            concat_dim_int,
+            config.output_dim_int,
         )
 
     # ── forward ──────────────────────────────────────────────────────────────
@@ -299,7 +311,7 @@ class EmbeddingLayer(nn.Module):
             parts_list.append(numeric_proj_tensor)
 
         # Concatenate all parts and project to output_dim
-        concat_tensor: torch.Tensor = torch.cat(parts_list, dim=-1)   # (batch, seq_len, concat_dim)
+        concat_tensor: torch.Tensor = torch.cat(parts_list, dim=-1)  # (batch, seq_len, concat_dim)
         output_tensor: torch.Tensor = self.output_norm_layer(
             self.output_proj_layer(concat_tensor)
         )  # (batch, seq_len, output_dim)
@@ -310,6 +322,7 @@ class EmbeddingLayer(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Layer 2 — Time2Vec
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class Time2Vec(nn.Module):
     """
@@ -350,14 +363,14 @@ class Time2Vec(nn.Module):
         num_sine_int: int = k_int - 1  # = 7 for k=8
 
         # Linear trend term  (ω₀, φ₀)
-        self.linear_w_param: nn.Parameter  = nn.Parameter(torch.randn(1) * 0.01)
+        self.linear_w_param: nn.Parameter = nn.Parameter(torch.randn(1) * 0.01)
         self.linear_phi_param: nn.Parameter = nn.Parameter(torch.zeros(1))
 
         # Sine frequency and phase parameters  (ωᵢ, φᵢ for i=1..k-1)
         # CRITICAL: Small Gaussian init (σ=0.01) — NOT uniform.
         # Uniform init with large range forces high initial frequencies that
         # kill gradients via the flat regions of sin().
-        self.sine_w_param: nn.Parameter   = nn.Parameter(torch.randn(num_sine_int) * 0.01)
+        self.sine_w_param: nn.Parameter = nn.Parameter(torch.randn(num_sine_int) * 0.01)
         self.sine_phi_param: nn.Parameter = nn.Parameter(torch.zeros(num_sine_int))
 
     def forward(self, tau_tensor: torch.Tensor) -> torch.Tensor:
@@ -377,9 +390,7 @@ class Time2Vec(nn.Module):
             be concatenated with the EmbeddingLayer output tensor.
         """
         # Linear term:  (batch, seq_len, 1)
-        linear_term_tensor: torch.Tensor = (
-            self.linear_w_param * tau_tensor + self.linear_phi_param
-        )
+        linear_term_tensor: torch.Tensor = self.linear_w_param * tau_tensor + self.linear_phi_param
 
         # Sine terms:   broadcast tau over k-1 frequencies → (batch, seq_len, k-1)
         # tau_tensor shape: (batch, seq_len, 1) broadcasts with sine_w (k-1,)
@@ -394,6 +405,7 @@ class Time2Vec(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Layer 4 — AttentionPooling
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class AttentionPooling(nn.Module):
     """
@@ -457,9 +469,7 @@ class AttentionPooling(nn.Module):
 
         # Step 2: Dot with query  → (batch, seq_len)
         # einsum: for each batch b and time t, sum over hidden dim h
-        scores_tensor: torch.Tensor = torch.einsum(
-            "bth,h->bt", projected_tensor, self.query_param
-        )
+        scores_tensor: torch.Tensor = torch.einsum("bth,h->bt", projected_tensor, self.query_param)
 
         # Step 3: Mask padding positions with -inf so softmax drives them to 0
         if valid_mask_tensor is not None:
@@ -483,6 +493,7 @@ class AttentionPooling(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Layer 5 — ProjectionHead
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class ProjectionHead(nn.Module):
     """
@@ -515,7 +526,7 @@ class ProjectionHead(nn.Module):
 
     def __init__(
         self,
-        input_dim_int: int  = ENC_GRU_HIDDEN,
+        input_dim_int: int = ENC_GRU_HIDDEN,
         hidden_dim_int: int = ENC_PROJ_HIDDEN,
         output_dim_int: int = ENC_EMBED_DIM,
     ) -> None:
@@ -551,6 +562,7 @@ class ProjectionHead(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Main module — TstccEncoder
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TstccEncoder(nn.Module):
     """
@@ -696,9 +708,7 @@ class TstccEncoder(nn.Module):
         gru_input_tensor: torch.Tensor = torch.cat([features_tensor, time_enc_tensor], dim=-1)
 
         # ── Step 4: GRU with variable-length sequence support  ────────────────
-        gru_output_tensor, valid_mask_tensor = self._run_gru(
-            gru_input_tensor, lengths_tensor
-        )
+        gru_output_tensor, valid_mask_tensor = self._run_gru(gru_input_tensor, lengths_tensor)
         # gru_output_tensor: (batch, seq_len, ENC_GRU_HIDDEN=128)
         # valid_mask_tensor: (batch, seq_len) bool | None
 
@@ -755,7 +765,7 @@ class TstccEncoder(nn.Module):
                     lengths_tensor,
                 )
         finally:
-            self.use_projection_bool = prev_projection_bool   # always restore
+            self.use_projection_bool = prev_projection_bool  # always restore
 
         return embedding_tensor
 
@@ -793,10 +803,10 @@ class TstccEncoder(nn.Module):
         dest_path.parent.mkdir(parents=True, exist_ok=True)
 
         payload_dict: Dict = {
-            "state_dict":           self.state_dict(),
-            "use_projection_bool":  self.use_projection_bool,
-            "embed_dim_int":        self._config_data.embed_dim_int,
-            "gru_hidden_int":       self._config_data.gru_hidden_int,
+            "state_dict": self.state_dict(),
+            "use_projection_bool": self.use_projection_bool,
+            "embed_dim_int": self._config_data.embed_dim_int,
+            "gru_hidden_int": self._config_data.gru_hidden_int,
         }
 
         torch.save(payload_dict, str(dest_path))
@@ -845,9 +855,7 @@ class TstccEncoder(nn.Module):
         )
 
         self.load_state_dict(state_dict_to_load, strict=strict_bool)
-        logger_obj.info(
-            "[TstccEncoder] Weights loaded ← %s  (strict=%s)", source_path, strict_bool
-        )
+        logger_obj.info("[TstccEncoder] Weights loaded ← %s  (strict=%s)", source_path, strict_bool)
 
     def save_checkpoint(
         self,
@@ -882,16 +890,14 @@ class TstccEncoder(nn.Module):
         registry_path: Path = Path(self._config_data.checkpoint_dir_str)
         registry_path.mkdir(parents=True, exist_ok=True)
 
-        checkpoint_file_path: Path = (
-            registry_path / f"tstcc_encoder_epoch_{epoch_int:04d}.pt"
-        )
+        checkpoint_file_path: Path = registry_path / f"tstcc_encoder_epoch_{epoch_int:04d}.pt"
 
         payload_dict: Dict = {
-            "epoch_int":            epoch_int,
-            "state_dict":           self.state_dict(),
-            "use_projection_bool":  self.use_projection_bool,
-            "embed_dim_int":        self._config_data.embed_dim_int,
-            "gru_hidden_int":       self._config_data.gru_hidden_int,
+            "epoch_int": epoch_int,
+            "state_dict": self.state_dict(),
+            "use_projection_bool": self.use_projection_bool,
+            "embed_dim_int": self._config_data.embed_dim_int,
+            "gru_hidden_int": self._config_data.gru_hidden_int,
         }
         if optimizer_state_dict is not None:
             payload_dict["optimizer_state_dict"] = optimizer_state_dict
@@ -945,7 +951,7 @@ class TstccEncoder(nn.Module):
                 gru_input_tensor,
                 lengths=lengths_tensor.cpu(),
                 batch_first=True,
-                enforce_sorted=False,   # handles unsorted batches (common in data loaders)
+                enforce_sorted=False,  # handles unsorted batches (common in data loaders)
             )
 
             packed_output, _ = self.gru_module(packed_input)
@@ -963,10 +969,12 @@ class TstccEncoder(nn.Module):
             device_obj = gru_input_tensor.device
             time_range_tensor: torch.Tensor = torch.arange(
                 max_seq_len_int, device=device_obj
-            ).unsqueeze(0)                                  # (1, seq_len)
-            valid_mask_tensor: torch.Tensor = (
-                time_range_tensor < lengths_tensor.unsqueeze(1).to(device_obj)
-            )                                               # (batch, seq_len)
+            ).unsqueeze(
+                0
+            )  # (1, seq_len)
+            valid_mask_tensor: torch.Tensor = time_range_tensor < lengths_tensor.unsqueeze(1).to(
+                device_obj
+            )  # (batch, seq_len)
 
         else:
             # All sequences have the same length — no packing needed.
@@ -979,6 +987,7 @@ class TstccEncoder(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Factory helper
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_tstcc_encoder(config: TstccEncoderConfigData) -> TstccEncoder:
     """
@@ -1145,14 +1154,15 @@ def build_tstcc_encoder_for_aug_pairs(
     >>> #    AUG_PAIRS_NUMERIC_COLS / AUG_PAIRS_CATEGORICAL_COLS column order
     >>> z = encoder(numeric_tensor, categorical_tensor, timestamps_tensor, lengths)
     """
+
     # Embed dim heuristic: min(vocab // 2, 32), floor of 4 to avoid degenerate
     # 0-1 dim embeddings on tiny vocabularies (e.g. cloud has only ~5 values).
     def _embed_dim(vocab_size_int: int) -> int:
         return max(4, min(vocab_size_int // 2, 32))
 
-    cloud_full_vocab_int       = cloud_vocab_size_int + 1        # +1 reserves index 0 = PAD/UNK
+    cloud_full_vocab_int = cloud_vocab_size_int + 1  # +1 reserves index 0 = PAD/UNK
     entity_type_full_vocab_int = entity_type_vocab_size_int + 1
-    namespace_full_vocab_int   = namespace_vocab_size_int + 1
+    namespace_full_vocab_int = namespace_vocab_size_int + 1
     metric_name_full_vocab_int = metric_name_vocab_size_int + 1
 
     cat_fields_list: List[CategoricalFieldConfigData] = [
@@ -1185,8 +1195,8 @@ def build_tstcc_encoder_for_aug_pairs(
     config = TstccEncoderConfigData(
         embedding_cfg=EmbeddingLayerConfigData(
             categorical_fields_list=cat_fields_list,
-            num_numeric_int=AUG_PAIRS_NUM_NUMERIC,   # = 3
-            output_dim_int=ENC_FEATURE_DIM,          # = 256
+            num_numeric_int=AUG_PAIRS_NUM_NUMERIC,  # = 3
+            output_dim_int=ENC_FEATURE_DIM,  # = 256
             numeric_proj_dim_int=ENC_FEATURE_DIM // 2,
         ),
         use_projection_bool=use_projection_bool,
@@ -1196,8 +1206,11 @@ def build_tstcc_encoder_for_aug_pairs(
     logger_obj.info(
         "[build_tstcc_encoder_for_aug_pairs] cloud_vocab=%d  entity_type_vocab=%d  "
         "namespace_vocab=%d  metric_name_vocab=%d  numeric_features=%d",
-        cloud_full_vocab_int, entity_type_full_vocab_int,
-        namespace_full_vocab_int, metric_name_full_vocab_int, AUG_PAIRS_NUM_NUMERIC,
+        cloud_full_vocab_int,
+        entity_type_full_vocab_int,
+        namespace_full_vocab_int,
+        metric_name_full_vocab_int,
+        AUG_PAIRS_NUM_NUMERIC,
     )
 
     return build_tstcc_encoder(config)
@@ -1216,6 +1229,7 @@ def build_tstcc_encoder_for_aug_pairs(
 # pandas/pyarrow/argparse are imported lazily here (not at module top) so
 # importing TstccEncoder elsewhere doesn't require them as hard dependencies.
 
+
 def _run_cli() -> None:
     import argparse
     import sys
@@ -1228,16 +1242,31 @@ def _run_cli() -> None:
         description="Smoke-test TstccEncoder against a local aug_pairs.parquet file."
     )
     parser.add_argument("--parquet", required=True, help="Path to aug_pairs.parquet")
-    parser.add_argument("--row-groups", type=int, default=1,
-                         help="Number of row groups to sample (default: 1). "
-                              "Each row group is typically ~1M rows; 1 is enough for a smoke test.")
-    parser.add_argument("--seq-len", type=int, default=32,
-                         help="Sequence window length per entity, IN READING EVENTS "
-                              "not distinct timestamps (default: 32)")
-    parser.add_argument("--max-entities", type=int, default=8,
-                         help="Max number of entities to build sample sequences for (default: 8)")
-    parser.add_argument("--save-checkpoint", action="store_true",
-                         help="Save an (untrained) checkpoint to model_registry/ to verify save/load works")
+    parser.add_argument(
+        "--row-groups",
+        type=int,
+        default=1,
+        help="Number of row groups to sample (default: 1). "
+        "Each row group is typically ~1M rows; 1 is enough for a smoke test.",
+    )
+    parser.add_argument(
+        "--seq-len",
+        type=int,
+        default=32,
+        help="Sequence window length per entity, IN READING EVENTS "
+        "not distinct timestamps (default: 32)",
+    )
+    parser.add_argument(
+        "--max-entities",
+        type=int,
+        default=8,
+        help="Max number of entities to build sample sequences for (default: 8)",
+    )
+    parser.add_argument(
+        "--save-checkpoint",
+        action="store_true",
+        help="Save an (untrained) checkpoint to model_registry/ to verify save/load works",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -1257,8 +1286,17 @@ def _run_cli() -> None:
     # Each row is already one (timestamp, metric_name, value) reading event —
     # no pivot needed. Just validate the raw columns this schema requires.
     required_raw_cols = {
-        "entity_id", "timestamp", "view", "pair_id", "metric_name", "value",
-        "cloud", "entity_type", "namespace", "hour_of_day", "day_of_week",
+        "entity_id",
+        "timestamp",
+        "view",
+        "pair_id",
+        "metric_name",
+        "value",
+        "cloud",
+        "entity_type",
+        "namespace",
+        "hour_of_day",
+        "day_of_week",
     }
     missing_cols = required_raw_cols - set(df.columns)
     if missing_cols:
@@ -1273,9 +1311,9 @@ def _run_cli() -> None:
     print("      compute_vocab_sizes()/compute_metric_value_stats() — metric_name and")
     print("      value-scale can both vary across row groups/resource types.")
 
-    cloud_n  = int(df["cloud"].nunique())
-    etype_n  = int(df["entity_type"].nunique())
-    ns_n     = int(df["namespace"].nunique())
+    cloud_n = int(df["cloud"].nunique())
+    etype_n = int(df["entity_type"].nunique())
+    ns_n = int(df["namespace"].nunique())
     metric_n = int(df["metric_name"].nunique())
     print(f"      cloud={cloud_n}  entity_type={etype_n}  namespace={ns_n}  metric_name={metric_n}")
 
@@ -1301,9 +1339,9 @@ def _run_cli() -> None:
     df["hour_of_day_norm"] = (df["hour_of_day"].fillna(0).astype(np.float32)) / 24.0
     df["day_of_week_norm"] = (df["day_of_week"].fillna(0).astype(np.float32)) / 7.0
 
-    cloud_map  = {v: i + 1 for i, v in enumerate(sorted(df["cloud"].dropna().unique()))}
-    etype_map  = {v: i + 1 for i, v in enumerate(sorted(df["entity_type"].dropna().unique()))}
-    ns_map     = {v: i + 1 for i, v in enumerate(sorted(df["namespace"].dropna().unique()))}
+    cloud_map = {v: i + 1 for i, v in enumerate(sorted(df["cloud"].dropna().unique()))}
+    etype_map = {v: i + 1 for i, v in enumerate(sorted(df["entity_type"].dropna().unique()))}
+    ns_map = {v: i + 1 for i, v in enumerate(sorted(df["namespace"].dropna().unique()))}
     metric_map = {v: i + 1 for i, v in enumerate(sorted(df["metric_name"].dropna().unique()))}
 
     def encode_view(rows: pd.DataFrame):
@@ -1311,14 +1349,22 @@ def _run_cli() -> None:
             rows[["value_norm", "hour_of_day_norm", "day_of_week_norm"]].to_numpy(dtype=np.float32)
         )
         cat = torch.tensor(
-            [[cloud_map.get(r.cloud, 0), etype_map.get(r.entity_type, 0),
-              ns_map.get(r.namespace, 0), metric_map.get(r.metric_name, 0)]
-             for r in rows.itertuples()],
+            [
+                [
+                    cloud_map.get(r.cloud, 0),
+                    etype_map.get(r.entity_type, 0),
+                    ns_map.get(r.namespace, 0),
+                    metric_map.get(r.metric_name, 0),
+                ]
+                for r in rows.itertuples()
+            ],
             dtype=torch.long,
         )
-        frac_hour = (rows["timestamp"].dt.hour
-                     + rows["timestamp"].dt.minute / 60.0
-                     + rows["timestamp"].dt.second / 3600.0).to_numpy(dtype=np.float32) / 24.0
+        frac_hour = (
+            rows["timestamp"].dt.hour
+            + rows["timestamp"].dt.minute / 60.0
+            + rows["timestamp"].dt.second / 3600.0
+        ).to_numpy(dtype=np.float32) / 24.0
         ts = torch.tensor(frac_hour).unsqueeze(-1)
         return numeric, cat, ts
 
@@ -1327,8 +1373,12 @@ def _run_cli() -> None:
     used_entities = []
 
     for eid in entities:
-        rows_a = df[(df["entity_id"] == eid) & (df["view"] == "a")].sort_values(["timestamp", "metric_name"])
-        rows_b = df[(df["entity_id"] == eid) & (df["view"] == "b")].sort_values(["timestamp", "metric_name"])
+        rows_a = df[(df["entity_id"] == eid) & (df["view"] == "a")].sort_values(
+            ["timestamp", "metric_name"]
+        )
+        rows_b = df[(df["entity_id"] == eid) & (df["view"] == "b")].sort_values(
+            ["timestamp", "metric_name"]
+        )
         if len(rows_a) < args.seq_len or len(rows_b) < args.seq_len:
             continue
         seq_a_list.append(encode_view(rows_a.head(args.seq_len)))
@@ -1336,18 +1386,20 @@ def _run_cli() -> None:
         used_entities.append(eid)
 
     if not seq_a_list:
-        print(f"\n  ERROR: no entity had >= {args.seq_len} reading events for both view='a' and view='b'.")
+        print(
+            f"\n  ERROR: no entity had >= {args.seq_len} reading events for both view='a' and view='b'."
+        )
         print(f"  Try a smaller --seq-len or a larger --row-groups.")
         sys.exit(1)
 
     print(f"      Built {len(seq_a_list)} matched pairs from entities: {used_entities}")
 
     numeric_a = torch.stack([s[0] for s in seq_a_list])
-    cat_a     = torch.stack([s[1] for s in seq_a_list])
-    ts_a      = torch.stack([s[2] for s in seq_a_list])
+    cat_a = torch.stack([s[1] for s in seq_a_list])
+    ts_a = torch.stack([s[2] for s in seq_a_list])
     numeric_b = torch.stack([s[0] for s in seq_b_list])
-    cat_b     = torch.stack([s[1] for s in seq_b_list])
-    ts_b      = torch.stack([s[2] for s in seq_b_list])
+    cat_b = torch.stack([s[1] for s in seq_b_list])
+    ts_b = torch.stack([s[2] for s in seq_b_list])
 
     # ── Step 4: Forward pass + sanity checks ───────────────────────────────
     print("\n[4/5] Running forward pass …")
@@ -1368,8 +1420,12 @@ def _run_cli() -> None:
     sim_matrix = z_a @ z_b.T
     neg_mask = ~torch.eye(len(z_a), dtype=torch.bool)
     neg_sim = sim_matrix[neg_mask]
-    print(f"      Positive-pair cosine sim:  mean={pos_sim.mean():.4f}  (untrained encoder — not meaningful yet)")
-    print(f"      Negative-pair cosine sim:  mean={neg_sim.mean():.4f}  (untrained encoder — not meaningful yet)")
+    print(
+        f"      Positive-pair cosine sim:  mean={pos_sim.mean():.4f}  (untrained encoder — not meaningful yet)"
+    )
+    print(
+        f"      Negative-pair cosine sim:  mean={neg_sim.mean():.4f}  (untrained encoder — not meaningful yet)"
+    )
 
     # ── Step 5: Optionally save a checkpoint to verify save/load works ────
     if args.save_checkpoint:

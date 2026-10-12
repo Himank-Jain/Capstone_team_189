@@ -171,7 +171,9 @@ class AnomalyScorer:
         if scoring_input.drift_score is None:
             logger_obj.debug(
                 "[AnomalyScorer] entity_id=%s drift_score is None -- using "
-                "SCORE_DRIFT_FALLBACK=%s", scoring_input.entity_id, SCORE_DRIFT_FALLBACK,
+                "SCORE_DRIFT_FALLBACK=%s",
+                scoring_input.entity_id,
+                SCORE_DRIFT_FALLBACK,
             )
             drift_score = SCORE_DRIFT_FALLBACK
         else:
@@ -180,7 +182,9 @@ class AnomalyScorer:
         if scoring_input.similarity_score is None:
             logger_obj.debug(
                 "[AnomalyScorer] entity_id=%s similarity_score is None -- using "
-                "SCORE_SIMILARITY_FALLBACK=%s", scoring_input.entity_id, SCORE_SIMILARITY_FALLBACK,
+                "SCORE_SIMILARITY_FALLBACK=%s",
+                scoring_input.entity_id,
+                SCORE_SIMILARITY_FALLBACK,
             )
             similarity_score = SCORE_SIMILARITY_FALLBACK
         else:
@@ -216,6 +220,7 @@ class AnomalyScorer:
 # -- it does NOT import CosineDeviationScorer/MmdDriftMonitor/EpisodeRetriever
 # themselves, so the "only shared/" import constraint above still holds.
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_scoring_input(
     entity_id: str,

@@ -15,7 +15,11 @@ class HypothesisEngine:
     """First-match-wins hypothesis engine mirroring the escalation rule pattern."""
 
     def __init__(self, rules_path: str | Path | None = None):
-        self._rules_path = Path(rules_path) if rules_path is not None else Path(__file__).with_name("hypothesis_rules.yaml")
+        self._rules_path = (
+            Path(rules_path)
+            if rules_path is not None
+            else Path(__file__).with_name("hypothesis_rules.yaml")
+        )
         self._rules = self._load_rules(self._rules_path)
 
     @staticmethod

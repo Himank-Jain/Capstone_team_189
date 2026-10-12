@@ -18,28 +18,19 @@ from phase3.shared.types import User
 class AuthService:
     """Create, verify, and authenticate platform users."""
 
-    def __init__(self, user_repository: UserRepositoryProtocol,
-                 cfg: dict | None = None):
+    def __init__(self, user_repository: UserRepositoryProtocol, cfg: dict | None = None):
         self._user_repository = user_repository
         self._cfg = cfg or {}
-        candidate_secret = (
-            self._cfg.get("jwt_secret") or self._cfg.get("JWT_SECRET")
-        )
-        secret_len = (
-            len(candidate_secret.encode("utf-8")) if candidate_secret else 0
-        )
+        candidate_secret = self._cfg.get("jwt_secret") or self._cfg.get("JWT_SECRET")
+        secret_len = len(candidate_secret.encode("utf-8")) if candidate_secret else 0
         if candidate_secret is None or secret_len < 32:
-            raise ValueError(
-                "jwt_secret must be configured and at least 32 bytes long"
-            )
+            raise ValueError("jwt_secret must be configured and at least 32 bytes long")
         self._jwt_secret = candidate_secret
         self._jwt_ttl_seconds = int(
-            self._cfg.get("jwt_ttl_seconds",
-                          self._cfg.get("JWT_TTL_SECONDS", 3600))
+            self._cfg.get("jwt_ttl_seconds", self._cfg.get("JWT_TTL_SECONDS", 3600))
         )
         self._bcrypt_rounds = int(
-            self._cfg.get("bcrypt_rounds",
-                          self._cfg.get("BCRYPT_ROUNDS", 12))
+            self._cfg.get("bcrypt_rounds", self._cfg.get("BCRYPT_ROUNDS", 12))
         )
 
     @staticmethod
@@ -49,15 +40,13 @@ class AuthService:
     def register(self, email: str, password: str) -> User:
         normalized_email = self.normalize_email(email)
         if self._user_repository.fetch_by_email(normalized_email) is not None:
-            raise DuplicateUserError(
-                f"email already registered: {normalized_email}"
-            )
+            raise DuplicateUserError(f"email already registered: {normalized_email}")
 
         password_hash = bcrypt.hashpw(
             password.encode("utf-8"),
             bcrypt.gensalt(rounds=self._bcrypt_rounds),
         ).decode("utf-8")
-        repository_size = len(self._user_repository.__dict__.get('_users', {}))
+        repository_size = len(self._user_repository.__dict__.get("_users", {}))
         user = User(
             user_id=f"user-{repository_size + 1}",
             email=normalized_email,
@@ -85,9 +74,7 @@ class AuthService:
         payload = {
             "sub": user_id,
             "iat": int(now.timestamp()),
-            "exp": int(
-                (now + timedelta(seconds=self._jwt_ttl_seconds)).timestamp()
-            ),
+            "exp": int((now + timedelta(seconds=self._jwt_ttl_seconds)).timestamp()),
         }
         return jwt.encode(payload, self._jwt_secret, algorithm="HS256")
 

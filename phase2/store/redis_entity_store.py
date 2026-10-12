@@ -67,7 +67,10 @@ def build_redis_client(
     them would corrupt every read.
     """
     return Redis(
-        host=host_str, port=port_int, db=db_int, password=password_str,
+        host=host_str,
+        port=port_int,
+        db=db_int,
+        password=password_str,
         decode_responses=False,
     )
 
@@ -80,7 +83,10 @@ def build_redis_client_async(
 ) -> AsyncRedis:
     """Async counterpart of build_redis_client() -- same decode_responses=False constraint."""
     return AsyncRedis(
-        host=host_str, port=port_int, db=db_int, password=password_str,
+        host=host_str,
+        port=port_int,
+        db=db_int,
+        password=password_str,
         decode_responses=False,
     )
 

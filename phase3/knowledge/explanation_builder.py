@@ -23,9 +23,14 @@ class ExplanationBuilder:
             ExplanationSection("Summary", entry.title),
             ExplanationSection("What this means", entry.definition),
             ExplanationSection("How it was detected", entry.how_it_shows_up),
-            ExplanationSection("Common causes", "; ".join(entry.common_causes) if entry.common_causes else entry.definition),
+            ExplanationSection(
+                "Common causes",
+                "; ".join(entry.common_causes) if entry.common_causes else entry.definition,
+            ),
             ExplanationSection("Why it matters", entry.why_it_matters),
-            ExplanationSection("Evidence for this case", self._collect_case_evidence(rca_case, candidate)),
+            ExplanationSection(
+                "Evidence for this case", self._collect_case_evidence(rca_case, candidate)
+            ),
             ExplanationSection("Limitations", entry.limitations),
         ]
         headline = entry.title
@@ -42,6 +47,7 @@ class ExplanationBuilder:
     def _top_candidate(rca_case: RCACase):
         if not rca_case.candidate_causes:
             from phase3.rca.hypothesis_engine import HypothesisEngine
+
             return HypothesisEngine().generate(rca_case)[0]
         return sorted(
             rca_case.candidate_causes,

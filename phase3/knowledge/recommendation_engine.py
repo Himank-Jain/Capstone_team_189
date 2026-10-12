@@ -31,6 +31,7 @@ class RecommendationEngine:
     def _top_candidate(rca_case: RCACase):
         if not rca_case.candidate_causes:
             from phase3.rca.hypothesis_engine import HypothesisEngine
+
             return HypothesisEngine().generate(rca_case)[0]
         return sorted(
             rca_case.candidate_causes,

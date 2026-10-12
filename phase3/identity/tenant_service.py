@@ -13,7 +13,11 @@ from phase3.shared.types import Role, Tenant, TenantMembership
 class TenantService:
     """Create tenants and attach owner memberships."""
 
-    def __init__(self, tenant_repository: TenantRepositoryProtocol, membership_writer: MembershipWriterProtocol):
+    def __init__(
+        self,
+        tenant_repository: TenantRepositoryProtocol,
+        membership_writer: MembershipWriterProtocol,
+    ):
         self._tenant_repository = tenant_repository
         self._membership_writer = membership_writer
 
@@ -34,5 +38,8 @@ class TenantService:
         return saved
 
     def ensure_source_mode_is_immutable(self, tenant: Tenant, next_source_mode: str) -> None:
-        if tenant.source_mode != next_source_mode and tenant.source_mode in {PLATFORM_SOURCE_MODE_SYNTHETIC, PLATFORM_SOURCE_MODE_LIVE}:
+        if tenant.source_mode != next_source_mode and tenant.source_mode in {
+            PLATFORM_SOURCE_MODE_SYNTHETIC,
+            PLATFORM_SOURCE_MODE_LIVE,
+        }:
             raise TenantValidationError("source_mode is immutable once set")

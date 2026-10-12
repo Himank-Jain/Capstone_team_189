@@ -16,8 +16,7 @@ class CredentialStore:
         secret = (key or "").strip()
         if not secret or len(secret.encode("utf-8")) < 32:
             raise ValueError(
-                "CredentialStore requires a configured Fernet key "
-                "at least 32 bytes long"
+                "CredentialStore requires a configured Fernet key " "at least 32 bytes long"
             )
         digest = hashlib.sha256(secret.encode("utf-8")).digest()
         fernet_key = base64.urlsafe_b64encode(digest)

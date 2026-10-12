@@ -139,7 +139,9 @@ class AsyncDriftWorker:
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             logger_obj.warning(
                 "[AsyncDriftWorker] entity_id=%s cached drift payload was malformed "
-                "(%s) -- treating as a cache miss", entity_id, exc,
+                "(%s) -- treating as a cache miss",
+                entity_id,
+                exc,
             )
             return None
 

@@ -24,16 +24,16 @@ Usage:
   python generate_corpus.py
 """
 
-import os
-import json
 import hashlib
+import json
+import os
 import warnings
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
-from scipy.interpolate import CubicSpline
 from pymongo import MongoClient
+from scipy.interpolate import CubicSpline
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
@@ -44,27 +44,20 @@ warnings.filterwarnings("ignore")
 CONFIG = {
     "mongo_uri": "mongodb://localhost:27017/",
     "db_name": "cloud_monitoring",
-
     "metrics_collection": "cloud_account_data_collection_daily_updated",
     "alerts_collection": "cloud_account_activity_log_updated",
-
     # EDA (Part E) confirmed real volume in Nov 2025 — switched from Aug 2025
     "start_date": datetime(2025, 11, 1, tzinfo=timezone.utc),
-    "end_date":   datetime(2025, 11, 30, 23, 59, 59, tzinfo=timezone.utc),
-
+    "end_date": datetime(2025, 11, 30, 23, 59, 59, tzinfo=timezone.utc),
     # Raised from 500 -> 1000 to get a workable pretraining population
     "max_resources": 1000,
-
     # $sample oversampling factor before entity dedup (was 5x, EDA showed
     # too few unique entities survived dedup at 5x)
     "sample_multiplier": 20,
-
     "noise_fraction": 0.05,
-
     "anomaly_spike_multiplier": (3.0, 6.0),
-    "anomaly_drop_multiplier":  (0.05, 0.2),
+    "anomaly_drop_multiplier": (0.05, 0.2),
     "anomaly_duration_minutes": (15, 45),
-
     "output_dir": "./corpus_output",
     "output_filename": "pretrain_corpus.parquet",
 }
@@ -72,6 +65,7 @@ CONFIG = {
 # ─────────────────────────────────────────────
 # STEP 1: Helpers
 # ─────────────────────────────────────────────
+
 
 def detect_cloud(doc: dict) -> str:
     """
@@ -83,16 +77,24 @@ def detect_cloud(doc: dict) -> str:
     by leaning on category/uri/resource-style fields rather than namespace
     alone, so this fallback chain mirrors that approach.
     """
-    ns   = str(doc.get("namespace", ""))
-    rid  = str(doc.get("resourceId") or doc.get("element_id") or "")
-    uri  = str(doc.get("uri", ""))
-    cat  = str(doc.get("category", ""))
+    ns = str(doc.get("namespace", ""))
+    rid = str(doc.get("resourceId") or doc.get("element_id") or "")
+    uri = str(doc.get("uri", ""))
+    cat = str(doc.get("category", ""))
     comp = str(doc.get("component", ""))  # present in inventory-style docs
 
     # AWS signals: arn prefix, i-/sg-/vol- style ids, EC2 component/category
-    if (rid.startswith("i-") or rid.startswith("sg-") or rid.startswith("vol-")
-            or rid.startswith("arn:aws") or "AWS" in ns or "AWS" in uri
-            or comp == "EC2" or "EC2" in cat or "AWS" in cat):
+    if (
+        rid.startswith("i-")
+        or rid.startswith("sg-")
+        or rid.startswith("vol-")
+        or rid.startswith("arn:aws")
+        or "AWS" in ns
+        or "AWS" in uri
+        or comp == "EC2"
+        or "EC2" in cat
+        or "AWS" in cat
+    ):
         return "AWS"
 
     # OCI signals: ocid prefix, oci_ namespace prefix
@@ -100,8 +102,13 @@ def detect_cloud(doc: dict) -> str:
         return "OCI"
 
     # Azure signals: /subscriptions/ path, Microsoft.* namespace, Azure category/uri
-    if ("/subscriptions/" in rid or ns.startswith("Microsoft")
-            or "Azure" in uri or "Azure" in cat or "Virtual_Machines" in cat):
+    if (
+        "/subscriptions/" in rid
+        or ns.startswith("Microsoft")
+        or "Azure" in uri
+        or "Azure" in cat
+        or "Virtual_Machines" in cat
+    ):
         return "Azure"
 
     # GCP signals: compute.googleapis resource paths, GCP-tagged uri/category
@@ -133,6 +140,7 @@ def short_hash(s: str, length: int = 8) -> str:
 # ─────────────────────────────────────────────
 # STEP 2: Pull metric seed data from MongoDB
 # ─────────────────────────────────────────────
+
 
 def pull_metric_seeds(db, cfg: dict) -> pd.DataFrame:
     """
@@ -172,11 +180,13 @@ def pull_metric_seeds(db, cfg: dict) -> pd.DataFrame:
     print(f"\n[STEP 2] Querying metrics collection ({cfg['metrics_collection']})...")
 
     sample_size = cfg["max_resources"] * cfg["sample_multiplier"]
-    cursor = col.aggregate([
-        {"$match": query},
-        {"$sample": {"size": sample_size}},
-        {"$project": projection},
-    ])
+    cursor = col.aggregate(
+        [
+            {"$match": query},
+            {"$sample": {"size": sample_size}},
+            {"$project": projection},
+        ]
+    )
 
     rows = []
     for doc in tqdm(cursor, desc="  Loading metric docs", unit="doc", total=sample_size):
@@ -188,17 +198,19 @@ def pull_metric_seeds(db, cfg: dict) -> pd.DataFrame:
             continue
 
         cloud = detect_cloud(doc)
-        rows.append({
-            "entity_id":    eid,
-            "entity_type":  str(doc.get("category", "Unknown")),
-            "cloud":        cloud,
-            "namespace":    str(doc.get("namespace", "")),
-            "metric_name":  str(doc.get("metric", "unknown")),
-            "date":         pd.Timestamp(doc["from_date"]).normalize(),
-            "account_id":   str(doc.get("account_id", "")),
-            "unit":         str(doc.get("unit", "")),
-            "hourly_values": hourly_vals,
-        })
+        rows.append(
+            {
+                "entity_id": eid,
+                "entity_type": str(doc.get("category", "Unknown")),
+                "cloud": cloud,
+                "namespace": str(doc.get("namespace", "")),
+                "metric_name": str(doc.get("metric", "unknown")),
+                "date": pd.Timestamp(doc["from_date"]).normalize(),
+                "account_id": str(doc.get("account_id", "")),
+                "unit": str(doc.get("unit", "")),
+                "hourly_values": hourly_vals,
+            }
+        )
 
     df = pd.DataFrame(rows)
     print(f"  Loaded {len(df):,} (resource, day, metric) seed records")
@@ -222,8 +234,10 @@ def pull_metric_seeds(db, cfg: dict) -> pd.DataFrame:
 
     unknown_frac = (df["cloud"] == "Unknown").mean()
     if unknown_frac > 0.3:
-        print(f"  NOTE: {unknown_frac:.0%} still Unknown — inspect a few raw docs "
-              f"with cloud=='Unknown' to extend detect_cloud() further if needed.")
+        print(
+            f"  NOTE: {unknown_frac:.0%} still Unknown — inspect a few raw docs "
+            f"with cloud=='Unknown' to extend detect_cloud() further if needed."
+        )
 
     return df
 
@@ -231,6 +245,7 @@ def pull_metric_seeds(db, cfg: dict) -> pd.DataFrame:
 # ─────────────────────────────────────────────
 # STEP 3: Pull alert events as anomaly anchors
 # ─────────────────────────────────────────────
+
 
 def pull_alert_anchors(db, cfg: dict) -> dict:
     """
@@ -284,7 +299,7 @@ def pull_alert_anchors(db, cfg: dict) -> dict:
             continue
         ts = pd.Timestamp(ts, tz="UTC")
 
-        transition  = rd.get("type", "")
+        transition = rd.get("type", "")
         alert_state = rd.get("alert_state", "")
         if transition == "OK_TO_FIRING" or alert_state == "FIRING":
             atype = "spike"
@@ -302,13 +317,17 @@ def pull_alert_anchors(db, cfg: dict) -> dict:
         sample_ids = list(anchors.keys())[:3]
         is_ocid = all(rid.startswith("ocid") for rid in sample_ids)
         if is_ocid:
-            print("  NOTE: anchor resource_ids are OCIDs — these will match OCI "
-                  "entities in the metric seed set. AWS/Azure entities in this "
-                  "corpus will mostly have is_anomaly=False, which is expected "
-                  "and fine for contrastive pretraining (no labels required).")
+            print(
+                "  NOTE: anchor resource_ids are OCIDs — these will match OCI "
+                "entities in the metric seed set. AWS/Azure entities in this "
+                "corpus will mostly have is_anomaly=False, which is expected "
+                "and fine for contrastive pretraining (no labels required)."
+            )
     else:
-        print("  WARNING: still 0 anchors. Check that alert_type=='monitoring' "
-              "docs actually exist in this date range (see diagnostic at bottom of file).")
+        print(
+            "  WARNING: still 0 anchors. Check that alert_type=='monitoring' "
+            "docs actually exist in this date range (see diagnostic at bottom of file)."
+        )
 
     return anchors
 
@@ -316,6 +335,7 @@ def pull_alert_anchors(db, cfg: dict) -> dict:
 # ─────────────────────────────────────────────
 # STEP 4: Minute-wise interpolation + noise
 # ─────────────────────────────────────────────
+
 
 def interpolate_to_minutes(
     hourly_values: list,
@@ -329,12 +349,17 @@ def interpolate_to_minutes(
         vals = np.concatenate([vals, np.full(24 - len(vals), np.nan)])
     vals = vals[:24]
 
-    series = pd.Series(vals).interpolate(method="linear", limit_direction="both").fillna(method="bfill").fillna(method="ffill")
+    series = (
+        pd.Series(vals)
+        .interpolate(method="linear", limit_direction="both")
+        .fillna(method="bfill")
+        .fillna(method="ffill")
+    )
     vals = series.values
 
     hours = np.arange(24)
     hours_ext = np.concatenate([[-1], hours, [24]])
-    vals_ext  = np.concatenate([[vals[-1]], vals, [vals[0]]])
+    vals_ext = np.concatenate([[vals[-1]], vals, [vals[0]]])
 
     cs = CubicSpline(hours_ext, vals_ext, bc_type="not-a-knot")
 
@@ -348,14 +373,16 @@ def interpolate_to_minutes(
 
     minute_timestamps = pd.date_range(start=date, periods=1440, freq="1min", tz="UTC")
 
-    return pd.DataFrame({
-        "timestamp":      minute_timestamps,
-        "value":          minute_vals,
-        "hour_of_day":    (np.arange(1440) // 60).astype(np.int8),
-        "minute_of_hour": (np.arange(1440) % 60).astype(np.int8),
-        "day_of_week":    date.day_of_week,
-        "hour_anchor":    np.repeat(vals, 60),
-    })
+    return pd.DataFrame(
+        {
+            "timestamp": minute_timestamps,
+            "value": minute_vals,
+            "hour_of_day": (np.arange(1440) // 60).astype(np.int8),
+            "minute_of_hour": (np.arange(1440) % 60).astype(np.int8),
+            "day_of_week": date.day_of_week,
+            "hour_anchor": np.repeat(vals, 60),
+        }
+    )
 
 
 def inject_anomalies(
@@ -374,15 +401,15 @@ def inject_anomalies(
         return minute_df
 
     day_start = minute_df["timestamp"].iloc[0]
-    day_end   = minute_df["timestamp"].iloc[-1]
+    day_end = minute_df["timestamp"].iloc[-1]
 
-    for (alert_ts, atype) in anchors_for_entity:
+    for alert_ts, atype in anchors_for_entity:
         if not (day_start <= alert_ts <= day_end):
             continue
 
         dur = rng.integers(*cfg["anomaly_duration_minutes"])
         window_start = alert_ts - pd.Timedelta(minutes=dur // 2)
-        window_end   = alert_ts + pd.Timedelta(minutes=dur // 2)
+        window_end = alert_ts + pd.Timedelta(minutes=dur // 2)
 
         mask = (minute_df["timestamp"] >= window_start) & (minute_df["timestamp"] <= window_end)
 
@@ -403,6 +430,7 @@ def inject_anomalies(
 # STEP 5: Main corpus assembly
 # ─────────────────────────────────────────────
 
+
 def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.DataFrame:
     rng = np.random.default_rng(seed=42)
     all_chunks = []
@@ -411,7 +439,9 @@ def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.Da
     print(f"  Seed rows to expand: {len(seed_df):,}")
     print(f"  Expected output rows: ~{len(seed_df) * 1440:,}")
 
-    for idx, row in tqdm(seed_df.iterrows(), total=len(seed_df), desc="  Expanding rows", unit="seed"):
+    for idx, row in tqdm(
+        seed_df.iterrows(), total=len(seed_df), desc="  Expanding rows", unit="seed"
+    ):
         try:
             min_df = interpolate_to_minutes(
                 hourly_values=row["hourly_values"],
@@ -428,13 +458,13 @@ def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.Da
                 rng=rng,
             )
 
-            min_df["entity_id"]   = row["entity_id"]
+            min_df["entity_id"] = row["entity_id"]
             min_df["entity_type"] = row["entity_type"]
-            min_df["cloud"]       = row["cloud"]
-            min_df["namespace"]   = row["namespace"]
+            min_df["cloud"] = row["cloud"]
+            min_df["namespace"] = row["namespace"]
             min_df["metric_name"] = row["metric_name"]
-            min_df["account_id"]  = row["account_id"]
-            min_df["unit"]        = row["unit"]
+            min_df["account_id"] = row["account_id"]
+            min_df["unit"] = row["unit"]
 
             all_chunks.append(min_df)
 
@@ -448,9 +478,21 @@ def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.Da
     corpus = pd.concat(all_chunks, ignore_index=True)
 
     ordered_cols = [
-        "entity_id", "entity_type", "cloud", "namespace", "metric_name",
-        "timestamp", "value", "hour_anchor", "is_anomaly", "anomaly_type",
-        "day_of_week", "hour_of_day", "minute_of_hour", "account_id", "unit",
+        "entity_id",
+        "entity_type",
+        "cloud",
+        "namespace",
+        "metric_name",
+        "timestamp",
+        "value",
+        "hour_anchor",
+        "is_anomaly",
+        "anomaly_type",
+        "day_of_week",
+        "hour_of_day",
+        "minute_of_hour",
+        "account_id",
+        "unit",
     ]
     corpus = corpus[[c for c in ordered_cols if c in corpus.columns]]
 
@@ -461,6 +503,7 @@ def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.Da
 # STEP 6: Write output + summary
 # ─────────────────────────────────────────────
 
+
 def write_output(corpus: pd.DataFrame, cfg: dict):
     os.makedirs(cfg["output_dir"], exist_ok=True)
     out_path = os.path.join(cfg["output_dir"], cfg["output_filename"])
@@ -468,19 +511,19 @@ def write_output(corpus: pd.DataFrame, cfg: dict):
     print(f"\n[STEP 6] Writing corpus to {out_path} ...")
     corpus.to_parquet(out_path, index=False, engine="pyarrow", compression="snappy")
 
-    size_mb = os.path.getsize(out_path) / (1024 ** 2)
+    size_mb = os.path.getsize(out_path) / (1024**2)
     print(f"  Done. File size: {size_mb:.1f} MB")
 
     summary = {
-        "total_rows":         len(corpus),
-        "unique_entities":    int(corpus["entity_id"].nunique()),
-        "unique_metrics":     int(corpus["metric_name"].nunique()),
+        "total_rows": len(corpus),
+        "unique_entities": int(corpus["entity_id"].nunique()),
+        "unique_metrics": int(corpus["metric_name"].nunique()),
         "cloud_distribution": corpus["cloud"].value_counts().to_dict(),
-        "anomaly_rows":       int(corpus["is_anomaly"].sum()),
-        "anomaly_fraction":   float(corpus["is_anomaly"].mean()),
-        "date_range":         [str(corpus["timestamp"].min()), str(corpus["timestamp"].max())],
-        "output_path":        out_path,
-        "file_size_mb":       round(size_mb, 2),
+        "anomaly_rows": int(corpus["is_anomaly"].sum()),
+        "anomaly_fraction": float(corpus["is_anomaly"].mean()),
+        "date_range": [str(corpus["timestamp"].min()), str(corpus["timestamp"].max())],
+        "output_path": out_path,
+        "file_size_mb": round(size_mb, 2),
     }
 
     summary_path = os.path.join(cfg["output_dir"], "corpus_summary.json")
@@ -501,37 +544,103 @@ def write_output(corpus: pd.DataFrame, cfg: dict):
 # FALLBACK: Synthetic-only mode (no MongoDB)
 # ─────────────────────────────────────────────
 
+
 def generate_synthetic_seeds(cfg: dict) -> pd.DataFrame:
     print("\n[FALLBACK] Generating synthetic seed data (no DB connection needed)...")
     rng = np.random.default_rng(42)
 
     archetypes = [
-        ("Instances",        "AWS",   "AWS/EC2",                   "NetworkIn",            80000, "business_hours"),
-        ("Instances",        "AWS",   "AWS/EC2",                   "CPUUtilization",       35.0,   "business_hours"),
-        ("Instances",        "AWS",   "AWS/EC2",                   "NetworkOut",           60000, "business_hours"),
-        ("Virtual_Machines", "Azure", "Microsoft.Compute",         "Network In",           50000, "business_hours"),
-        ("Virtual_Machines", "Azure", "Microsoft.Compute",         "Percentage CPU",       40.0,   "business_hours"),
-        ("Private_Endpoint",  "Azure", "Microsoft.Network",        "PEBytesIn",            5000,  "always_on"),
-        ("oci_connector",    "OCI",   "oci_service_connector_hub", "BytesReadFromSource",  200,   "always_on"),
-        ("oci_connector",    "OCI",   "oci_service_connector_hub", "BytesWrittenToTarget", 180,   "always_on"),
-        ("Security_Groups",  "AWS",   "AWS/EC2",                   "NetworkPackets",       1000,  "always_on"),
+        ("Instances", "AWS", "AWS/EC2", "NetworkIn", 80000, "business_hours"),
+        ("Instances", "AWS", "AWS/EC2", "CPUUtilization", 35.0, "business_hours"),
+        ("Instances", "AWS", "AWS/EC2", "NetworkOut", 60000, "business_hours"),
+        ("Virtual_Machines", "Azure", "Microsoft.Compute", "Network In", 50000, "business_hours"),
+        (
+            "Virtual_Machines",
+            "Azure",
+            "Microsoft.Compute",
+            "Percentage CPU",
+            40.0,
+            "business_hours",
+        ),
+        ("Private_Endpoint", "Azure", "Microsoft.Network", "PEBytesIn", 5000, "always_on"),
+        (
+            "oci_connector",
+            "OCI",
+            "oci_service_connector_hub",
+            "BytesReadFromSource",
+            200,
+            "always_on",
+        ),
+        (
+            "oci_connector",
+            "OCI",
+            "oci_service_connector_hub",
+            "BytesWrittenToTarget",
+            180,
+            "always_on",
+        ),
+        ("Security_Groups", "AWS", "AWS/EC2", "NetworkPackets", 1000, "always_on"),
     ]
 
     def make_daily_pattern(pattern_type, base_mean, rng):
         if pattern_type == "business_hours":
-            weights = np.array([
-                0.1, 0.1, 0.1, 0.1, 0.15, 0.2,
-                0.4, 0.7, 0.9, 1.0, 1.0, 1.0,
-                0.95, 1.0, 1.0, 0.95, 0.9, 0.85,
-                0.7, 0.5, 0.35, 0.25, 0.15, 0.1,
-            ])
+            weights = np.array(
+                [
+                    0.1,
+                    0.1,
+                    0.1,
+                    0.1,
+                    0.15,
+                    0.2,
+                    0.4,
+                    0.7,
+                    0.9,
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.95,
+                    1.0,
+                    1.0,
+                    0.95,
+                    0.9,
+                    0.85,
+                    0.7,
+                    0.5,
+                    0.35,
+                    0.25,
+                    0.15,
+                    0.1,
+                ]
+            )
         else:
-            weights = np.array([
-                0.7, 0.65, 0.6, 0.6, 0.65, 0.7,
-                0.8, 0.9, 1.0, 1.0, 1.0, 1.0,
-                1.0, 1.0, 1.0, 0.95, 0.9, 0.9,
-                0.85, 0.8, 0.8, 0.75, 0.75, 0.7,
-            ])
+            weights = np.array(
+                [
+                    0.7,
+                    0.65,
+                    0.6,
+                    0.6,
+                    0.65,
+                    0.7,
+                    0.8,
+                    0.9,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.95,
+                    0.9,
+                    0.9,
+                    0.85,
+                    0.8,
+                    0.8,
+                    0.75,
+                    0.75,
+                    0.7,
+                ]
+            )
         day_factor = rng.uniform(0.85, 1.15)
         vals = base_mean * weights * day_factor
         noise = rng.normal(0, base_mean * 0.03, size=24)
@@ -542,26 +651,28 @@ def generate_synthetic_seeds(cfg: dict) -> pd.DataFrame:
 
     rows = []
     start = cfg["start_date"].replace(tzinfo=None)
-    end   = cfg["end_date"].replace(tzinfo=None)
+    end = cfg["end_date"].replace(tzinfo=None)
     date_range = pd.date_range(start, end, freq="D")
 
-    for (etype, cloud, ns, metric, base_mean, pattern) in archetypes:
+    for etype, cloud, ns, metric, base_mean, pattern in archetypes:
         for i in range(n_per_arch):
             entity_id = f"synthetic-{cloud.lower()}-{metric.lower().replace(' ', '_')}-{i:04d}"
             entity_mean = base_mean * rng.uniform(0.5, 2.0)
 
             for date in date_range:
-                rows.append({
-                    "entity_id":     entity_id,
-                    "entity_type":   etype,
-                    "cloud":         cloud,
-                    "namespace":     ns,
-                    "metric_name":   metric,
-                    "date":          pd.Timestamp(date),
-                    "account_id":    f"synth-account-{i % 5:02d}",
-                    "unit":          "Bytes" if "Bytes" in metric or "Network" in metric else "Percent",
-                    "hourly_values": make_daily_pattern(pattern, entity_mean, rng),
-                })
+                rows.append(
+                    {
+                        "entity_id": entity_id,
+                        "entity_type": etype,
+                        "cloud": cloud,
+                        "namespace": ns,
+                        "metric_name": metric,
+                        "date": pd.Timestamp(date),
+                        "account_id": f"synth-account-{i % 5:02d}",
+                        "unit": "Bytes" if "Bytes" in metric or "Network" in metric else "Percent",
+                        "hourly_values": make_daily_pattern(pattern, entity_mean, rng),
+                    }
+                )
 
     df = pd.DataFrame(rows)
     print(f"  Generated {len(df):,} synthetic seed rows for {df['entity_id'].nunique()} entities")
@@ -579,20 +690,23 @@ def generate_synthetic_anchors(seed_df: pd.DataFrame, cfg: dict) -> dict:
 
         for date in dates:
             if rng.random() < 0.10:
-                hour   = int(rng.integers(8, 20))
+                hour = int(rng.integers(8, 20))
                 minute = int(rng.integers(0, 60))
                 ts = pd.Timestamp(date, tz="UTC") + pd.Timedelta(hours=hour, minutes=minute)
                 atype = "spike" if rng.random() < 0.7 else "recovery"
                 anchors.setdefault(eid, []).append((ts, atype))
 
     total_anchors = sum(len(v) for v in anchors.values())
-    print(f"  Generated {total_anchors:,} synthetic anomaly anchors across {len(anchors):,} entities")
+    print(
+        f"  Generated {total_anchors:,} synthetic anomaly anchors across {len(anchors):,} entities"
+    )
     return anchors
 
 
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
+
 
 def main():
     print("=" * 60)
@@ -624,7 +738,7 @@ def main():
         use_synthetic = True
 
     if use_synthetic:
-        seed_df       = generate_synthetic_seeds(CONFIG)
+        seed_df = generate_synthetic_seeds(CONFIG)
         alert_anchors = generate_synthetic_anchors(seed_df, CONFIG)
 
     corpus = build_corpus(seed_df, alert_anchors, CONFIG)

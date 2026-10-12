@@ -57,11 +57,15 @@ from typing import Any, Dict
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root on path
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%H:%M:%S"
+)
 logger_obj = logging.getLogger(__name__)
 
 
-def _compute_vocab_and_stats(parquet_path_str: str) -> tuple[Dict[str, Dict[str, int]], Dict[str, Dict[str, float]]]:
+def _compute_vocab_and_stats(
+    parquet_path_str: str,
+) -> tuple[Dict[str, Dict[str, int]], Dict[str, Dict[str, float]]]:
     """
     Prefer P1-M2's streaming, full-file-pass implementations
     (compute_vocab_sizes / compute_metric_value_stats) if they're on the
@@ -71,18 +75,20 @@ def _compute_vocab_and_stats(parquet_path_str: str) -> tuple[Dict[str, Dict[str,
     that fits in memory.
     """
     try:
-        from phase1.data.streaming_aug_pairs_dataset import compute_vocab_sizes, compute_metric_value_stats
+        from phase1.data.streaming_aug_pairs_dataset import (
+            compute_metric_value_stats,
+            compute_vocab_sizes,
+        )
 
-        logger_obj.info("Using phase1.data.streaming_aug_pairs_dataset (P1-M2) — full-file streaming pass.")
+        logger_obj.info(
+            "Using phase1.data.streaming_aug_pairs_dataset (P1-M2) — full-file streaming pass."
+        )
         vocab_maps: Dict[str, Dict[str, int]] = compute_vocab_sizes(parquet_path_str)
         metric_value_stats = compute_metric_value_stats(parquet_path_str)
 
         # Convert (mean, std) tuples into {"mean": ..., "std": ...}
         metric_value_stats = {
-            metric: {
-                "mean": values[0],
-                "std": values[1] if values[1] > 1e-6 else 1.0
-            }
+            metric: {"mean": values[0], "std": values[1] if values[1] > 1e-6 else 1.0}
             for metric, values in metric_value_stats.items()
         }
 
@@ -101,31 +107,50 @@ def _compute_vocab_and_stats(parquet_path_str: str) -> tuple[Dict[str, Dict[str,
 
         vocab_maps = {
             "cloud": {v: i + 1 for i, v in enumerate(sorted(df["cloud"].dropna().unique()))},
-            "entity_type": {v: i + 1 for i, v in enumerate(sorted(df["entity_type"].dropna().unique()))},
-            "namespace": {v: i + 1 for i, v in enumerate(sorted(df["namespace"].dropna().unique()))},
-            "metric_name": {v: i + 1 for i, v in enumerate(sorted(df["metric_name"].dropna().unique()))},
+            "entity_type": {
+                v: i + 1 for i, v in enumerate(sorted(df["entity_type"].dropna().unique()))
+            },
+            "namespace": {
+                v: i + 1 for i, v in enumerate(sorted(df["namespace"].dropna().unique()))
+            },
+            "metric_name": {
+                v: i + 1 for i, v in enumerate(sorted(df["metric_name"].dropna().unique()))
+            },
         }
 
         stats_df = df.groupby("metric_name")["value"].agg(["mean", "std"]).fillna(0.0)
         metric_value_stats = {
-            metric_name: {"mean": float(row["mean"]), "std": float(row["std"] if row["std"] > 1e-6 else 1.0)}
+            metric_name: {
+                "mean": float(row["mean"]),
+                "std": float(row["std"] if row["std"] > 1e-6 else 1.0),
+            }
             for metric_name, row in stats_df.iterrows()
         }
         return vocab_maps, metric_value_stats
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate feature_meta.json for P1-M6 ArtifactBundle registration.")
-    parser.add_argument("--parquet", required=True, help="Path to the aug_pairs.parquet used to train the checkpoint.")
-    parser.add_argument("--out", default="config/feature_meta.json", help="Output path for feature_meta.json.")
+    parser = argparse.ArgumentParser(
+        description="Generate feature_meta.json for P1-M6 ArtifactBundle registration."
+    )
+    parser.add_argument(
+        "--parquet",
+        required=True,
+        help="Path to the aug_pairs.parquet used to train the checkpoint.",
+    )
+    parser.add_argument(
+        "--out", default="config/feature_meta.json", help="Output path for feature_meta.json."
+    )
     args = parser.parse_args()
 
     vocab_maps, metric_value_stats = _compute_vocab_and_stats(args.parquet)
 
     logger_obj.info(
         "Vocab sizes: cloud=%d entity_type=%d namespace=%d metric_name=%d",
-        len(vocab_maps["cloud"]), len(vocab_maps["entity_type"]),
-        len(vocab_maps["namespace"]), len(vocab_maps["metric_name"]),
+        len(vocab_maps["cloud"]),
+        len(vocab_maps["entity_type"]),
+        len(vocab_maps["namespace"]),
+        len(vocab_maps["metric_name"]),
     )
 
     feature_meta_dict: Dict[str, Any] = {

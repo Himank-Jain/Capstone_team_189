@@ -74,9 +74,7 @@ class RecordEncoder:
 
     # â”€â”€ Single-entity encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    def encode_entity_records(
-        self, records: List[RawRecord]
-    ) -> Dict[str, torch.Tensor]:
+    def encode_entity_records(self, records: List[RawRecord]) -> Dict[str, torch.Tensor]:
         """
         Encode one entity's chronologically-ordered records into the three
         raw tensors TstccEncoder expects for a single (unbatched) sequence.
@@ -98,7 +96,7 @@ class RecordEncoder:
         """
         ordered = sorted(records, key=lambda r: (r.timestamp, r.metric_name))
         if len(ordered) > self._seq_len:
-            ordered = ordered[-self._seq_len:]  # most recent seq_len events
+            ordered = ordered[-self._seq_len :]  # most recent seq_len events
 
         numeric_rows: List[List[float]] = []
         categorical_rows: List[List[int]] = []
@@ -127,9 +125,7 @@ class RecordEncoder:
 
     # â”€â”€ Batch encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    def encode_event_batch(
-        self, batch: EventBatch
-    ) -> Dict[str, Dict[str, torch.Tensor]]:
+    def encode_event_batch(self, batch: EventBatch) -> Dict[str, Dict[str, torch.Tensor]]:
         """
         Group an EventBatch's records by entity_id and encode each entity's
         sequence independently.
@@ -177,7 +173,9 @@ class RecordEncoder:
         num_categorical_cols = len(AUG_CATEGORICAL_COLS)
 
         numeric_batch = torch.zeros(len(entity_ids), max_len, 3, dtype=torch.float32)
-        categorical_batch = torch.zeros(len(entity_ids), max_len, num_categorical_cols, dtype=torch.int64)
+        categorical_batch = torch.zeros(
+            len(entity_ids), max_len, num_categorical_cols, dtype=torch.int64
+        )
         timestamps_batch = torch.zeros(len(entity_ids), max_len, 1, dtype=torch.float32)
 
         for i, eid in enumerate(entity_ids):

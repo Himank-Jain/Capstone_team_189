@@ -75,16 +75,19 @@ class KafkaIngestor(BaseIngestor):
             return  # already started — idempotent
         from confluent_kafka import Consumer  # deferred import
 
-        self._consumer = Consumer({
-            "bootstrap.servers": self._bootstrap_servers,
-            "group.id": self._group_id,
-            "auto.offset.reset": self._auto_offset_reset,
-            "enable.auto.commit": True,
-        })
+        self._consumer = Consumer(
+            {
+                "bootstrap.servers": self._bootstrap_servers,
+                "group.id": self._group_id,
+                "auto.offset.reset": self._auto_offset_reset,
+                "enable.auto.commit": True,
+            }
+        )
         self._consumer.subscribe([self._topic])
         logger_obj.info(
             "[KafkaIngestor] Subscribed to topic=%s group_id=%s",
-            self._topic, self._group_id,
+            self._topic,
+            self._group_id,
         )
 
     def stop(self) -> None:
@@ -123,7 +126,9 @@ class KafkaIngestor(BaseIngestor):
                     self.last_poll_invalid_count += 1
                     logger_obj.warning("[KafkaIngestor] Invalid event: %s", exc)
                     if self._dlq_writer is not None:
-                        self._dlq_writer.write(payload if payload is not None else {"raw": str(msg.value())}, str(exc))
+                        self._dlq_writer.write(
+                            payload if payload is not None else {"raw": str(msg.value())}, str(exc)
+                        )
             msg = self._consumer.poll(timeout=0)  # drain without re-blocking
 
         return records

@@ -15,7 +15,9 @@ class KnowledgeLoader:
     """Load and validate the static knowledge base used by the guidance engine."""
 
     def __init__(self, path: str | Path | None = None):
-        self._path = Path(path) if path is not None else Path(__file__).with_name("knowledge_base.yaml")
+        self._path = (
+            Path(path) if path is not None else Path(__file__).with_name("knowledge_base.yaml")
+        )
         self._cache: dict[str, KnowledgeEntry] = {}
         self._data = self.load()
 
@@ -48,10 +50,14 @@ class KnowledgeLoader:
             ]
             missing = [name for name in required if not cause.get(name)]
             if missing:
-                raise ValueError(f"knowledge entry '{cause.get('cause_category', 'unknown')}' missing required fields: {missing}")
+                raise ValueError(
+                    f"knowledge entry '{cause.get('cause_category', 'unknown')}' missing required fields: {missing}"
+                )
             for check in cause.get("recommended_checks", []) or []:
                 if not all(key in check for key in ("check", "why", "expected_result", "risk")):
-                    raise ValueError(f"knowledge entry '{cause.get('cause_category', 'unknown')}' has an incomplete recommended check")
+                    raise ValueError(
+                        f"knowledge entry '{cause.get('cause_category', 'unknown')}' has an incomplete recommended check"
+                    )
 
     def retrieve_knowledge_entry(self, cause_category: str) -> KnowledgeEntry:
         category = (cause_category or "UNKNOWN").upper()

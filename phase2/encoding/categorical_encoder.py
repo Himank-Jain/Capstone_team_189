@@ -39,8 +39,7 @@ class CategoricalEncoder:
         missing = [c for c in AUG_CATEGORICAL_COLS if c not in vocab_maps_dict]
         if missing:
             raise ValueError(
-                f"[CategoricalEncoder] vocab_maps_dict is missing required "
-                f"column(s): {missing}"
+                f"[CategoricalEncoder] vocab_maps_dict is missing required " f"column(s): {missing}"
             )
         self._vocab_maps_dict = vocab_maps_dict
         self._oov_counts: Dict[str, int] = {c: 0 for c in AUG_CATEGORICAL_COLS}

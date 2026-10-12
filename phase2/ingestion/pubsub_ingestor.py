@@ -63,9 +63,7 @@ class PubSubIngestor(BaseIngestor):
         self._subscription_path = self._subscriber.subscription_path(
             self._project_id, self._subscription_id
         )
-        logger_obj.info(
-            "[PubSubIngestor] Pulling from subscription=%s", self._subscription_path
-        )
+        logger_obj.info("[PubSubIngestor] Pulling from subscription=%s", self._subscription_path)
 
     def stop(self) -> None:
         if self._subscriber is not None:
@@ -101,7 +99,10 @@ class PubSubIngestor(BaseIngestor):
                 self.last_poll_invalid_count += 1
                 logger_obj.warning("[PubSubIngestor] Invalid message: %s", exc)
                 if self._dlq_writer is not None:
-                    self._dlq_writer.write(payload if payload is not None else {"raw": str(received.message.data)}, str(exc))
+                    self._dlq_writer.write(
+                        payload if payload is not None else {"raw": str(received.message.data)},
+                        str(exc),
+                    )
 
         if ack_ids:
             self._subscriber.acknowledge(

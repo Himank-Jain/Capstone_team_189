@@ -46,7 +46,11 @@ class BaseNotifier(ABC):
             return {"channel": self.channel_name, "success": True, "detail": detail}
         except Exception as exc:  # pragma: no cover - defensive branch
             logger.warning("[%s] notification failed: %s", self.channel_name, exc)
-            return {"channel": self.channel_name, "success": False, "detail": f"{type(exc).__name__}: {exc}"}
+            return {
+                "channel": self.channel_name,
+                "success": False,
+                "detail": f"{type(exc).__name__}: {exc}",
+            }
 
     @abstractmethod
     async def _send(self, payload: AlertPayload) -> str:
@@ -111,7 +115,9 @@ class WebhookNotifier(BaseNotifier):
     async def _send(self, payload: AlertPayload) -> str:
         body = _normalize_for_json(payload.__dict__)
         body_json = json.dumps(body, sort_keys=True)
-        signature = hmac.new(self._secret.encode("utf-8"), body_json.encode("utf-8"), hashlib.sha256).hexdigest()
+        signature = hmac.new(
+            self._secret.encode("utf-8"), body_json.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
         headers = {"Content-Type": "application/json", "X-Capstone-Signature": signature}
         if self._http_client is not None:
             await self._http_client.post(self._url, json=body, headers=headers)
@@ -128,7 +134,12 @@ class PagerDutyNotifier(BaseNotifier):
         "LOW": "info",
     }
 
-    def __init__(self, routing_key: str, http_client: Optional[Any] = None, events_url: str = "https://events.pagerduty.com/v2/enqueue") -> None:
+    def __init__(
+        self,
+        routing_key: str,
+        http_client: Optional[Any] = None,
+        events_url: str = "https://events.pagerduty.com/v2/enqueue",
+    ) -> None:
         super().__init__("pagerduty", http_client)
         self._routing_key = routing_key
         self._events_url = events_url

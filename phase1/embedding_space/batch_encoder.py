@@ -42,7 +42,7 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Module-scoped constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-BATCH_ENCODER_DEFAULT_BATCH_SIZE: int = 512   # P1-M5 spec: batches of 512
+BATCH_ENCODER_DEFAULT_BATCH_SIZE: int = 512  # P1-M5 spec: batches of 512
 
 
 @dataclass
@@ -73,6 +73,7 @@ class BatchEncoderConfigData:
     strict_load_bool:
         Forwarded to ``TstccEncoder.load_weights``.
     """
+
     encoder_checkpoint_path_str: Optional[str] = None
     cloud_vocab_size_int: int = 0
     entity_type_vocab_size_int: int = 0
@@ -131,7 +132,7 @@ class BatchEncoder:
                 entity_type_vocab_size_int=config.entity_type_vocab_size_int,
                 namespace_vocab_size_int=config.namespace_vocab_size_int,
                 metric_name_vocab_size_int=config.metric_name_vocab_size_int,
-                use_projection_bool=True,   # checkpoint was saved with head; load it, then disable
+                use_projection_bool=True,  # checkpoint was saved with head; load it, then disable
             )
             self.encoder.load_weights(
                 config.encoder_checkpoint_path_str,
@@ -146,7 +147,8 @@ class BatchEncoder:
 
         logger_obj.info(
             "[BatchEncoder] Ready.  device=%s  batch_size=%d  projection=OFF",
-            device_str, config.batch_size_int,
+            device_str,
+            config.batch_size_int,
         )
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -189,12 +191,19 @@ class BatchEncoder:
         for start_idx_int in range(0, num_records_int, batch_size_int):
             end_idx_int: int = min(start_idx_int + batch_size_int, num_records_int)
 
-            numeric_batch_tensor: torch.Tensor = numeric_tensor[start_idx_int:end_idx_int].to(self.device)
-            categorical_batch_tensor: torch.Tensor = categorical_tensor[start_idx_int:end_idx_int].to(self.device)
-            timestamps_batch_tensor: torch.Tensor = timestamps_tensor[start_idx_int:end_idx_int].to(self.device)
+            numeric_batch_tensor: torch.Tensor = numeric_tensor[start_idx_int:end_idx_int].to(
+                self.device
+            )
+            categorical_batch_tensor: torch.Tensor = categorical_tensor[
+                start_idx_int:end_idx_int
+            ].to(self.device)
+            timestamps_batch_tensor: torch.Tensor = timestamps_tensor[start_idx_int:end_idx_int].to(
+                self.device
+            )
             lengths_batch_tensor: Optional[torch.Tensor] = (
                 lengths_tensor[start_idx_int:end_idx_int].to(self.device)
-                if lengths_tensor is not None else None
+                if lengths_tensor is not None
+                else None
             )
 
             with torch.no_grad():
@@ -209,7 +218,9 @@ class BatchEncoder:
 
             logger_obj.debug(
                 "[BatchEncoder] Encoded records %d:%d / %d",
-                start_idx_int, end_idx_int, num_records_int,
+                start_idx_int,
+                end_idx_int,
+                num_records_int,
             )
 
         embedding_corpus_array: np.ndarray = (

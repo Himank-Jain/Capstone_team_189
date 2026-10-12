@@ -103,7 +103,9 @@ class IngestionPipeline:
                     if batch is not None:
                         self._on_batch(batch)
                 except Exception:
-                    logger_obj.exception("[IngestionPipeline] on_batch callback failed — continuing")
+                    logger_obj.exception(
+                        "[IngestionPipeline] on_batch callback failed — continuing"
+                    )
 
             await asyncio.sleep(0)  # yield control; poll() itself blocks up to poll_timeout_ms
 

@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 class SchemaValidationError(ValueError):
@@ -106,8 +106,12 @@ class CorpusIterator:
         normalized["op_id"] = str(record["op_id"])
         normalized["region"] = str(record["region"])
         normalized["cloud_provider"] = str(record["cloud_provider"])
-        normalized["numeric_features"] = self._normalize_numeric_features(record["numeric_features"])
-        normalized["categorical_features"] = self._normalize_categorical_features(record["categorical_features"])
+        normalized["numeric_features"] = self._normalize_numeric_features(
+            record["numeric_features"]
+        )
+        normalized["categorical_features"] = self._normalize_categorical_features(
+            record["categorical_features"]
+        )
         normalized["timestamp"] = self._normalize_timestamp(record["timestamp"])
 
         if not normalized["entity_id"]:

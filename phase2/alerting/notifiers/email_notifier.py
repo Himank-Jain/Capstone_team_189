@@ -39,7 +39,11 @@ def _default_smtp_client_factory(
     smtp_host: str, smtp_port: int, use_tls: bool, username: Optional[str], password: Optional[str]
 ) -> Callable[[], smtplib.SMTP]:
     def _factory() -> smtplib.SMTP:
-        client = smtplib.SMTP_SSL(smtp_host, smtp_port) if use_tls else smtplib.SMTP(smtp_host, smtp_port)
+        client = (
+            smtplib.SMTP_SSL(smtp_host, smtp_port)
+            if use_tls
+            else smtplib.SMTP(smtp_host, smtp_port)
+        )
         if username and password:
             client.login(username, password)
         return client

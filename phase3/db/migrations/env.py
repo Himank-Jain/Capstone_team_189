@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from logging.config import fileConfig
 import os
+from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context

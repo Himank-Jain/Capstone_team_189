@@ -77,6 +77,7 @@ assert REDIS_EMB_BYTES == EMB_DIM * 2, (
 # anywhere else in the codebase; import these instead)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def current_key(entity_id: str) -> str:
     """Redis key for entity_id's current_embedding (STRING, float16 bytes)."""
     return f"entity:{entity_id}:current"
@@ -103,12 +104,13 @@ STATS_KEY_GLOB: str = "entity:*:stats"  # SCAN pattern used by list_known_entity
 def entity_id_from_stats_key(key_str: str) -> str:
     """Inverse of stats_key() — extract entity_id from a SCAN-matched key."""
     # "entity:{id}:stats" -> {id}; entity_id itself must not contain ':'.
-    return key_str[len("entity:"):-len(":stats")]
+    return key_str[len("entity:") : -len(":stats")]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # (De)serialization — float16 wire format
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def serialize_emb_f16(emb: np.ndarray) -> bytes:
     """
@@ -144,6 +146,7 @@ def deserialize_emb_f16(raw_bytes: bytes) -> np.ndarray:
 # ─────────────────────────────────────────────────────────────────────────────
 # ISP-split ABCs
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class BaseEntityStoreReader(ABC):
     """

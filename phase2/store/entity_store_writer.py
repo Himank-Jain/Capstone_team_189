@@ -82,7 +82,8 @@ class EntityStoreWriter(BaseEntityStoreWriter):
         # Internal-only read path for the EMA "read prior profile" need --
         # never exposed as a public attribute (see module docstring).
         self._internal_reader = EntityStoreReader(
-            redis_client_sync=redis_client_sync, history_len_int=history_len_int,
+            redis_client_sync=redis_client_sync,
+            history_len_int=history_len_int,
         )
 
     # ── Reads needed by the write path ──────────────────────────────────────
@@ -129,7 +130,10 @@ class EntityStoreWriter(BaseEntityStoreWriter):
         logger_obj.debug(
             "[EntityStoreWriter] wrote profile entity_id=%s n_history=%d "
             "record_count=%d cold_start=%s",
-            entity_id, len(profile.history_embs), profile.n_records, profile.cold_start_flag,
+            entity_id,
+            len(profile.history_embs),
+            profile.n_records,
+            profile.cold_start_flag,
         )
 
     def append_history_embedding(self, entity_id: str, new_emb: np.ndarray) -> None:

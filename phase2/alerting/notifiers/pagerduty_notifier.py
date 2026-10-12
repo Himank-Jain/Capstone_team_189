@@ -49,7 +49,9 @@ _SEVERITY_MAP = {
 
 
 class PagerDutyNotifier(BaseNotifier):
-    def __init__(self, routing_key: str, http_client: Any, events_url: str = _PAGERDUTY_EVENTS_URL) -> None:
+    def __init__(
+        self, routing_key: str, http_client: Any, events_url: str = _PAGERDUTY_EVENTS_URL
+    ) -> None:
         """
         Parameters
         ----------

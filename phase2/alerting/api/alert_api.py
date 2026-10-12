@@ -79,7 +79,9 @@ _NOTIFY_METHOD_CHANNELS = {
 }
 
 
-def _select_notifiers(all_notifiers: List[BaseNotifier], notify_method: NotifyMethod) -> List[BaseNotifier]:
+def _select_notifiers(
+    all_notifiers: List[BaseNotifier], notify_method: NotifyMethod
+) -> List[BaseNotifier]:
     allowed = _NOTIFY_METHOD_CHANNELS.get(notify_method, set()) | {"dashboard"}
     return [n for n in all_notifiers if n.channel_name in allowed]
 
@@ -109,17 +111,29 @@ def create_app(
     """
     app = FastAPI(title="Explainable Alert API", version="1.0.0")
 
-    app.state.notifiers = notifiers if notifiers is not None else [DashboardWriter(InMemoryDashboardStore())]
+    app.state.notifiers = (
+        notifiers if notifiers is not None else [DashboardWriter(InMemoryDashboardStore())]
+    )
     app.state.dispatcher = NotificationDispatcher(app.state.notifiers)
     app.state.notification_dispatcher = notification_dispatcher
-    app.state.tenant_policy_lookup = getattr(notification_dispatcher, "resolve_policy_for_alert", None)
-    app.state.recent_alerts_store = recent_alerts_store if recent_alerts_store is not None else RecentAlertsStore()
-    app.state.connection_manager = connection_manager if connection_manager is not None else ConnectionManager()
+    app.state.tenant_policy_lookup = getattr(
+        notification_dispatcher, "resolve_policy_for_alert", None
+    )
+    app.state.recent_alerts_store = (
+        recent_alerts_store if recent_alerts_store is not None else RecentAlertsStore()
+    )
+    app.state.connection_manager = (
+        connection_manager if connection_manager is not None else ConnectionManager()
+    )
 
     @app.post("/alert", response_model=AlertDispatchResponse)
     async def post_alert(payload: AlertPayloadModel) -> AlertDispatchResponse:
         selected = _select_notifiers(app.state.notifiers, payload.notify_method)
-        dispatcher = NotificationDispatcher(selected) if selected != app.state.notifiers else app.state.dispatcher
+        dispatcher = (
+            NotificationDispatcher(selected)
+            if selected != app.state.notifiers
+            else app.state.dispatcher
+        )
 
         if app.state.notification_dispatcher is not None:
             from phase3.shared.types import NotificationPolicy
@@ -152,7 +166,9 @@ def create_app(
 
         try:
             await app.state.connection_manager.broadcast(payload.model_dump_json())
-        except Exception as exc:  # noqa: BLE001 -- see websocket_manager's own per-connection isolation
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001 -- see websocket_manager's own per-connection isolation
             logger_obj.error("[alert_api] failed to broadcast alert over WebSocket: %s", exc)
 
         all_succeeded = all(outcome.success for outcome in dispatch_status.values())

@@ -14,7 +14,9 @@ class TenantIsolationMiddleware:
         self._membership_validator = membership_validator
         self._required_role = required_role
 
-    def authorize(self, request: Any, tenant_id: str | None = None, required_role: str | None = None) -> bool:
+    def authorize(
+        self, request: Any, tenant_id: str | None = None, required_role: str | None = None
+    ) -> bool:
         session = getattr(request, "session", {}) or {}
         if isinstance(session, dict):
             user_id = session.get("user_id")
@@ -31,7 +33,9 @@ class TenantIsolationMiddleware:
             raise PermissionError("cross-tenant request rejected")
 
         effective_role = required_role or self._required_role
-        if not self._membership_validator.validate(str(user_id), str(resolved_tenant), effective_role):
+        if not self._membership_validator.validate(
+            str(user_id), str(resolved_tenant), effective_role
+        ):
             raise PermissionError("tenant access denied")
         return True
 
@@ -44,7 +48,9 @@ class CredentialRedactionFilter:
         if isinstance(value, dict):
             redacted = {}
             for key, item in value.items():
-                if any(token in str(key).lower() for token in ("secret", "token", "password", "key")):
+                if any(
+                    token in str(key).lower() for token in ("secret", "token", "password", "key")
+                ):
                     redacted[key] = "***redacted***"
                 else:
                     redacted[key] = CredentialRedactionFilter.redact(item)

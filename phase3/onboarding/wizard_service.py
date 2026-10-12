@@ -13,7 +13,9 @@ class OnboardingWizardService:
     def __init__(self, *args, **kwargs):
         self._sessions: dict[str, dict[str, Any]] = {}
 
-    def start_onboarding(self, user_id: str, tenant_name: str, source_mode: str = "synthetic") -> dict[str, Any]:
+    def start_onboarding(
+        self, user_id: str, tenant_name: str, source_mode: str = "synthetic"
+    ) -> dict[str, Any]:
         session_id = f"onboarding-{user_id}-{uuid4().hex}"
         session = {
             "session_id": session_id,
@@ -27,25 +29,35 @@ class OnboardingWizardService:
         self._sessions[session_id] = session
         return session
 
-    def start(self, user_id: str, tenant_name: str, source_mode: str = "synthetic") -> dict[str, Any]:
+    def start(
+        self, user_id: str, tenant_name: str, source_mode: str = "synthetic"
+    ) -> dict[str, Any]:
         return self.start_onboarding(user_id, tenant_name, source_mode)
 
-    def record_step(self, session_id: str, step_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def record_step(
+        self, session_id: str, step_name: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         session = self._sessions[session_id]
         session.setdefault("steps", {})[step_name] = payload or {}
         session["status"] = "in_progress"
         return session
 
-    def advance(self, session_id: str, step_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def advance(
+        self, session_id: str, step_name: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         return self.record_step(session_id, step_name, payload)
 
-    def mark_complete(self, session_id: str, step_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def mark_complete(
+        self, session_id: str, step_name: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         session = self._sessions[session_id]
         session.setdefault("steps", {})[step_name] = payload or {}
         session["status"] = "complete"
         return session
 
-    def complete(self, session_id: str, step_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def complete(
+        self, session_id: str, step_name: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         return self.mark_complete(session_id, step_name, payload)
 
     def get_session(self, session_id: str) -> dict[str, Any]:

@@ -24,7 +24,13 @@ from __future__ import annotations
 import uuid
 from typing import Dict, List, Optional, Sequence, Union
 
-from shared.types import AnomalyResult, CorrelationResult, EpisodeMatch, EpisodeSearchResult, EscalationResult
+from shared.types import (
+    AnomalyResult,
+    CorrelationResult,
+    EpisodeMatch,
+    EpisodeSearchResult,
+    EscalationResult,
+)
 
 from .models import AlertPayloadModel, EpisodeSummary
 
@@ -143,10 +149,14 @@ def _recover_component_scores(anomaly_result: AnomalyResult) -> Dict[str, float]
     from shared.constants import SCORE_W_DEVIATION, SCORE_W_DRIFT, SCORE_W_SIMILARITY
 
     deviation_score = (
-        anomaly_result.deviation_contribution / SCORE_W_DEVIATION if SCORE_W_DEVIATION else anomaly_result.deviation_contribution
+        anomaly_result.deviation_contribution / SCORE_W_DEVIATION
+        if SCORE_W_DEVIATION
+        else anomaly_result.deviation_contribution
     )
     drift_score = (
-        anomaly_result.drift_contribution / SCORE_W_DRIFT if SCORE_W_DRIFT else anomaly_result.drift_contribution
+        anomaly_result.drift_contribution / SCORE_W_DRIFT
+        if SCORE_W_DRIFT
+        else anomaly_result.drift_contribution
     )
     # similarity_contribution = w * (1 - similarity_score) => similarity_score = 1 - contribution/w
     similarity_score = (

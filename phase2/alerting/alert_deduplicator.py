@@ -212,7 +212,7 @@ class AlertDeduplicator:
                 except Exception as exc:
                     if type(exc).__name__ != "WatchError":
                         raise
-                    backoff = min(BACKOFF_CAP_SECONDS, BACKOFF_BASE_SECONDS * (2 ** attempt))
+                    backoff = min(BACKOFF_CAP_SECONDS, BACKOFF_BASE_SECONDS * (2**attempt))
                     time.sleep(random.uniform(0, backoff))
                     continue
 

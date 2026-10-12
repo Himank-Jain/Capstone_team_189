@@ -34,7 +34,7 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 
 
 # Module-scoped constants (prefix: LOSS_)
-LOSS_DEFAULT_TEMPERATURE: float = 0.1   # standard SimCLR default; lower = sharper contrast
+LOSS_DEFAULT_TEMPERATURE: float = 0.1  # standard SimCLR default; lower = sharper contrast
 
 
 @dataclass
@@ -48,6 +48,7 @@ class NTXentLossConfigData:
         Softmax temperature. Lower values sharpen the distribution (harder
         negatives matter more); typical range 0.05–0.5. SimCLR default: 0.1.
     """
+
     temperature_float: float = LOSS_DEFAULT_TEMPERATURE
 
 
@@ -111,8 +112,7 @@ class NTXentLossComputer(nn.Module):
         batch_size_int: int = z_a.size(0)
         if batch_size_int < 2:
             raise ValueError(
-                f"[NTXentLossComputer] Need batch_size >= 2 for negatives, "
-                f"got {batch_size_int}"
+                f"[NTXentLossComputer] Need batch_size >= 2 for negatives, " f"got {batch_size_int}"
             )
 
         device_obj = z_a.device
@@ -122,15 +122,11 @@ class NTXentLossComputer(nn.Module):
         z_all_tensor: torch.Tensor = torch.cat([z_a, z_b], dim=0)
 
         # Step 2: full similarity matrix → (2B, 2B), scaled by temperature
-        sim_matrix_tensor: torch.Tensor = (
-            z_all_tensor @ z_all_tensor.T
-        ) / temperature_float
+        sim_matrix_tensor: torch.Tensor = (z_all_tensor @ z_all_tensor.T) / temperature_float
 
         # Step 3: mask self-similarity (diagonal) to -inf
         two_b_int: int = 2 * batch_size_int
-        self_mask_tensor: torch.Tensor = torch.eye(
-            two_b_int, dtype=torch.bool, device=device_obj
-        )
+        self_mask_tensor: torch.Tensor = torch.eye(two_b_int, dtype=torch.bool, device=device_obj)
         sim_matrix_tensor = sim_matrix_tensor.masked_fill(self_mask_tensor, float("-inf"))
 
         # Step 4: positive index for row i is (i + B) mod 2B

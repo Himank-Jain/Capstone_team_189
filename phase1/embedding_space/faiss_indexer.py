@@ -48,14 +48,15 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Module-scoped constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-FAISS_MIN_TRAIN_POINTS_PER_LIST: int = 39         # Faiss rule-of-thumb: >= 39 pts/cluster
+FAISS_MIN_TRAIN_POINTS_PER_LIST: int = 39  # Faiss rule-of-thumb: >= 39 pts/cluster
 FAISS_DEFAULT_TRAIN_SAMPLE_FRACTION: float = 0.10  # planner: train on ~10% sample
-FAISS_METRIC = faiss.METRIC_L2                     # matches TstccEncoder's L2-normalised space
+FAISS_METRIC = faiss.METRIC_L2  # matches TstccEncoder's L2-normalised space
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # build_faiss_index — index construction + training
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_faiss_index(
     embedding_corpus_array: np.ndarray,
@@ -124,7 +125,10 @@ def build_faiss_index(
         logger_obj.warning(
             "[build_faiss_index] Requested nlist=%d but corpus has only %d vectors; "
             "clamped to nlist=%d to keep >= %d training points/cluster.",
-            nlist_int, num_vectors_int, effective_nlist_int, FAISS_MIN_TRAIN_POINTS_PER_LIST,
+            nlist_int,
+            num_vectors_int,
+            effective_nlist_int,
+            FAISS_MIN_TRAIN_POINTS_PER_LIST,
         )
 
     # ── Build the sample used for k-means training ───────────────────────────
@@ -148,7 +152,9 @@ def build_faiss_index(
 
     logger_obj.info(
         "[build_faiss_index] Training IndexIVFFlat: nlist=%d  train_samples=%d/%d",
-        effective_nlist_int, sample_size_int, num_vectors_int,
+        effective_nlist_int,
+        sample_size_int,
+        num_vectors_int,
     )
     ivf_index.train(train_sample_array)
 
@@ -161,6 +167,7 @@ def build_faiss_index(
 # ─────────────────────────────────────────────────────────────────────────────
 # FaissIndexer — index + metadata, save/load, top-k search
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class FaissIndexer:
     """
@@ -238,7 +245,9 @@ class FaissIndexer:
         self.metadata_list.extend(metadata)
 
         logger_obj.info(
-            "[FaissIndexer] Added %d vectors. total=%d", embeddings.shape[0], len(self.metadata_list)
+            "[FaissIndexer] Added %d vectors. total=%d",
+            embeddings.shape[0],
+            len(self.metadata_list),
         )
 
     def search_topk(
@@ -287,10 +296,7 @@ class FaissIndexer:
         distances_array, indices_array = self.index.search(query_array, k)
 
         metadata_result_list: List[List[Optional[Any]]] = [
-            [
-                self.metadata_list[idx_int] if idx_int != -1 else None
-                for idx_int in row_indices
-            ]
+            [self.metadata_list[idx_int] if idx_int != -1 else None for idx_int in row_indices]
             for row_indices in indices_array
         ]
 
@@ -325,7 +331,8 @@ class FaissIndexer:
 
         logger_obj.info(
             "[FaissIndexer] Saved → %s (+.meta.pkl)  vectors=%d",
-            faiss_path_str, len(self.metadata_list),
+            faiss_path_str,
+            len(self.metadata_list),
         )
 
     @classmethod

@@ -59,13 +59,14 @@ class LatencyStats:
         ring-buffer-by-truncation, not a strict FIFO, since exact ordering
         doesn't matter for percentile computation).
     """
+
     max_samples: int = 10_000
     _samples_ms: List[float] = field(default_factory=list)
 
     def record(self, latency_ms: float) -> None:
         self._samples_ms.append(latency_ms)
         if len(self._samples_ms) > self.max_samples:
-            self._samples_ms = self._samples_ms[-self.max_samples:]
+            self._samples_ms = self._samples_ms[-self.max_samples :]
 
     def _percentile(self, p: float) -> float:
         if not self._samples_ms:
@@ -140,7 +141,8 @@ class InferenceEncoder:
 
         logger_obj.info(
             "[InferenceEncoder] Ready.  device=%s  chunk_size=%d",
-            self.device, chunk_size,
+            self.device,
+            chunk_size,
         )
 
         if warm_up:
@@ -156,9 +158,15 @@ class InferenceEncoder:
         num_numeric = self.encoder._config_data.embedding_cfg.num_numeric_int
         num_categorical = len(self.encoder._config_data.embedding_cfg.categorical_fields_list)
 
-        dummy_numeric = torch.zeros(1, INFERENCE_ENCODER_WARMUP_SEQ_LEN, num_numeric, device=self.device)
+        dummy_numeric = torch.zeros(
+            1, INFERENCE_ENCODER_WARMUP_SEQ_LEN, num_numeric, device=self.device
+        )
         dummy_categorical = torch.zeros(
-            1, INFERENCE_ENCODER_WARMUP_SEQ_LEN, num_categorical, dtype=torch.long, device=self.device
+            1,
+            INFERENCE_ENCODER_WARMUP_SEQ_LEN,
+            num_categorical,
+            dtype=torch.long,
+            device=self.device,
         )
         dummy_timestamps = torch.zeros(1, INFERENCE_ENCODER_WARMUP_SEQ_LEN, 1, device=self.device)
 
@@ -206,7 +214,9 @@ class InferenceEncoder:
             num_chunk = numeric_tensor[start:end].to(self.device)
             cat_chunk = categorical_tensor[start:end].to(self.device)
             ts_chunk = timestamps_tensor[start:end].to(self.device)
-            len_chunk = lengths_tensor[start:end].to(self.device) if lengths_tensor is not None else None
+            len_chunk = (
+                lengths_tensor[start:end].to(self.device) if lengths_tensor is not None else None
+            )
 
             t0 = time.perf_counter()
             with torch.no_grad():
@@ -216,7 +226,11 @@ class InferenceEncoder:
 
             chunks.append(emb_chunk)
 
-        return torch.cat(chunks, dim=0) if chunks else torch.empty(0, self.encoder._config_data.embed_dim_int)
+        return (
+            torch.cat(chunks, dim=0)
+            if chunks
+            else torch.empty(0, self.encoder._config_data.embed_dim_int)
+        )
 
     def encode_single(
         self,

@@ -53,10 +53,11 @@ import pyarrow.parquet as pq
 try:
     from vm_augmentation import (
         AugmentationConfig,
-        apply_temporal_jitter,
         apply_attribute_masking,
+        apply_temporal_jitter,
         extract_time_features,
     )
+
     print("✓ Imported augmentation config from vm_augmentation.py")
 except ImportError:
     # ── Inline fallback (identical logic, no external dep on vm_augmentation) ──
@@ -65,16 +66,16 @@ except ImportError:
     @dataclass
     @dataclass
     class AugmentationConfig:
-                jitter_min_minutes: float = 1.0
-                jitter_max_minutes: float = 5.0
-                mask_ratio_min: float = 0.10
-                mask_ratio_max: float = 0.30
-                mask_fill_value: float = 0.0
-                numeric_cols: list[str] = field(default_factory=lambda: [...])
-                protected_cols: list[str] = field(default_factory=lambda: [...])
-                timestamp_col: str = "timestamp"
-                time2vec_dim: int = 8
-                batch_size: int = 10_000   # ← add this line
+        jitter_min_minutes: float = 1.0
+        jitter_max_minutes: float = 5.0
+        mask_ratio_min: float = 0.10
+        mask_ratio_max: float = 0.30
+        mask_fill_value: float = 0.0
+        numeric_cols: list[str] = field(default_factory=lambda: [...])
+        protected_cols: list[str] = field(default_factory=lambda: [...])
+        timestamp_col: str = "timestamp"
+        time2vec_dim: int = 8
+        batch_size: int = 10_000  # ← add this line
 
     def _time2vec(t: float, dim: int) -> list[float]:
         return [t] + [_math.sin(2 * _math.pi * k * t / 24.0) for k in range(1, dim)]
@@ -92,7 +93,7 @@ except ImportError:
         feats = extract_time_features(shifted, config.time2vec_dim)
         out["hour_of_day"] = feats[0]
         out["day_of_week"] = feats[1]
-        out["time2vec"]    = feats[2:]
+        out["time2vec"] = feats[2:]
         return out
 
     def apply_attribute_masking(record: dict, config: AugmentationConfig) -> dict:
@@ -125,6 +126,7 @@ def _rss_mb() -> float:
 
 # ── Core: augment one batch df → paired df ───────────────────────────────────
 
+
 def _augment_batch(
     df: pd.DataFrame,
     config: AugmentationConfig,
@@ -141,7 +143,7 @@ def _augment_batch(
     We build via list-of-dicts then pd.DataFrame() once per batch —
     never via repeated df.append() which copies the frame on every call.
     """
-    records = df.to_dict(orient="records")   # small: only batch_size rows
+    records = df.to_dict(orient="records")  # small: only batch_size rows
     rows_out: list[dict] = []
 
     for local_idx, base in enumerate(records):
@@ -151,7 +153,7 @@ def _augment_batch(
             for view_label in ("a", "b"):
                 # Independent augmentation per view
                 rec = apply_temporal_jitter(base, config)
-                rec[config.timestamp_col] = rec[config.timestamp_col].floor("us")  
+                rec[config.timestamp_col] = rec[config.timestamp_col].floor("us")
                 rec = apply_attribute_masking(rec, config)
 
                 # Flatten time2vec list into scalar columns
@@ -160,7 +162,7 @@ def _augment_batch(
                     rec[f"time2vec_{i}"] = val
 
                 rec["pair_id"] = global_pair_id
-                rec["view"]    = view_label
+                rec["view"] = view_label
                 rows_out.append(rec)
 
     out_df = pd.DataFrame(rows_out)
@@ -169,6 +171,7 @@ def _augment_batch(
 
 
 # ── PyArrow schema helper ─────────────────────────────────────────────────────
+
 
 def _infer_output_schema(sample_df: pd.DataFrame) -> pa.Schema:
     """
@@ -191,6 +194,7 @@ def _infer_output_schema(sample_df: pd.DataFrame) -> pa.Schema:
 
 
 # ── Main streaming pipeline ───────────────────────────────────────────────────
+
 
 def generate_pairs(
     src: str | Path,
@@ -216,8 +220,8 @@ def generate_pairs(
     src = str(src)
     dst = str(dst)
 
-    pf       = pq.ParquetFile(src)
-    total    = pf.metadata.num_rows
+    pf = pq.ParquetFile(src)
+    total = pf.metadata.num_rows
     n_groups = pf.metadata.num_row_groups
     # Each row group in the file may be larger or smaller than batch_size.
     # We read full row groups and rechunk in Python — simpler than
@@ -225,22 +229,27 @@ def generate_pairs(
     # For a 91 MB file with default row group size (~128K rows) this is fine.
 
     log.info("Source: %s  (%d rows, %d row groups)", src, total, n_groups)
-    log.info("Output: %s  |  batch_size=%d  pairs_per_row=%d  seed=%d",
-             dst, config.batch_size, pairs_per_row, seed)
+    log.info(
+        "Output: %s  |  batch_size=%d  pairs_per_row=%d  seed=%d",
+        dst,
+        config.batch_size,
+        pairs_per_row,
+        seed,
+    )
     log.info("Expected output rows: %d", total * 2 * pairs_per_row)
 
     writer: pq.ParquetWriter | None = None
-    schema: pa.Schema | None        = None
+    schema: pa.Schema | None = None
 
     global_row_offset = 0
-    rows_written      = 0
-    t0                = time.perf_counter()
+    rows_written = 0
+    t0 = time.perf_counter()
 
     for rg_idx in range(n_groups):
         # ── 1. Load one row group ──────────────────────────────────────────
-        table: pa.Table    = pf.read_row_group(rg_idx)
-        rg_size: int       = table.num_rows
-        df: pd.DataFrame   = table.to_pandas()
+        table: pa.Table = pf.read_row_group(rg_idx)
+        rg_size: int = table.num_rows
+        df: pd.DataFrame = table.to_pandas()
         del table
         gc.collect()
 
@@ -253,23 +262,26 @@ def generate_pairs(
 
         for chunk_idx in range(n_chunks):
             chunk_start = chunk_idx * config.batch_size
-            chunk_end   = min(chunk_start + config.batch_size, rg_size)
-            chunk_df    = df.iloc[chunk_start:chunk_end].copy()
+            chunk_end = min(chunk_start + config.batch_size, rg_size)
+            chunk_df = df.iloc[chunk_start:chunk_end].copy()
 
             elapsed = time.perf_counter() - t0
             log.info(
                 "row_group %d/%d  chunk %d/%d  "
                 "rows %d–%d  total_written=%d  RSS=%.0f MB  elapsed=%.0fs",
-                rg_idx + 1, n_groups,
-                chunk_idx + 1, n_chunks,
-                global_row_offset, global_row_offset + len(chunk_df) - 1,
-                rows_written, _rss_mb(), elapsed,
+                rg_idx + 1,
+                n_groups,
+                chunk_idx + 1,
+                n_chunks,
+                global_row_offset,
+                global_row_offset + len(chunk_df) - 1,
+                rows_written,
+                _rss_mb(),
+                elapsed,
             )
 
             # ── 3. Augment ─────────────────────────────────────────────────
-            paired_df = _augment_batch(
-                chunk_df, config, global_row_offset, pairs_per_row
-            )
+            paired_df = _augment_batch(chunk_df, config, global_row_offset, pairs_per_row)
             del chunk_df
             gc.collect()
 
@@ -281,13 +293,11 @@ def generate_pairs(
 
             # ── 5. Cast + write ────────────────────────────────────────────
             # Cast to the fixed schema so every chunk is type-consistent.
-            out_table = pa.Table.from_pandas(
-                paired_df, schema=schema, preserve_index=False
-            )
+            out_table = pa.Table.from_pandas(paired_df, schema=schema, preserve_index=False)
             writer.write_table(out_table)
 
-            rows_written      += len(paired_df)
-            global_row_offset += (chunk_end - chunk_start)
+            rows_written += len(paired_df)
+            global_row_offset += chunk_end - chunk_start
 
             del paired_df, out_table
             gc.collect()
@@ -301,7 +311,7 @@ def generate_pairs(
         writer.close()
 
     elapsed = time.perf_counter() - t0
-    dst_mb  = Path(dst).stat().st_size / 1_048_576
+    dst_mb = Path(dst).stat().st_size / 1_048_576
 
     log.info("─" * 60)
     log.info("Done.  %d pairs written → %s  (%.1f MB)", rows_written, dst, dst_mb)
@@ -310,20 +320,25 @@ def generate_pairs(
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Stream-generate contrastive pair parquet")
-    p.add_argument("--src",  required=True,  help="Source parquet path")
-    p.add_argument("--dst",  required=True,  help="Output parquet path")
-    p.add_argument("--batch-size",    type=int,   default=10_000)
-    p.add_argument("--pairs-per-row", type=int,   default=1,
-                   help="How many (a,b) pairs to generate per source row. "
-                        "1 is enough for NT-Xent; use 2–3 for harder negatives.")
-    p.add_argument("--jitter-min",  type=float, default=1.0)
-    p.add_argument("--jitter-max",  type=float, default=5.0)
-    p.add_argument("--mask-min",    type=float, default=0.10)
-    p.add_argument("--mask-max",    type=float, default=0.30)
-    p.add_argument("--time2vec-dim",type=int,   default=8)
-    p.add_argument("--seed",        type=int,   default=42)
+    p.add_argument("--src", required=True, help="Source parquet path")
+    p.add_argument("--dst", required=True, help="Output parquet path")
+    p.add_argument("--batch-size", type=int, default=10_000)
+    p.add_argument(
+        "--pairs-per-row",
+        type=int,
+        default=1,
+        help="How many (a,b) pairs to generate per source row. "
+        "1 is enough for NT-Xent; use 2–3 for harder negatives.",
+    )
+    p.add_argument("--jitter-min", type=float, default=1.0)
+    p.add_argument("--jitter-max", type=float, default=5.0)
+    p.add_argument("--mask-min", type=float, default=0.10)
+    p.add_argument("--mask-max", type=float, default=0.30)
+    p.add_argument("--time2vec-dim", type=int, default=8)
+    p.add_argument("--seed", type=int, default=42)
     return p.parse_args()
 
 
@@ -331,18 +346,18 @@ if __name__ == "__main__":
     args = _parse_args()
 
     config = AugmentationConfig(
-        jitter_min_minutes = args.jitter_min,
-        jitter_max_minutes = args.jitter_max,
-        mask_ratio_min     = args.mask_min,
-        mask_ratio_max     = args.mask_max,
-        time2vec_dim       = args.time2vec_dim,
-        batch_size         = args.batch_size,
+        jitter_min_minutes=args.jitter_min,
+        jitter_max_minutes=args.jitter_max,
+        mask_ratio_min=args.mask_min,
+        mask_ratio_max=args.mask_max,
+        time2vec_dim=args.time2vec_dim,
+        batch_size=args.batch_size,
     )
 
     generate_pairs(
-        src          = args.src,
-        dst          = args.dst,
-        config       = config,
-        pairs_per_row= args.pairs_per_row,
-        seed         = args.seed,
+        src=args.src,
+        dst=args.dst,
+        config=config,
+        pairs_per_row=args.pairs_per_row,
+        seed=args.seed,
     )

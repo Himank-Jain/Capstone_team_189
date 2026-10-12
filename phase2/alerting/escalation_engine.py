@@ -105,13 +105,15 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Entity metadata provider (DIP boundary -- see design note 1)
 # =========================================================================
 
+
 @dataclass
 class EntityMetadata:
     """The subset of entity metadata EscalationEngine needs that isn't
     already present on AnomalyResult/CorrelationResult."""
+
     entity_id: str
     entity_criticality: str  # 'critical' | 'high' | 'medium' | 'low'
-    timezone: str            # IANA string, e.g. 'America/New_York'
+    timezone: str  # IANA string, e.g. 'America/New_York'
 
 
 class BaseEntityMetadataProvider(ABC):
@@ -155,6 +157,7 @@ class StaticEntityMetadataProvider(BaseEntityMetadataProvider):
 # =========================================================================
 # BusinessHoursChecker
 # =========================================================================
+
 
 class BusinessHoursChecker:
     """
@@ -216,6 +219,7 @@ class BusinessHoursChecker:
 # SeverityMapper
 # =========================================================================
 
+
 class SeverityMapper:
     """
     Combines anomaly Severity (LOW/MEDIUM/HIGH/CRITICAL) with
@@ -250,6 +254,7 @@ class SeverityMapper:
 # =========================================================================
 # RulesEngine
 # =========================================================================
+
 
 class RulesEngine:
     """
@@ -311,7 +316,9 @@ class RulesEngine:
         if "group_type" in conditions:
             expected_group = str(conditions["group_type"])
             actual_group = context.get("group_type")
-            actual_group_value = actual_group.value if isinstance(actual_group, GroupType) else str(actual_group)
+            actual_group_value = (
+                actual_group.value if isinstance(actual_group, GroupType) else str(actual_group)
+            )
             if expected_group != actual_group_value:
                 return False
 
@@ -325,6 +332,7 @@ class RulesEngine:
 # =========================================================================
 # SuppressionTracker (design note 6)
 # =========================================================================
+
 
 class SuppressionTracker:
     """
@@ -368,6 +376,7 @@ class SuppressionTracker:
 # =========================================================================
 # EscalationEngine (Controller, GRASP)
 # =========================================================================
+
 
 class EscalationEngine:
     """
@@ -463,7 +472,11 @@ class EscalationEngine:
             matched_rule = self._rules_engine.evaluate(context)
             policy_applied = matched_rule["name"]
             actions = matched_rule.get("actions", {})
-            sev_level = SevLevel(actions["severity_level"]) if "severity_level" in actions else default_sev_level
+            sev_level = (
+                SevLevel(actions["severity_level"])
+                if "severity_level" in actions
+                else default_sev_level
+            )
             target_team = actions.get("target_team", ESC_FALLBACK_TARGET_TEAM)
             notify_method = NotifyMethod(actions.get("notify_method", NotifyMethod.SLACK.value))
         except RuntimeError:

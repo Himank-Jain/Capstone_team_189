@@ -64,18 +64,33 @@ try:
 except ImportError:
     FAISS_N_LIST = 100
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%H:%M:%S"
+)
 logger_obj = logging.getLogger(__name__)
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build the P1-M5 behavioral embedding space (FAISS).")
-    parser.add_argument("--parquet", required=True, help="Path to aug_pairs.parquet (or historical corpus).")
-    parser.add_argument("--checkpoint", required=True, help="Path to a trained TstccEncoder .pt checkpoint.")
-    parser.add_argument("--seq-len", type=int, default=32, help="Reading events per sequence window (default 32).")
-    parser.add_argument("--out", default="model_registry/behavioral_space",
-                         help="Output path prefix (writes {out}.faiss + {out}.meta.pkl).")
-    parser.add_argument("--nlist", type=int, default=FAISS_N_LIST, help="Requested IVF cluster count.")
+    parser = argparse.ArgumentParser(
+        description="Build the P1-M5 behavioral embedding space (FAISS)."
+    )
+    parser.add_argument(
+        "--parquet", required=True, help="Path to aug_pairs.parquet (or historical corpus)."
+    )
+    parser.add_argument(
+        "--checkpoint", required=True, help="Path to a trained TstccEncoder .pt checkpoint."
+    )
+    parser.add_argument(
+        "--seq-len", type=int, default=32, help="Reading events per sequence window (default 32)."
+    )
+    parser.add_argument(
+        "--out",
+        default="model_registry/behavioral_space",
+        help="Output path prefix (writes {out}.faiss + {out}.meta.pkl).",
+    )
+    parser.add_argument(
+        "--nlist", type=int, default=FAISS_N_LIST, help="Requested IVF cluster count."
+    )
     parser.add_argument("--batch-size", type=int, default=512, help="BatchEncoder batch size.")
     parser.add_argument("--device", default=None, help="cuda / cpu (default: auto-detect).")
     return parser.parse_args()
@@ -86,7 +101,11 @@ def main() -> None:
 
     # ── Step 1: vocab + per-metric value stats (must match training) ────────
     try:
-        from phase1.data.streaming_aug_pairs_dataset import compute_vocab_sizes, compute_metric_value_stats
+        from phase1.data.streaming_aug_pairs_dataset import (
+            compute_metric_value_stats,
+            compute_vocab_sizes,
+        )
+
         logger_obj.info("Using phase1.data.streaming_aug_pairs_dataset for vocab/stats (P1-M2).")
         vocab_maps = compute_vocab_sizes(args.parquet)
         metric_value_stats = compute_metric_value_stats(args.parquet)
@@ -95,7 +114,7 @@ def main() -> None:
         etype_map = vocab_maps["entity_type"]
         ns_map = vocab_maps["namespace"]
         metric_map = vocab_maps["metric_name"]
-        
+
         mean_map = {k: v[0] for k, v in metric_value_stats.items()}
         std_map = {k: (v[1] if v[1] > 1e-6 else 1.0) for k, v in metric_value_stats.items()}
     except ImportError:
@@ -107,9 +126,13 @@ def main() -> None:
         )
         df_full = pq.ParquetFile(args.parquet).read().to_pandas()
         cloud_map = {v: i + 1 for i, v in enumerate(sorted(df_full["cloud"].dropna().unique()))}
-        etype_map = {v: i + 1 for i, v in enumerate(sorted(df_full["entity_type"].dropna().unique()))}
+        etype_map = {
+            v: i + 1 for i, v in enumerate(sorted(df_full["entity_type"].dropna().unique()))
+        }
         ns_map = {v: i + 1 for i, v in enumerate(sorted(df_full["namespace"].dropna().unique()))}
-        metric_map = {v: i + 1 for i, v in enumerate(sorted(df_full["metric_name"].dropna().unique()))}
+        metric_map = {
+            v: i + 1 for i, v in enumerate(sorted(df_full["metric_name"].dropna().unique()))
+        }
         stats = df_full.groupby("metric_name")["value"].agg(["mean", "std"]).fillna(0.0)
         mean_map = stats["mean"].to_dict()
         std_map = {k: (v if v > 1e-6 else 1.0) for k, v in stats["std"].to_dict().items()}
@@ -117,7 +140,10 @@ def main() -> None:
 
     logger_obj.info(
         "Vocab sizes: cloud=%d entity_type=%d namespace=%d metric_name=%d",
-        len(cloud_map), len(etype_map), len(ns_map), len(metric_map),
+        len(cloud_map),
+        len(etype_map),
+        len(ns_map),
+        len(metric_map),
     )
 
     # ── Step 2: BatchEncoder — load checkpoint, disable projection ──────────
@@ -152,23 +178,36 @@ def main() -> None:
         rows = entity_df if view_col is None else entity_df[entity_df[view_col] == "a"]
         if len(rows) < args.seq_len:
             continue
-        for start in range(0, len(rows) - args.seq_len + 1, args.seq_len):  # non-overlapping windows
-            window = rows.iloc[start:start + args.seq_len]
-            numeric_list.append(window[["value_norm", "hour_of_day_norm", "day_of_week_norm"]].to_numpy(np.float32))
-            categorical_list.append(np.stack([
-                window["cloud"].map(cloud_map).fillna(0).to_numpy(),
-                window["entity_type"].map(etype_map).fillna(0).to_numpy(),
-                window["namespace"].map(ns_map).fillna(0).to_numpy(),
-                window["metric_name"].map(metric_map).fillna(0).to_numpy(),
-            ], axis=-1).astype(np.int64))
-            frac_hour = (window["timestamp"].dt.hour + window["timestamp"].dt.minute / 60.0).to_numpy(np.float32) / 24.0
+        for start in range(
+            0, len(rows) - args.seq_len + 1, args.seq_len
+        ):  # non-overlapping windows
+            window = rows.iloc[start : start + args.seq_len]
+            numeric_list.append(
+                window[["value_norm", "hour_of_day_norm", "day_of_week_norm"]].to_numpy(np.float32)
+            )
+            categorical_list.append(
+                np.stack(
+                    [
+                        window["cloud"].map(cloud_map).fillna(0).to_numpy(),
+                        window["entity_type"].map(etype_map).fillna(0).to_numpy(),
+                        window["namespace"].map(ns_map).fillna(0).to_numpy(),
+                        window["metric_name"].map(metric_map).fillna(0).to_numpy(),
+                    ],
+                    axis=-1,
+                ).astype(np.int64)
+            )
+            frac_hour = (
+                window["timestamp"].dt.hour + window["timestamp"].dt.minute / 60.0
+            ).to_numpy(np.float32) / 24.0
             ts_list.append(frac_hour[:, None])
-            meta_list.append({
-                "entity_id": str(entity_id),
-                "timestamp": window["timestamp"].iloc[-1].isoformat(),
-                "cloud_provider": window["cloud"].iloc[-1],
-                "severity_label": None,
-            })
+            meta_list.append(
+                {
+                    "entity_id": str(entity_id),
+                    "timestamp": window["timestamp"].iloc[-1].isoformat(),
+                    "cloud_provider": window["cloud"].iloc[-1],
+                    "severity_label": None,
+                }
+            )
 
     if not numeric_list:
         logger_obj.error("No entity had >= --seq-len=%d rows; nothing to index.", args.seq_len)
@@ -181,7 +220,9 @@ def main() -> None:
     logger_obj.info("Built %d sequence windows for encoding.", numeric_tensor.shape[0])
 
     # ── Step 4: encode the full corpus ───────────────────────────────────────
-    embedding_corpus_array = batch_encoder.encode_records(numeric_tensor, categorical_tensor, timestamps_tensor)
+    embedding_corpus_array = batch_encoder.encode_records(
+        numeric_tensor, categorical_tensor, timestamps_tensor
+    )
 
     # ── Step 5: build + train the FAISS index, add vectors + metadata ──────
     ivf_index = build_faiss_index(embedding_corpus_array, nlist_int=args.nlist)
@@ -190,7 +231,9 @@ def main() -> None:
 
     # ── Step 6: persist ────────────────────────────────────────────────────
     indexer.save(args.out)
-    logger_obj.info("Behavioral embedding space written to %s.faiss / %s.meta.pkl", args.out, args.out)
+    logger_obj.info(
+        "Behavioral embedding space written to %s.faiss / %s.meta.pkl", args.out, args.out
+    )
 
 
 if __name__ == "__main__":

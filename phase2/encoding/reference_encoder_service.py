@@ -86,6 +86,7 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # Registry loading (see module docstring's "Registry-loading note")
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_inference_encoder_from_manifest(
     manifest_path_str: str = "model_registry/artifacts_manifest.json",
     version_str: Optional[str] = None,
@@ -130,8 +131,11 @@ def load_inference_encoder_from_manifest(
     vocab_maps_dict = feature_meta_dict["vocab_maps"]
     metric_value_stats_raw = feature_meta_dict.get("metric_value_stats", {})
     metric_value_stats_dict = {
-        name: (float(stat["mean"]), float(stat["std"])) if isinstance(stat, dict)
-        else (float(stat[0]), float(stat[1]))
+        name: (
+            (float(stat["mean"]), float(stat["std"]))
+            if isinstance(stat, dict)
+            else (float(stat[0]), float(stat[1]))
+        )
         for name, stat in metric_value_stats_raw.items()
     }
     feature_meta = FeatureMetaStore.from_dicts(vocab_maps_dict, metric_value_stats_dict)
@@ -145,9 +149,11 @@ def load_inference_encoder_from_manifest(
     # this works regardless of where the caller's process starts.
     encoder_path = Path(encoder_path_str)
     if not encoder_path.is_absolute():
-        encoder_path = manifest_path.parent.parent / encoder_path_str \
-            if manifest_path.parent.name != Path(encoder_path_str).parent.name \
+        encoder_path = (
+            manifest_path.parent.parent / encoder_path_str
+            if manifest_path.parent.name != Path(encoder_path_str).parent.name
             else manifest_path.parent / Path(encoder_path_str).name
+        )
     if not encoder_path.exists():
         # last resort: try relative to the manifest's own directory directly
         candidate = manifest_path.parent / Path(encoder_path_str).name
@@ -174,7 +180,8 @@ def load_inference_encoder_from_manifest(
 
     logger_obj.info(
         "[ReferenceEncoderService] Loaded encoder version=%s from %s",
-        chosen_version_str, encoder_path,
+        chosen_version_str,
+        encoder_path,
     )
     return inference_encoder, feature_meta
 
@@ -182,6 +189,7 @@ def load_inference_encoder_from_manifest(
 # ─────────────────────────────────────────────────────────────────────────────
 # ReferenceEncoderService
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ReferenceEncoderServiceConfigData:
@@ -205,6 +213,7 @@ class ReferenceEncoderServiceConfigData:
         from the entity's prior centroid exceeds this many standard
         deviations of that entity's own embedding spread (sqrt(emb_variance)).
     """
+
     history_days_int: int = REF_HISTORY_DAYS
     history_len_int: int = REF_HISTORY_LEN
     seq_len_int: int = REF_SEQ_LEN
@@ -267,7 +276,8 @@ class ReferenceEncoderService:
         if global_mean_emb is not None:
             norm = float(np.linalg.norm(global_mean_emb))
             self._global_mean_emb = (
-                (global_mean_emb / norm).astype(np.float32) if norm > 0
+                (global_mean_emb / norm).astype(np.float32)
+                if norm > 0
                 else global_mean_emb.astype(np.float32)
             )
         else:
@@ -286,7 +296,9 @@ class ReferenceEncoderService:
         """
         seq_len = self._config.seq_len_int
         ordered = sorted(records, key=lambda r: (r.timestamp, r.metric_name))
-        return [ordered[i:i + seq_len] for i in range(0, len(ordered), seq_len)] if ordered else []
+        return (
+            [ordered[i : i + seq_len] for i in range(0, len(ordered), seq_len)] if ordered else []
+        )
 
     def _encode_windows(self, windows: List[List[RawRecord]]) -> np.ndarray:
         """Encode each window to one (128,) embedding, batched through
@@ -344,12 +356,14 @@ class ReferenceEncoderService:
                 last_update_ts=datetime.now(timezone.utc),
                 cold_start_flag=True,
             )
-            logger_obj.info("[ReferenceEncoderService] entity_id=%s cold-start (no history)", entity_id)
+            logger_obj.info(
+                "[ReferenceEncoderService] entity_id=%s cold-start (no history)", entity_id
+            )
             return profile
 
         windows = self._build_windows(records)
         embs = self._encode_windows(windows)
-        recent_embs = embs[-self._config.history_len_int:]
+        recent_embs = embs[-self._config.history_len_int :]
         centroid_emb, emb_variance = self._compute_centroid_and_variance(recent_embs)
 
         profile = EntityProfile(
@@ -367,7 +381,9 @@ class ReferenceEncoderService:
         """Startup path: build and write a profile for every entity the
         historical_record_provider currently knows about."""
         entity_ids = self._historical_record_provider.list_known_entity_ids()
-        logger_obj.info("[ReferenceEncoderService] Building profiles for %d entities", len(entity_ids))
+        logger_obj.info(
+            "[ReferenceEncoderService] Building profiles for %d entities", len(entity_ids)
+        )
         for entity_id in entity_ids:
             profile = self.build_profile_for_entity(entity_id)
             self._entity_store_writer.write_entity_profile(profile)
@@ -428,14 +444,18 @@ class ReferenceEncoderService:
                 logger_obj.warning(
                     "[ReferenceEncoderService] Drift alarm entity_id=%s distance=%.4f "
                     "threshold=%.4f (%.1f std)",
-                    entity_id, distance, self._config.drift_alarm_std_float * std_dev,
+                    entity_id,
+                    distance,
+                    self._config.drift_alarm_std_float * std_dev,
                     self._config.drift_alarm_std_float,
                 )
             updated_centroid = alpha * new_emb + (1.0 - alpha) * updated_centroid
         norm = np.linalg.norm(updated_centroid)
-        updated_centroid = (updated_centroid / norm if norm > 0 else updated_centroid).astype(np.float32)
+        updated_centroid = (updated_centroid / norm if norm > 0 else updated_centroid).astype(
+            np.float32
+        )
 
-        updated_history = (prior.history_embs + list(new_embs))[-self._config.history_len_int:]
+        updated_history = (prior.history_embs + list(new_embs))[-self._config.history_len_int :]
         _, updated_variance = self._compute_centroid_and_variance(np.stack(updated_history))
 
         profile = EntityProfile(

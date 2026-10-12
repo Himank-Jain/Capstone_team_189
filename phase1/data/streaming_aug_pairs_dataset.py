@@ -116,16 +116,26 @@ AUG_VALUE_NORM_EPS: float = 1e-6
 # 'metric_name' / 'value' directly — there are no wide metric columns to
 # project instead, and the legacy *_masked columns are no longer read since
 # they're not used as features.
-AUG_REQUIRED_COLS: List[str] = sorted(set(
-    AUG_TIME_SCALAR_COLS + AUG_CATEGORICAL_COLS
-    + [AUG_TIMESTAMP_COL, AUG_ENTITY_COL, AUG_VIEW_COL, AUG_PAIR_ID_COL,
-       AUG_METRIC_NAME_COL, AUG_VALUE_COL]
-))
+AUG_REQUIRED_COLS: List[str] = sorted(
+    set(
+        AUG_TIME_SCALAR_COLS
+        + AUG_CATEGORICAL_COLS
+        + [
+            AUG_TIMESTAMP_COL,
+            AUG_ENTITY_COL,
+            AUG_VIEW_COL,
+            AUG_PAIR_ID_COL,
+            AUG_METRIC_NAME_COL,
+            AUG_VALUE_COL,
+        ]
+    )
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Vocabulary computation — single pass, columns-only (cheap on a 31-col file)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def compute_vocab_sizes(parquet_path_str: str) -> Dict[str, Dict[str, int]]:
     """
@@ -201,7 +211,7 @@ def compute_metric_value_stats(parquet_path_str: str) -> Dict[str, Tuple[float, 
 
         grouped = df_cols.groupby(AUG_METRIC_NAME_COL)[AUG_VALUE_COL]
         rg_sum = grouped.sum()
-        rg_sum_sq = grouped.apply(lambda v: float((v ** 2).sum()))
+        rg_sum_sq = grouped.apply(lambda v: float((v**2).sum()))
         rg_count = grouped.count()
 
         for name, val in rg_sum.items():
@@ -216,12 +226,15 @@ def compute_metric_value_stats(parquet_path_str: str) -> Dict[str, Tuple[float, 
         if n == 0:
             continue
         mean = sums[name] / n
-        var = max(sums_sq[name] / n - mean ** 2, 0.0)
-        std = max(var ** 0.5, AUG_VALUE_NORM_EPS)
+        var = max(sums_sq[name] / n - mean**2, 0.0)
+        std = max(var**0.5, AUG_VALUE_NORM_EPS)
         stats[name] = (float(mean), float(std))
         logger_obj.info(
             "[compute_metric_value_stats] '%s': mean=%.4f std=%.4f n=%d",
-            name, mean, std, n,
+            name,
+            mean,
+            std,
+            n,
         )
 
     return stats
@@ -230,6 +243,7 @@ def compute_metric_value_stats(parquet_path_str: str) -> Dict[str, Tuple[float, 
 # ─────────────────────────────────────────────────────────────────────────────
 # Streaming dataset
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class StreamingDatasetConfigData:
@@ -258,6 +272,7 @@ class StreamingDatasetConfigData:
         Shuffle window order within each row group before yielding, so
         consecutive batches aren't all from the same entity.
     """
+
     parquet_path_str: str
     vocab_maps_dict: Dict[str, Dict[str, int]]
     metric_value_stats_dict: Dict[str, Tuple[float, float]]
@@ -343,7 +358,6 @@ class StreamingAugPairsDataset(IterableDataset):
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
-
     def _process_row_group(
         self, rg_idx: int
     ) -> Iterator[Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]]:
@@ -372,7 +386,9 @@ class StreamingAugPairsDataset(IterableDataset):
         df[AUG_VALUE_COL] = df[AUG_VALUE_COL].fillna(0.0).astype(np.float32)
         row_mean = df[AUG_METRIC_NAME_COL].map(mean_map).fillna(0.0).astype(np.float32)
         row_std = df[AUG_METRIC_NAME_COL].map(std_map).fillna(1.0).astype(np.float32)
-        df["value_norm"] = ((df[AUG_VALUE_COL] - row_mean) / (row_std + AUG_VALUE_NORM_EPS)).astype(np.float32)
+        df["value_norm"] = ((df[AUG_VALUE_COL] - row_mean) / (row_std + AUG_VALUE_NORM_EPS)).astype(
+            np.float32
+        )
 
         # Normalise time scalars to [0, 1) so they sit on a comparable scale
         # to value_norm inside the shared numeric projection.
@@ -383,9 +399,7 @@ class StreamingAugPairsDataset(IterableDataset):
         for col in AUG_CATEGORICAL_COLS:
             vocab_map = cfg.vocab_maps_dict[col]
             df[f"_enc_{col}"] = (
-                df[col]
-                .map(lambda value: vocab_map.get(str(value), 0))
-                .astype(np.int64)
+                df[col].map(lambda value: vocab_map.get(str(value), 0)).astype(np.int64)
             )
 
         enc_cat_cols = [f"_enc_{c}" for c in AUG_CATEGORICAL_COLS]
@@ -456,16 +470,12 @@ class StreamingAugPairsDataset(IterableDataset):
 
     @staticmethod
     def _rows_to_seq_dict(rows: pd.DataFrame, enc_cat_cols: List[str]) -> Dict[str, torch.Tensor]:
-        numeric_tensor = torch.from_numpy(
-            rows[AUG_NUMERIC_COLS].to_numpy(dtype=np.float32)
-        )
-        categorical_tensor = torch.from_numpy(
-            rows[enc_cat_cols].to_numpy(dtype=np.int64)
-        )
+        numeric_tensor = torch.from_numpy(rows[AUG_NUMERIC_COLS].to_numpy(dtype=np.float32))
+        categorical_tensor = torch.from_numpy(rows[enc_cat_cols].to_numpy(dtype=np.int64))
         ts = rows[AUG_TIMESTAMP_COL]
-        frac_hour = (
-            ts.dt.hour + ts.dt.minute / 60.0 + ts.dt.second / 3600.0
-        ).to_numpy(dtype=np.float32) / 24.0
+        frac_hour = (ts.dt.hour + ts.dt.minute / 60.0 + ts.dt.second / 3600.0).to_numpy(
+            dtype=np.float32
+        ) / 24.0
         timestamps_tensor = torch.from_numpy(frac_hour[:, np.newaxis])
 
         return {
@@ -479,8 +489,9 @@ class StreamingAugPairsDataset(IterableDataset):
 # Collate function
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def contrastive_collate_fn(
-    batch: List[Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]]
+    batch: List[Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]],
 ) -> Tuple[
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
@@ -494,6 +505,7 @@ def contrastive_collate_fn(
     with shapes (B, seq_len, 3), (B, seq_len, 4), (B, seq_len, 1).
     All windows are fixed-length (seq_len_int), so no padding is needed.
     """
+
     def stack_view(view_list):
         return (
             torch.stack([v["numeric"] for v in view_list]),

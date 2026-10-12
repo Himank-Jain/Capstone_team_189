@@ -66,7 +66,9 @@ class SlackNotifier(BaseNotifier):
         super().__init__(channel_name="slack")
         self._webhook_url = webhook_url
         self._http_client = http_client
-        self._rate_limiter = rate_limiter if rate_limiter is not None else AsyncRateLimiter(min_interval_sec=1.0)
+        self._rate_limiter = (
+            rate_limiter if rate_limiter is not None else AsyncRateLimiter(min_interval_sec=1.0)
+        )
 
     def _build_block_kit_message(self, payload: AlertPayloadModel) -> Dict[str, Any]:
         emoji = _SEVERITY_EMOJI.get(payload.severity.value, "⚪")
@@ -108,7 +110,8 @@ class SlackNotifier(BaseNotifier):
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": "Contributing features: " + ", ".join(payload.contributing_features),
+                            "text": "Contributing features: "
+                            + ", ".join(payload.contributing_features),
                         }
                     ],
                 }
@@ -140,5 +143,7 @@ class SlackNotifier(BaseNotifier):
         response = await self._http_client.post(self._webhook_url, json=message)
         status_code = getattr(response, "status_code", None)
         if status_code is not None and status_code >= 300:
-            raise RuntimeError(f"Slack webhook returned HTTP {status_code}: {getattr(response, 'text', '')}")
+            raise RuntimeError(
+                f"Slack webhook returned HTTP {status_code}: {getattr(response, 'text', '')}"
+            )
         return f"HTTP {status_code}" if status_code is not None else "sent"
