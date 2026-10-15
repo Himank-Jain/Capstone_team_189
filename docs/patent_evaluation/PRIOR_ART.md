@@ -78,7 +78,7 @@ new parts.**
 
 1. Commission a formal search on G06N/G06F21/55 with the claim vocabulary: "snapshot", "shadow", "promotion", "allowance",
    "ledger", "baseline", "adversarial/poisoning", and read the claims of US9516053, US10270788, US12223046, WO2017201107 in full.
-2. Obtain and read arXiv 2609.04388 and the full text of Kloft & Laskov for their defence recommendations.
+2. arXiv 2609.04388 has been read (section 6 below; read through ar5iv and the arXiv HTML because the PDF returned an empty body). Still to do: the full text of Kloft & Laskov for their defence recommendations, and the references of 2609.04388 (not checked).
 3. Keep the independent claim at the level of the mechanism (items (a)–(e) above), not at "holding updates when drift is detected".
 4. Write the claims around stored system state and system operations (store snapshot, hold, shadow, promote with a persisted
    record, restore), with the statistics in dependent claims.
