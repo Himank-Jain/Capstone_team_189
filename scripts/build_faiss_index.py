@@ -48,19 +48,25 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root on path
-
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 import torch
 
-from phase1.embedding_space.batch_encoder import BatchEncoder, BatchEncoderConfigData
-from phase1.embedding_space.faiss_indexer import FaissIndexer, build_faiss_index
-from phase1.models.tstcc_encoder import build_tstcc_encoder_for_aug_pairs
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root on path
+
+# Keep the repository-root bootstrap above local imports for direct invocation.
+from phase1.embedding_space.batch_encoder import (  # noqa: E402
+    BatchEncoder,
+    BatchEncoderConfigData,
+)
+from phase1.embedding_space.faiss_indexer import (  # noqa: E402
+    FaissIndexer,
+    build_faiss_index,
+)
 
 try:
-    from shared.constants import FAISS_N_LIST
+    from shared.constants import FAISS_N_LIST  # noqa: E402
 except ImportError:
     FAISS_N_LIST = 100
 

@@ -10,6 +10,9 @@ Nothing here is a target or an estimate. Not legal advice; no formal prior-art s
 * Attacks (slow ramps of 30/60/90 days to 4/6/8 scale units), benign growth, poisoned calibration, cohort-wide poisoning and an adaptive attacker are **simulated** on that data.
 * Harness choices were made on control and benign data only (smoothing, daily-mean CUSUM, scale eligibility, margin). They are listed under "Iterations".
 
+## Effective sample size (read first)
+The 203 entities come from **14 usable series** (3 of 17 were excluded as degenerate). Entities from one series share a marginal distribution and are not independent. Calibration margin tuning used alternate series; the 96 held-out entities come from **7 series** and the 41 "quiet" entities used for attack comparisons from **only 4 series** (2 EC2 CPU, 1 ELB, 1 RDS CPU). The effective n for those results is closer to 4 than 41. Series-level bootstrap intervals (`cluster_results.json`) are therefore degenerate and should not be read as precision. Entity-level Wilson intervals overstate it.
+
 ## A. Drift guard (203 entities; 41 quiet entities for attack comparisons, 96 held out for control rates)
 | Strategy | Stored drift at ramp end (median σ) | Slow ramps alerted | Alerts on clean control | Real growth flagged |
 |---|---|---|---|---|
@@ -32,11 +35,27 @@ Where the guard differs:
 * **Adaptive attacker** who ramps to the bound (median 0.98σ) then jumps: a 2σ payload evaded in 7 / 41 (guard) vs 30 / 41 (adaptive baseline); 3σ: 1 / 41 vs 9 / 41; 4σ and above: none evaded either.
 * **Real growth:** the frozen baseline flags real growth forever. The guard raises one incident and promotes: 25 / 26 cohort-wide shifts promoted (median 19 days); 31 / 32 isolated shifts promoted after operator approval, 0 / 32 without it.
 * **Limit:** an attack that shifts the whole cohort passes the cohort test and was promoted in 96 / 96 runs (median 26.5 days). Operator review is the only backstop.
-* Calibrated bounds: median 0.78σ windowed, 0.86σ cumulative; margin 10.35 (tuned on 107 held-out entities).
+* Calibrated bounds: median 0.78σ windowed, 0.86σ cumulative. Bound = m × the entity's own 99th-percentile drift in calibration, m a unitless multiplier with floor 1.25; m was set to 10.35 (90th percentile of later benign drift ÷ calibration drift) on tuning series separate from the test series.
+
+### Cost of flagging real growth
+Entities still alerting after a benign permanent shift (of 41), by month after the shift:
+
+| Strategy | M1 | M2 | M3 | M4+ |
+|---|---|---|---|---|
+| Adaptive | 16 | 0 | 0 | 0 |
+| Long window | 18 | 0 | 0 | 0 |
+| Frozen | 27 | 20 | 21 | 21 |
+| CUSUM | 35 | 29 | 29 | 29 |
+| Rollback | 16 | 10 | 8 | 7 |
+| **Guard** | **23** | **8** | **5** | **6** |
+
+The guard flags more in month one than the adaptive baseline (23 vs 16) because it holds rather than absorbs. Alerts then fall as shifts are promoted; the remaining 6 are isolated shifts awaiting operator approval. The adaptive baseline and long window stop alerting by absorbing the shift, which is the same mechanism that absorbs an attack, so "stops alerting" is not a benefit on its own.
 
 ## B. Deterministic explanation
 * 18 platform scenarios, 10,008 repeated runs: 100 % identical output, median 1.43 ms, p95 2.24 ms, 0 network connection attempts.
-* Threat-signature matching: Top-1 14 / 18, Top-3 15 / 18. These scenarios come from the same generator the rules were written against, so this is **in-sample**, not an independent accuracy estimate.
+* Threat-signature matching, in-sample (18 scenarios at their own seeds): Top-1 14 / 18, Top-3 15 / 18.
+* Held-out settings, rules frozen (810 runs: 5 new seeds × 3 intensities × 3 clouds × 18 scenarios): **Top-1 67.0 %, Top-3 81.1 %**. Low intensity is weakest (Top-1 48.9 %); medium 75.6 %; high 76.7 %. Four scenarios never match (`public_exposure`, `log_tampering`, `rogue_resources`; `organic_growth` is only ever ranked 2nd or 3rd).
+* Limit: scenario definitions are shared with the rules, so this tests robustness to noise, intensity and cloud, not independently authored scenarios.
 
 ## C. Schema-free encoder (30 synthetic entities per condition; repo checkpoint `synthetic_32`)
 | Condition | Level shift AUC | Spike AUC |
@@ -54,6 +73,9 @@ Spikes remain weak on unseen schemas. Data is synthetic; this tests robustness t
 | Seeded | 12 | 9 / 16 | 50 | 0.46 |
 
 Seed spread was chosen on clean-data false alerts only (a narrower spread gave 10.6 false alerts per 100). Small sample.
+
+## CoreStack data
+Not yet evaluated. The three CoreStack-provided files were not reachable from this session (the linked computer was offline). The harness (`evaluation/`) needs an entity loader for them; results above must not be described as CoreStack results.
 
 ## Not implemented
 Tri-signal fusion, uncertainty-gated fallback and episode novelty (listed as dependent features in the deck) do not exist in this repo and are not evaluated.

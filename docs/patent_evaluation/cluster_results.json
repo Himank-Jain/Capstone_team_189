@@ -1,0 +1,238 @@
+{
+ "n_series_total": 14,
+ "n_series_heldout": 7,
+ "n_series_quiet": 4,
+ "n_entities_heldout": 96,
+ "n_entities_quiet": 41,
+ "series_per_group_quiet": {
+  "ec2_cpu": 2,
+  "elb_requests": 1,
+  "rds_cpu": 1
+ },
+ "strategies": {
+  "adaptive": {
+   "attack_alerted": {
+    "k": 25,
+    "n": 41,
+    "series_ci95": [
+     58.3,
+     62.3
+    ]
+   },
+   "control_alert": {
+    "k": 35,
+    "n": 96,
+    "series_ci95": [
+     13.4,
+     60.9
+    ]
+   },
+   "benign_flagged": {
+    "k": 16,
+    "n": 41,
+    "series_ci95": [
+     30.0,
+     47.6
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 16,
+    "120-150": 0,
+    "150-180": 0,
+    "180-220": 0
+   }
+  },
+  "frozen": {
+   "attack_alerted": {
+    "k": 41,
+    "n": 41,
+    "series_ci95": [
+     100.0,
+     100.0
+    ]
+   },
+   "control_alert": {
+    "k": 18,
+    "n": 96,
+    "series_ci95": [
+     5.8,
+     30.6
+    ]
+   },
+   "benign_flagged": {
+    "k": 27,
+    "n": 41,
+    "series_ci95": [
+     52.2,
+     83.3
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 27,
+    "120-150": 20,
+    "150-180": 21,
+    "180-220": 21
+   }
+  },
+  "longwin": {
+   "attack_alerted": {
+    "k": 36,
+    "n": 41,
+    "series_ci95": [
+     85.0,
+     93.5
+    ]
+   },
+   "control_alert": {
+    "k": 6,
+    "n": 96,
+    "series_ci95": [
+     1.8,
+     11.8
+    ]
+   },
+   "benign_flagged": {
+    "k": 18,
+    "n": 41,
+    "series_ci95": [
+     30.0,
+     57.1
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 18,
+    "120-150": 0,
+    "150-180": 0,
+    "180-220": 0
+   }
+  },
+  "clip": {
+   "attack_alerted": {
+    "k": 38,
+    "n": 41,
+    "series_ci95": [
+     79.4,
+     100.0
+    ]
+   },
+   "control_alert": {
+    "k": 53,
+    "n": 96,
+    "series_ci95": [
+     22.7,
+     86.9
+    ]
+   },
+   "benign_flagged": {
+    "k": 21,
+    "n": 41,
+    "series_ci95": [
+     35.3,
+     61.9
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 20,
+    "120-150": 6,
+    "150-180": 1,
+    "180-220": 2
+   }
+  },
+  "cusum": {
+   "attack_alerted": {
+    "k": 41,
+    "n": 41,
+    "series_ci95": [
+     100.0,
+     100.0
+    ]
+   },
+   "control_alert": {
+    "k": 35,
+    "n": 96,
+    "series_ci95": [
+     13.4,
+     60.9
+    ]
+   },
+   "benign_flagged": {
+    "k": 35,
+    "n": 41,
+    "series_ci95": [
+     65.9,
+     100.0
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 35,
+    "120-150": 29,
+    "150-180": 29,
+    "180-220": 29
+   }
+  },
+  "rollback": {
+   "attack_alerted": {
+    "k": 25,
+    "n": 41,
+    "series_ci95": [
+     58.3,
+     62.3
+    ]
+   },
+   "control_alert": {
+    "k": 41,
+    "n": 96,
+    "series_ci95": [
+     15.6,
+     69.8
+    ]
+   },
+   "benign_flagged": {
+    "k": 16,
+    "n": 41,
+    "series_ci95": [
+     30.0,
+     47.6
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 16,
+    "120-150": 10,
+    "150-180": 8,
+    "180-220": 7
+   }
+  },
+  "guard_cal": {
+   "attack_alerted": {
+    "k": 41,
+    "n": 41,
+    "series_ci95": [
+     100.0,
+     100.0
+    ]
+   },
+   "control_alert": {
+    "k": 36,
+    "n": 96,
+    "series_ci95": [
+     13.9,
+     62.1
+    ]
+   },
+   "benign_flagged": {
+    "k": 28,
+    "n": 41,
+    "series_ci95": [
+     45.0,
+     90.5
+    ]
+   },
+   "benign_still_alerting_by_period": {
+    "90-120": 23,
+    "120-150": 8,
+    "150-180": 5,
+    "180-220": 6
+   }
+  }
+ }
+}

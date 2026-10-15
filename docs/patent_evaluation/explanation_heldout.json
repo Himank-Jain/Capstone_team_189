@@ -1,0 +1,131 @@
+{
+ "runs": 810,
+ "top1": 543,
+ "top3": 657,
+ "per_scenario": {
+  "credential_theft": {
+   "n": 45,
+   "top1": 36,
+   "top3": 45
+  },
+  "insider_threat": {
+   "n": 45,
+   "top1": 30,
+   "top3": 45
+  },
+  "network_scan": {
+   "n": 45,
+   "top1": 39,
+   "top3": 45
+  },
+  "malware_execution": {
+   "n": 45,
+   "top1": 30,
+   "top3": 42
+  },
+  "ransomware": {
+   "n": 45,
+   "top1": 30,
+   "top3": 45
+  },
+  "data_exfiltration": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "ddos_volumetric": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "public_exposure": {
+   "n": 45,
+   "top1": 0,
+   "top3": 0
+  },
+  "brute_force_login": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "lateral_movement": {
+   "n": 45,
+   "top1": 36,
+   "top3": 45
+  },
+  "log_tampering": {
+   "n": 45,
+   "top1": 0,
+   "top3": 0
+  },
+  "rogue_resources": {
+   "n": 45,
+   "top1": 0,
+   "top3": 0
+  },
+  "function_abuse": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "benign_baseline": {
+   "n": 45,
+   "top1": 27,
+   "top3": 30
+  },
+  "planned_deployment": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "organic_growth": {
+   "n": 45,
+   "top1": 0,
+   "top3": 45
+  },
+  "provider_regional_event": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  },
+  "ambiguous_change": {
+   "n": 45,
+   "top1": 45,
+   "top3": 45
+  }
+ },
+ "by_intensity": {
+  "low": {
+   "n": 270,
+   "top1": 132,
+   "top3": 207
+  },
+  "medium": {
+   "n": 270,
+   "top1": 204,
+   "top3": 225
+  },
+  "high": {
+   "n": 270,
+   "top1": 207,
+   "top3": 225
+  }
+ },
+ "by_cloud": {
+  "AWS": {
+   "n": 270,
+   "top1": 181,
+   "top3": 219
+  },
+  "Azure": {
+   "n": 270,
+   "top1": 181,
+   "top3": 219
+  },
+  "GCP": {
+   "n": 270,
+   "top1": 181,
+   "top3": 219
+  }
+ }
+}

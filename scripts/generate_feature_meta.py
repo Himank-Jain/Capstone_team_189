@@ -100,7 +100,6 @@ def _compute_vocab_and_stats(
             "falling back to loading the full parquet into memory with pandas. "
             "Fine for one file; for a very large corpus use P1-M2's streaming version instead."
         )
-        import pandas as pd
         import pyarrow.parquet as pq
 
         df = pq.ParquetFile(parquet_path_str).read().to_pandas()
