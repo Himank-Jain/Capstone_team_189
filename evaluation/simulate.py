@@ -140,6 +140,11 @@ def run(
     eid = f"{entity.entity_id}:{METRIC}"
 
     guard_mode = strategy.startswith("guard")
+    gov = strategy in ("guard_gov", "guard_cgov")  # calibrated bounds + CUSUM trigger on the residual vs the trusted snapshot
+    gov_x: List[float] = []
+    gov_ref: List[float] = []
+    gov_mu = gov_sd = None
+    gs_pos = gs_neg = 0.0
     probe = strategy == "guard_probe"
     fixed_bound = float(strategy.split("guard_b")[1]) if strategy.startswith("guard_b") else None
     window = 90 if strategy == "longwin" else 30
@@ -173,6 +178,9 @@ def run(
                 res.bounds, res.bound_source = (fixed_bound / 2.0, fixed_bound), "fixed"
             else:
                 _install_bounds(guard, eid, strategy, traces, res, validate_calibration, cohort_stats, default_bounds, margin)
+                if strategy == "guard_cgov":  # the sequential detector is the only trigger; bounds only size the ledger step
+                    guard.set_ledger_unit(eid, res.bounds[1])
+                    guard.set_bounds(eid, 1e9, 1e9)
 
         if strategy == "rollback" and day % 7 == 0:
             checkpoints.append((day, store.copy_states()))
@@ -189,6 +197,10 @@ def run(
                     res.hold_days.add(day)
                 if r.guard_incident:
                     res.incident_days.add(day)
+                if gov and day >= SNAPSHOT_DAY:
+                    kk = BucketKeyResolver().resolve(point.vm_id, point.metric_name, ts)
+                    if guard.has_snapshot(eid, kk):
+                        gov_x.append(guard.residual(eid, kk, v))
                 if guard_mode and r.guard_evaluated:
                     if BOUNDS_DAY > day >= SNAPSHOT_DAY:
                         traces["d_w"].append(r.guard_d_windowed)
@@ -232,6 +244,30 @@ def run(
                     res.alert_days.add(day)
                     s_pos = s_neg = 0.0
 
+        if gov and gov_x:
+            xbar = float(np.mean(gov_x))
+            gov_x = []
+            if day < BOUNDS_DAY:
+                gov_ref.append(xbar)
+            else:
+                if gov_mu is None:  # robust reference from the validated calibration window
+                    gov_mu = float(np.median(gov_ref))
+                    ref_ = np.asarray(gov_ref)
+                    gov_sd = max(1.4826 * float(np.median(np.abs(ref_ - gov_mu))), float(np.std(ref_)), 0.05)
+                zd = (xbar - gov_mu) / gov_sd
+                gs_pos = max(0.0, gs_pos + zd - CUSUM_K)
+                gs_neg = max(0.0, gs_neg - zd - CUSUM_K)
+                if (gs_pos > cusum_h or gs_neg > cusum_h) and not guard.is_held(eid):
+                    gs_pos = gs_neg = 0.0
+                    new_inc = guard.trip(eid, day_epoch(day))
+                    if new_inc is not None:
+                        res.cusum_days.add(day)
+                        res.hold_days.add(day)
+                        if new_inc:
+                            res.incident_days.add(day)
+                        else:
+                            res.collapsed_days.add(day)
+
         if flags_today >= FLAGS_PER_ALERT_DAY and day >= SNAPSHOT_DAY:
             res.flag_days.add(day)
             if guard_mode and day >= BOUNDS_DAY and guard.is_held(eid):
@@ -251,6 +287,7 @@ def run(
             if n:
                 res.promoted_buckets += n
                 res.promotion_days.append(day)
+                gs_pos = gs_neg = 0.0
 
         if guard_mode and guard.is_held(eid):
             res.held_end_days.add(day)

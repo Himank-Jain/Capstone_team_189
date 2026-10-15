@@ -43,6 +43,7 @@ class Scenario:
     ramp_days: int = DRIFT_DAYS
     seed: int = 0
     payload: float = 0.0  # adaptive attacker: level jumped to after the ramp
+    hours: Optional[tuple] = None  # shift only these hours of the day (a business-hours-only attacker)
 
 
 def shift_curve(sc: Scenario, n_days: int = END_DAY) -> np.ndarray:
@@ -79,6 +80,10 @@ def apply_scenario(entity, sc: Scenario) -> np.ndarray:
             continue
         weekend = int((SIM_START + timedelta(days=d)).weekday() >= 5)
         scales = entity.bucket_scale[:, weekend]
+        if sc.hours is not None:
+            mask = np.zeros(24)
+            mask[list(sc.hours)] = 1.0
+            scales = scales * mask
         seg = slice(d * 24, (d + 1) * 24)
         out[seg] += curve[d] * scales
         if sc.profile == "noise_masked":

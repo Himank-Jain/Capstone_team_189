@@ -458,9 +458,9 @@ Append the relevant module primer AFTER the global primer. Together they give th
 
   **ACTION ITEM — Phase 1 Architecture Addendum**  
 
-| Must be updated before Member B starts P2-M2 RecordEncoder MUST replicate the event-based preprocessing exactly (per-metric z-scoring, metric\_name vocabulary) sourced from the SAME global vocab maps and per-metric value stats used in training — never re-derive them independently at inference time. Update this primer and the corresponding Team Planner AI Prompt Brief before Member B starts, using Section 7 (P1-M3) of the Phase 1 Architecture Update Addendum as the source of truth. |
+| P2-M2 must reproduce the event-based preprocessing used during training: use the same metric\_name vocabulary and per-metric value statistics stored in feature\_meta.json. Do not recompute vocabulary or normalization statistics independently at inference time. |
 | :---- |
-| \[P2-M2 RecordEncoder\]  (pending update \-- see callout above) Transforms RawRecord \-\> tensor (batch, seq\_len, ENC\_FEATURE\_DIM=256). CategoricalEncoder: vocab from feature\_meta.json, OOV \-\> UNK token. NumericalEncoder: LayerNorm. Time2Vec params from ArtifactBundle. MUST replicate training preprocessing exactly, including the new event-based schema (3 numeric / 4 categorical incl. metric\_name) once P1-M3 output is finalized. Load vocab+params via ArtifactBundle.load(). |
+| \[P2-M2 RecordEncoder\] Transforms RawRecord \-\> tensor (batch, seq\_len, ENC\_FEATURE\_DIM=256). CategoricalEncoder uses vocabulary from feature\_meta.json and maps OOV values to UNK. NumericalEncoder applies per-metric z-scoring, \((value - mean) / std\), using that metric's training mean and std from feature\_meta.json; do not use LayerNorm. Time2Vec parameters and feature metadata are loaded from the version-matched ArtifactBundle. |
 
 ### **P2-M3 — InferenceEncoder**
 
@@ -632,7 +632,7 @@ phase3/                            # NEW -- platform / multi-tenant / RCA layer
 │   └── knowledge_base.yaml          # versioned textbook content: causes,
 │                                    #   signals, confidence_levels, kb_version
 └── api/                             # FastAPI routers, mounted onto the
-    │                                #   existing api_demo_ext app
+    │                                #   Phase 3 FastAPI app
     ├── __init__.py
     └── routers/  tenants.py, cloud_connections.py, notifications.py,
                   incidents.py, rca.py   # rca.py also serves

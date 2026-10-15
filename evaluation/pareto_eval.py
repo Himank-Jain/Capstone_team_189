@@ -28,6 +28,8 @@ CONFIGS = {
     "guard_fleet": ("guard_default", GuardConfig()),
     "guard_cal_full": ("guard_cal", GuardConfig()),
     "guard_cal_ledger": ("guard_cal", GuardConfig(promotion_mode="ledger")),
+    "guard_gov_ledger": ("guard_gov", GuardConfig(promotion_mode="ledger")),
+    "guard_cgov_ledger": ("guard_cgov", GuardConfig(promotion_mode="ledger")),
 }
 
 
@@ -52,12 +54,14 @@ def one(args):
     scen = {"control": (scs["control"], None), "attack": (scs["attack"], ch_a), "benign_iso": (iso, ch_b)}
     for T in (1.0, 2.0):
         scen[f"stealth{T}"] = (Scenario("attack", "linear", T, ramp_days=60, seed=idx), ch_a)
+    for T in (4.0, 6.0):  # business-hours-only attacker: shifts 8 of 24 hourly buckets
+        scen[f"local{T}"] = (Scenario("attack", "linear", T, ramp_days=60, hours=tuple(range(8, 16)), seed=idx), ch_a)
     out = {"id": e.entity_id, "source": e.source, "heldout": e.source not in set(TUNED["tuning_sources"]),
            "meta": {"benign_mag": iso.magnitude, "benign_change": ch_b, "attack_target": scs["attack"].magnitude,
                     "attack_ramp": scs["attack"].ramp_days}, "res": {}}
     for label, (strat, cfg) in CONFIGS.items():
         kw = {"default_bounds": cs["__global__"]["median_bound"], "margin": TUNED["margin"]}
-        if strat == "guard_cal":
+        if strat in ("guard_cal", "guard_gov", "guard_cgov"):
             kw["cohort_stats"] = cs.get(e.group)
         d = {}
         for name, (sc, corro) in scen.items():

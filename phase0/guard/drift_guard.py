@@ -99,6 +99,7 @@ class _Entity:
     shifts: Dict[Hashable, float] = field(default_factory=dict)
     history: Deque[Tuple[float, float]] = field(default_factory=deque)  # (day, signed D)
     held: bool = False
+    frozen: bool = False  # tripped by an external detector: every reading goes to the shadow
     incident_open: bool = False
     shadow: List[Tuple[float, Hashable, float, float]] = field(default_factory=list)  # day,bucket,value,shift
 
@@ -150,12 +151,18 @@ class DriftGuard:
         self._entities: Dict[Hashable, _Entity] = {}
         self._bounds: Dict[Hashable, Tuple[float, float]] = {}
         self._episode: Dict[Hashable, float] = {}  # entity -> day of last capped step
+        self._unit: Dict[Hashable, float] = {}  # ledger step unit when the bound is not the trigger
         self.ledger: List[dict] = []  # provenance of every promotion step
 
     # -- configuration ------------------------------------------------------
 
     def set_bounds(self, entity: Hashable, windowed: float, cumulative: float) -> None:
         self._bounds[entity] = (windowed, cumulative)
+
+    def set_ledger_unit(self, entity: Hashable, unit: float) -> None:
+        """Scale-unit width of one ledger allowance. Defaults to the entity's cumulative bound; set
+        explicitly when an external detector, not the bound, is the trigger."""
+        self._unit[entity] = unit
 
     def bounds_for(self, entity: Hashable) -> Tuple[float, float]:
         return self._bounds.get(
@@ -230,6 +237,9 @@ class DriftGuard:
             return GuardDecision(GuardAction.UPDATE, reason="no snapshot")
 
         snap_med, snap_scale = ent.snaps[bucket]
+        if ent.frozen:
+            ent.shadow.append((day, bucket, value, (value - snap_med) / snap_scale))
+            return GuardDecision(GuardAction.HOLD, reason="tripped by detector")
         proposed_shift = (proposed_median - snap_med) / snap_scale
         d_signed = self.signed_drift(entity, {bucket: proposed_shift})
         d_cum = abs(d_signed)
@@ -253,6 +263,23 @@ class DriftGuard:
             new_incident=new_incident,
             reason="bound exceeded: " + ("cumulative" if d_cum > c_bound else "windowed"),
         )
+
+    def trip(self, entity: Hashable, day: float) -> Optional[bool]:
+        """An external sequential detector (CUSUM on the residual against the trusted snapshot)
+        declares a sustained shift: freeze the baseline and start collecting the shadow.
+        Returns True for a new incident, False for a continuation of an open episode, None if the
+        entity has no snapshot or is already held."""
+        ent = self._entities.get(entity)
+        if ent is None or not ent.snaps or ent.held:
+            return None
+        ent.held = True
+        ent.frozen = True
+        new_incident = not ent.incident_open
+        last = self._episode.get(entity)
+        if new_incident and last is not None and day - last <= self.config.episode_gap_days:
+            new_incident = False
+        ent.incident_open = True
+        return new_incident
 
     def residual(self, entity: Hashable, bucket: Hashable, value: float) -> float:
         """Normalised residual of an incoming reading against the snapshot."""
@@ -334,7 +361,7 @@ class DriftGuard:
             if corro_ok:
                 evidence.append("change_event")
                 allow += self.config.allow_corroborated
-            _, c_bound = self.bounds_for(entity)
+            c_bound = self._unit.get(entity) or self.bounds_for(entity)[1]
             allowance = allow * c_bound
             need = shadow_shift - self.signed_drift(entity)
             if operator_approved:

@@ -14,7 +14,7 @@ def summarize(rows):
     for s in LABELS:
         d = {}
         d["control_alert"] = sum(any(a >= EV for a in r["res"][s]["control"]["alerts"]) for r in rows)
-        for name in ("attack", "stealth1.0", "stealth2.0"):
+        for name in ("attack", "stealth1.0", "stealth2.0", "local4.0", "local6.0"):
             xs = [r["res"][s][name] for r in quiet]
             det = [x for x in xs if x["first_alert_day"] is not None]
             disp = [x["first_alert_drift"] for x in det]
@@ -45,4 +45,4 @@ if __name__ == "__main__":
             f = lambda v: "-" if v is None else f"{v:.2f}"
             print(f"{s:<18}{d['control_alert']:>5} | {a['detected']:>3}/{a['n']} {f(a['silent_displacement_median'])},{f(a['silent_displacement_p90'])},{f(a['silent_displacement_max'])} | "
                   f"{b['detected']:>3}/{b['n']} {f(b['silent_displacement_median'])},{f(b['silent_displacement_p90'])},{f(b['silent_displacement_max'])} | "
-                  f"{c['detected']:>3}/{c['n']} {f(c['silent_displacement_median'])} | {bn['flagged']}/{bn['unresolved_at_end']}/{bn['span_days_median']}")
+                  f"{c['detected']:>3}/{c['n']} {f(c['silent_displacement_median'])} | local4 {d['local4.0']['detected']}/{d['local4.0']['n']} disp {f(d['local4.0']['silent_displacement_median'])} local6 {d['local6.0']['detected']}/{d['local6.0']['n']} | {bn['flagged']}/{bn['unresolved_at_end']}/{bn['span_days_median']}")

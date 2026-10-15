@@ -1,11 +1,11 @@
 # Project Directory Structure Guide
 
-The CAPSTONE-189 final delivery should preserve the existing backend package layout while adding the presentation and demo layers below.
+The CAPSTONE-189 final delivery keeps application routes in the Phase 3 package and adds the presentation layer below.
 
 ## Required Layout
 - frontend/ for the dashboard application shell.
-- backend/api_demo_ext/ for demo-only API wrappers, auth, tenants, analytics, and websocket heartbeat transport.
-- demo-generator/ for live event generation and scenario playbooks.
+- phase3/api/ for the FastAPI application, domain routers, authentication, tenants, analytics, and websocket transport.
+- demo_generator/ for live event generation and scenario playbooks.
 - docs/guides/ for implementation, directory structure, and testing guidance.
 
 ## Rules

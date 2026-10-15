@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 D = json.load(open(ROOT / "docs/patent_evaluation/corestack_eval_raw.json"))
 R, T = D["rows"], D["tuned"]
 EV = 60
-STR = ["adaptive", "frozen", "longwin", "clip", "cusum", "rollback", "guard_default", "guard_naive", "guard_cal"]
+STR = ["adaptive", "frozen", "longwin", "clip", "cusum", "rollback", "guard_default", "guard_naive", "guard_cal", "guard_cgov"]
 
 def anyq(a, lo=EV, hi=None): return any(x >= lo and (hi is None or x < hi) for x in a)
 

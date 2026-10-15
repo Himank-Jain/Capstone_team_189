@@ -10,7 +10,7 @@ the event, so every method is judged on the alerts it adds, not on shared ambien
 Attacks: linear ramp over 60 days to T in {1,2,3} sigma (non-adaptive). Detection = alert within ramp+30 days.
 """
 from __future__ import annotations
-import json, multiprocessing as mp
+import json, multiprocessing as mp, os
 from pathlib import Path
 from evaluation.data import build_entities
 from evaluation.runner import eligible
@@ -24,6 +24,7 @@ MARGINS = [2.0, 3.0, 4.5, 7.0, 10.0, 15.0]
 HS = [3.0, 5.0, 8.0, 12.0, 18.0, 30.0]
 FLEET = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0]
 TARGETS = [1.0, 2.0, 3.0]
+ONLY = os.environ.get("ROC_ONLY")
 
 
 def spec(r, kind):
@@ -39,22 +40,34 @@ def one(args):
     out = {"id": e.entity_id, "source": e.source, "heldout": e.source not in set(TUNED["tuning_sources"]), "res": {}}
     ctrl_adaptive = run(e, scs["control"], "adaptive")
     out["ambient_flags"] = sorted(d for d in ctrl_adaptive.flag_days if d >= EVENT_DAY)
-    for m in MARGINS:
+    for m in ([] if ONLY else MARGINS):
         d = {}
         for name, sc in [("control", scs["control"])] + [(f"atk{T}", atk[T]) for T in TARGETS]:
             d[name] = spec(run(e, sc, "guard_cal", default_bounds=base, margin=m, cohort_stats=cs.get(e.group)), "guard")
         out["res"][f"guard_cal_m{m}"] = d
-    for sc_ in FLEET:
+    for sc_ in ([] if ONLY else FLEET):
         d = {}
         b = (base[0] * sc_, base[1] * sc_)
         for name, sc in [("control", scs["control"])] + [(f"atk{T}", atk[T]) for T in TARGETS]:
             d[name] = spec(run(e, sc, "guard_default", default_bounds=b), "guard")
         out["res"][f"guard_fleet_s{sc_}"] = d
-    for h in HS:
+    for h in ([] if ONLY else HS):
         d = {}
         for name, sc in [("control", scs["control"])] + [(f"atk{T}", atk[T]) for T in TARGETS]:
             d[name] = spec(run(e, sc, "cusum", cusum_h=h), "cusum")
         out["res"][f"cusum_h{h}"] = d
+    for h in ([] if ONLY == "cgov" else HS):  # governor: calibrated bounds (tuned margin) + CUSUM trigger swept over h
+        d = {}
+        for name, sc in [("control", scs["control"])] + [(f"atk{T}", atk[T]) for T in TARGETS]:
+            d[name] = spec(run(e, sc, "guard_gov", cusum_h=h, default_bounds=base, margin=TUNED["margin"],
+                               cohort_stats=cs.get(e.group)), "guard")
+        out["res"][f"gov_h{h}"] = d
+    for h in HS:
+        d = {}
+        for name, sc in [("control", scs["control"])] + [(f"atk{T}", atk[T]) for T in TARGETS]:
+            d[name] = spec(run(e, sc, "guard_cgov", cusum_h=h, default_bounds=base, margin=TUNED["margin"],
+                               cohort_stats=cs.get(e.group)), "guard")
+        out["res"][f"cgov_h{h}"] = d
     return out
 
 
@@ -62,5 +75,5 @@ if __name__ == "__main__":
     E = [e for e in build_entities(DATA, 12) if eligible(e)]
     with mp.Pool(2) as p:
         rows = p.map(one, list(enumerate(E)), chunksize=2)
-    (ROOT / "docs/patent_evaluation/roc_raw.json").write_text(json.dumps(rows))
+    (ROOT / (f"docs/patent_evaluation/roc_{ONLY}_raw.json" if ONLY else "docs/patent_evaluation/roc_raw.json")).write_text(json.dumps(rows))
     print("done", len(rows))

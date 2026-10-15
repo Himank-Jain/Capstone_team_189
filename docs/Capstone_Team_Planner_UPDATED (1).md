@@ -1698,7 +1698,7 @@ Reads a completed RCACase (P3-M6/M7) and returns structured JSON that the Incide
 | Validate the whole file at startup and in CI so problems surface at build time | Do not discover a malformed entry on demo day — never lazy-validate at request time |
 | Bump kb\_version on any wording change and review content changes like code | Do not allow tenant- or user-editable knowledge-base content in v1 |
 | Use string.Template.safe\_substitute with a fixed whitelist | Do not use str.format, f-strings or eval on knowledge-base text mixed with case values |
-| Keep recommendations to read-only investigative checks | Do not propose remediation, execution, or any write/delete cloud action |
+| Provide curated, read-only threat-specific mitigation as advisory guidance for human operators (approved WP-C/WP-F scope); make clear it is not a diagnosis or an executable plan | Do not execute cloud changes, perform write/delete actions, imply that the platform will remediate, or let mitigation text alter severity or score |
 | Keep the module offline (no HTTP client, no SDK, no secrets) | Do not add a network or LLM dependency later "just for nicer wording" — that reopens the risk this remodel removed |
 
 ## **P3-M9 — SMS / Webhook / PagerDuty Channels**
@@ -1756,6 +1756,21 @@ All three register with the existing BaseNotifier list already injected into Not
 * Add onboarding wizard pages matching P3-M4's step API 1:1  
 * Add Connections \+ Notification Endpoints management pages under Settings  
 * Add the Incident/RCA page: Evidence tab, Timeline tab, Candidate Causes list (with confidence badges), Explanation panel, Recommended Checks checklist  
+* Add the incident lifecycle panel: OPEN/ACKNOWLEDGED/RESOLVED state, operator acknowledge/resolve/reopen controls, resolution type/note capture, and the recovery suggestion indicator
+* Drive active, critical, resolved-today and mean-time-to-resolve dashboard KPIs from tenant-scoped lifecycle records; resolved incidents must not remain in the active alert feed
+
+### **Incident Lifecycle Baseline Policy**
+
+| Resolution | Baseline action | Default policy |
+| :--- | :--- | :--- |
+| FIXED | Keep the pre-incident centroid/history; discard quarantined incident embeddings; unfreeze | Do not adapt from the anomalous interval |
+| AUTO_RECOVERED | Same as FIXED | Automatic resolution remains disabled by default |
+| FALSE_POSITIVE | Replay recent quarantined embeddings, then temporarily increase EMA alpha | `adaptation_alpha: 0.35`, `adaptation_window: 20`, `adaptation_batches: 5` |
+| EXPECTED_CHANGE | Same bounded adaptation as FALSE_POSITIVE | Settings are configurable under `incident_lifecycle.baseline` |
+| Recovery suggestion | Mark recovering after consecutive scores remain below LOW | Threshold `0.2`, 6 batches; tenant auto-resolve defaults off |
+| Regression | Link a fresh incident to a recent FIXED incident on the same entity | 30-minute window; do not apply repeat-escalation downgrade |
+
+Per-tenant automatic resolution is opt-in through `tenants.onboarding_state.settings.auto_resolve_incidents`; the platform setting remains false unless explicitly enabled.
 * Build the Explanation panel from the structured sections returned by P3-M8 (Summary, What this means, How it was detected, Common causes, Why it matters, Evidence for this case, Limitations), with the kb\_version shown as a small footer for auditability  
 * Design the fallback state explicitly: when is\_fallback is true, show an "No confident category — here is the evidence we do have" state built from the UNKNOWN entry, never a blank panel  
 * Keep MOCK\_MODE working for every new page, with mock fixtures that cover at least one HIGH-confidence category and the UNKNOWN fallback
@@ -1776,13 +1791,15 @@ Consumes the API surface exposed by P3-M4 (onboarding), P3-M5 (connections), P3-
 | Design the Explanation panel's fallback state explicitly, not as an afterthought | Do not duplicate the existing 14-page scaffold's KPI/Pipeline widgets — extend them |
 | Keep every new page working under the existing MOCK\_MODE flag | Do not couple new pages directly to raw backend DB shapes — go through the API layer only |
 | Render resource names, tags and knowledge-base text as plain text | Do not use dangerouslySetInnerHTML for any explanation or evidence field |
+| Keep lifecycle mutations OPERATOR/OWNER-only and auditable | Do not count RESOLVED incidents as active or let a VIEWER mutate lifecycle state |
+| Freeze baseline updates while an incident is active and preserve pre-incident history for FIXED/AUTO_RECOVERED | Do not fold anomalous embeddings into the normal baseline before an operator resolves the incident |
 
 ## **P3-M11 — Full Demo Integration**
 
 *Status: new for Phase 3 (renumbered from P3-M12; LLM test paths replaced in the No-LLM remodel). Owner: Whole team. Priority: CRITICAL.*  
 **Overview:** End-to-end: onboarding → synthetic (or dry-run live) monitoring → injected anomaly → detection (Phase 2, unmodified) → RCA → knowledge-base explanation and recommended checks → notification → dashboard. This is the single milestone the supervisor demo is built around. Because the RCA chain has no external dependency, the only live-demo failure points left are the notification channels and any live cloud credentials.  
-**Tech Stack:** pytest, docker-compose, existing demo-generator  
-**Depends On (existing system):** Existing 8-scenario synthetic attack generator (demo-generator/)
+**Tech Stack:** pytest, docker-compose, existing `demo_generator/`
+**Depends On (existing system):** Existing 8-scenario synthetic attack generator (demo_generator/)
 
 ### **Dependency & Parallel Work:**
 

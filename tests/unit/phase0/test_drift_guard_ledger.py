@@ -97,3 +97,27 @@ def test_hold_after_the_gap_is_a_new_incident():
 
 def test_full_mode_is_unchanged_default():
     assert GuardConfig().promotion_mode == "full"
+
+
+def test_detector_trip_freezes_the_baseline_and_collects_a_shadow():
+    g = _ledger_guard(bound=50.0)           # bound so wide it never trips on its own
+    assert g.trip("e", 1.0) is True         # new incident
+    assert g.is_held("e")
+    d = g.evaluate("e", 0, 10.0, 10.1, day=2)
+    assert d.action is GuardAction.HOLD and d.reason == "tripped by detector"
+    assert g.trip("e", 3.0) is None         # already held: no second incident
+
+
+def test_tripped_entity_is_promoted_through_the_ledger_like_any_other_hold():
+    g = _ledger_guard(bound=50.0)
+    g.trip("e", 1.0)
+    for day in range(2, 40):
+        for b in range(N_BUCKETS):
+            g.evaluate("e", b, 10.0, 12.0, day)
+    plan = g.try_promote("e", 40, 0.0)
+    assert plan is not None and plan.evidence == ("stable_shadow",)
+
+
+def test_trip_without_a_snapshot_is_ignored():
+    g = DriftGuard(GuardConfig(promotion_mode="ledger"))
+    assert g.trip("nobody", 1.0) is None

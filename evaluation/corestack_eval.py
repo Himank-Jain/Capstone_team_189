@@ -19,9 +19,10 @@ from evaluation.data import Entity, _bucket_scales, _residual_scale
 from evaluation.runner import tune_and_cohorts, eligible
 from evaluation.scenarios import BOUNDS_DAY, END_DAY, EVENT_DAY, Scenario
 from evaluation.simulate import run
+from phase0.guard import GuardConfig
 
 ROOT = Path(__file__).resolve().parents[1]
-STRATS = ["adaptive", "frozen", "longwin", "clip", "cusum", "rollback", "guard_default", "guard_naive", "guard_cal"]
+STRATS = ["adaptive", "frozen", "longwin", "clip", "cusum", "rollback", "guard_default", "guard_naive", "guard_cal", "guard_cgov"]
 
 
 def build():
@@ -55,7 +56,9 @@ def one(args):
     scs["poisoned"] = Scenario("poisoned_cal", "linear", 3.0, start=35, ramp_days=25, seed=idx)
     out = {"id": e.entity_id, "resource": e.source, "group": e.group, "heldout": e.source not in set(tuned["tuning_sources"]), "res": {}}
     for s in STRATS:
-        k = dict(kw, cohort_stats=cs.get(e.group)) if s == "guard_cal" else kw
+        k = dict(kw, cohort_stats=cs.get(e.group)) if s in ("guard_cal", "guard_cgov") else kw
+        if s == "guard_cgov":
+            k = dict(k, guard_config=GuardConfig(promotion_mode="ledger"))
         out["res"][s] = {n: _s(run(e, sc, s, **k)) for n, sc in scs.items()}
     out["res"]["guard_unvalidated"] = {n: _s(run(e, scs[n], "guard_cal", validate_calibration=False, cohort_stats=cs.get(e.group), **kw))
                                        for n in ("control", "poisoned")}
