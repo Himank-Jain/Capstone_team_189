@@ -5,8 +5,15 @@ and against simulated runs, and says what it does **not** give.
 
 ## Statement (ledger mode, no operator approval)
 
-Notation: `U` is the ledger unit (the entity's cumulative bound, in scale units); `a0 = allow_base`, `ac = allow_cohort`,
+Notation: `U` is the ledger unit (the entity's validated cumulative bound, in scale units); `a0 = allow_base`, `ac = allow_cohort`,
 `ae = allow_corroborated` (defaults 1, 1, 3); `S = shadow_min_days` (default 14).
+
+**The unit is the validated bound (claims 2 and 3).** `U` is the same number that triggers the hold (claim 1). If the calibration
+fails validation, the entity's bound is replaced by the default bound (the median of the own-entity bounds) and `U` is replaced by
+the same number, so the trigger and the release unit never come apart. The ledger entry of every step records `unit`,
+`unit_source` (`validated_bound`, `fallback_bound`, `unvalidated_bound`, `external_unit` or `fixed`), `bound_source`, the
+`validation` outcome, `allow_multiple`, `allowance`, `need`, `step` and whether the step was `capped`
+(`DriftGuard.set_bound_provenance`, tested in `tests/unit/phase0/test_drift_guard_ledger.py`).
 
 1. **Step bound.** One promotion step moves the live baseline's coherent shift by at most
    `A = (a0 + ac·[cohort evidence] + ae·[change-event evidence]) · U`. With no evidence `A = a0·U`.
@@ -31,6 +38,18 @@ Notation: `U` is the ledger unit (the entity's cumulative bound, in scale units)
 
 Unit tests: `tests/unit/phase0/test_drift_guard_ledger.py` (allowance with and without evidence, cap not lifted by cohort
 agreement alone, operator lifts the cap and is recorded).
+
+## The allowance as a tunable parameter
+
+`allow_base` (a0) is the multiple of the validated bound that one step may move the baseline by, and is the only promotion parameter
+the operator sets. Development sweep (`ablation_curve_ev0_cs_dev.json`, `allowance_curve_ev0_cs_dev.png`, `ABLATION.md`): a0 between
+0.5 and 1 leaves the 3σ-stealth absorption at the level of hold only (11-12%; the absorption that the bound alone allows), while
+resolving about half of the flagged legitimate growth (48-50%); at a0 = 2 the absorption triples (35%) and from a0 = 4 it equals
+adopting the shadow in full (78%). Inside the proposed range a fast 4σ attack is still absorbed for 42-52% of entities (11% for
+hold only), so the allowance does not add protection against fast large attacks beyond what the hold gives. The pre-declared
+operating-range rule (at most 5% of 3σ attacks absorbed and at least 50% of flagged growth resolved) is met by no setting, so the
+range is proposed post hoc and is a default, not a proven optimum. On the 30-day fresh set the curve is flat because no promotion
+completes inside the horizon; the long-horizon runs are in `ABLATION.md` and are on synthetic or day-resampled order.
 
 ## What this does not give
 
