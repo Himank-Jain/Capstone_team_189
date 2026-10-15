@@ -250,10 +250,10 @@ def run(
             if day < BOUNDS_DAY:
                 gov_ref.append(xbar)
             else:
-                if gov_mu is None:  # robust reference from the validated calibration window
-                    gov_mu = float(np.median(gov_ref))
+                if gov_mu is None:  # reference from the calibration window (same estimators as the CUSUM comparator)
                     ref_ = np.asarray(gov_ref)
-                    gov_sd = max(1.4826 * float(np.median(np.abs(ref_ - gov_mu))), float(np.std(ref_)), 0.05)
+                    gov_mu = float(np.mean(ref_))
+                    gov_sd = max(float(np.std(ref_)), 0.05)
                 zd = (xbar - gov_mu) / gov_sd
                 gs_pos = max(0.0, gs_pos + zd - CUSUM_K)
                 gs_neg = max(0.0, gs_neg - zd - CUSUM_K)
