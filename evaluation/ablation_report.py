@@ -33,8 +33,8 @@ import numpy as np
 
 DATASET, SET = sys.argv[1], sys.argv[2]
 FAMILY = "cs" if DATASET.startswith("cs") else "nab"
-EV = 60
-LONG_RAMP = 20
+EV = 60 if FAMILY == "cs" else 90
+LONG_RAMP = 20 if FAMILY == "cs" else 60
 WIN = LONG_RAMP + 30
 OUT = Path(__file__).resolve().parents[1] / "docs/patent_evaluation"
 D = json.load(open(OUT / f"ablation_{SET}_{DATASET}.json"))
