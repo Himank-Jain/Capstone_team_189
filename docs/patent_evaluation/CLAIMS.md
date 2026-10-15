@@ -40,13 +40,15 @@ validation outcome each step was sized (claim 2). A failed validation therefore 
   at least 70 days; the largest rise in stored displacement in any 14-day window after the first alert was 0.50σ (median 0.45σ). It
   bounds promotion only. An end-to-end bound on displacement was tested and **does not hold** (`GUARANTEE.md`).
 * **Greedy attacker (Kloft and Laskov strategy, implemented by us).** Held in 100% of cases, stored displacement 0.4σ at the end,
-  reached its 6σ goal in 0 of 49 on fresh2 (adaptive baseline: 49 of 49). Development data had shown a leak (56%) through a hold that
-  withholds only the breaching reading; freezing at the first breach reduced it to 12% there and 0% on fresh2.
+  reached its 6σ goal in 0 of 49 on fresh2 (adaptive baseline: 49 of 49) **within that set's 30-day horizon**. Development data had shown a leak (56%) through a hold that
+  withholds only the breaching reading; freezing at the first breach reduced it to 12% there and 0% on fresh2. **Over a long horizon the promotion path lets this attacker through:**
+  65% reach the goal on day-resampled CoreStack (140 days after the event) and 99% on NAB (130 days), against 0% and 3% for hold-only (`ABLATION.md`, long-horizon results).
 * **Cost, stated in the same breath.** Legitimate growth that is flagged stays unresolved after 30 days in 99% of cases (tuned
   dual trigger: 13%), because steps are about 0.5σ per 14 days; real shifts 73% unresolved against 67% (intervals overlap). A 1σ
   stealth attack is detected in 14% (tuned: 78%) and a business-hours 4σ attacker in 1% (tuned: 79%).
 * **Not claimed.** That attacks are never absorbed: a persistent attacker level that stays within the allowance over a long time
-  still moves the baseline, only slowly. Detection better than a CUSUM comparator at equal false alerts on every attack type: it is
+  still moves the baseline, only slowly. This is now measured on two long-horizon sets: a 3σ attack is absorbed in 98-100% of series by 100 days after the
+  event at the default allowance (delayed by 1 day on NAB and 7 days on CoreStack against adopting in full; hold-only: 48% and 8%). Detection better than a CUSUM comparator at equal false alerts on every attack type: it is
   better at 2σ to 4σ and worse at 1σ and for business-hours attacks. Rollback absorbs less of an attack than the proposal and
   resolves less growth: a different point, not above it.
 
@@ -185,11 +187,17 @@ Dependent features carry the prefix D so they cannot be confused with the three 
 10. **Claim 2 adds nothing measurable on fresh2, and claim 3's link adds nothing over a fixed allowance of the same size on either set.** On dev the
     design beats the better single part on one column (+18 points) and the cap is essential; on fresh2 the design equals hold-only and sits 53 points
     below claim-2-alone on operability. Validation of the calibration adds about 0 for the self-calibrated bound (+2 [0, 5] on dev). The horizon
-    (30 to 40 days after the event, one promotion at most) limits what these sets can show about promotion; the only long-horizon set is NAB
-    (synthetic order, dependent entities).
+    (30 to 40 days after the event, one promotion at most) limits what these sets can show about promotion; the long-horizon sets (NAB, synthetic order and dependent
+    entities; CoreStack with day-resampled days after day 60) show the dial moving, and see item 12.
 11. **At the proposed allowance a fast 4σ attack is still absorbed** (1.5σ or more stored at the end) for 42% to 52% of dev entities (hold only: 11%); the
     allowance does not protect against fast large attacks beyond what the hold does.
-12. Software and mathematical-method objections: the effect is integrity of stored state, with a stated bound on promotion and a
+12. **Over a long horizon the capped promotion path admits a sustained attacker.** Long-horizon sweeps (`ABLATION.md`; synthetic or day-resampled order, exploratory): at the default allowance a 3σ stealth attack is
+    absorbed in 14% (NAB) and 7% (CoreStack) of series 30 days after the event, and in 98% and 100% at 100 days; a greedy attacker reaches its goal in 99% and 65%, against 3% and 0% for hold-only; the
+    pre-declared range rule (at most 5% absorbed and at least 50% of flagged growth resolved) is met by no setting at any horizon. A persistent legitimate shift and a persistent attack at the same level are the same input to a
+    stability-gated promotion, so the allowance sets the **speed** (and the time to notice and revert from the ledger), not the outcome. The security value of claim 2 over a long horizon is time and an audit trail, not
+    exclusion; the hold of claim 1 is what keeps an attacker out until a promotion occurs. A possible remedy, **not tested**: a cumulative ceiling on displacement from the trusted snapshot beyond which promotion needs
+    operator approval (operator approval lifting the cap is already a dependent claim).
+13. Software and mathematical-method objections: the effect is integrity of stored state, with a stated bound on promotion and a
     recorded, reversible record, not a statistical result as such.
 
 ## 7. Status of the five further steps requested
@@ -199,7 +207,7 @@ Dependent features carry the prefix D so they cannot be confused with the three 
 | 1. Test on attacks the team did not write | **Partly done.** Permission to download was given. No public dataset of baseline poisoning exists or is reachable (Kaggle, Mendeley, Zenodo and similar hosts are blocked by the session's network policy). Third-party **incident** data (SMD, 8 machines, 128 MB) was run: no gain and no loss in detection, 31% of series held at the end (`THIRD_PARTY.md`). Two attacks from the literature were implemented by us (`lit_attacks.py`). |
 | 2. Ablate each component against the full design, including the interaction | **Done on dev and fresh2** (`ABLATION.md`): hold-only, shadow-only, unvalidated, unlinked and no-cap variants and a pre-declared interaction test. **The combination is not super-additive on any column**; the design equals hold-only on fresh2. |
 | 2b. Make the claims interact (claim 2 allowance from the validated bound, ledger records validation; claim 3 combination) | **Done in the claims and code** (section 2a, 3; ledger fields; unit tests). The measured value of the link over a fixed allowance is 0. |
-| 2c. Promotion trade-off as a curve; name an operating range | **Done on dev** (`allowance_curve_ev0_cs_dev.png`, `ABLATION.md`): range 0.5 to 1 validated bounds proposed post hoc (the pre-declared rule is met by no setting). Fresh2 and NAB checks: see `ABLATION.md`. |
+| 2c. Promotion trade-off as a curve; name an operating range | **Done, with a negative result.** Dev curve (`allowance_curve_ev0_cs_dev.png`): range 0.5 to 1 validated bounds proposed post hoc (the pre-declared rule is met by no setting). **fresh2: flat** (30-day horizon, no step completes), so the range is not confirmed on fresh data. **Long horizons (NAB, day-resampled CoreStack; exploratory): the allowance sets the speed at which a sustained attack is adopted, not whether; no setting satisfies the rule at any horizon** (`ABLATION.md`, item 12 above). |
 | 3. Formal guarantee | **Done for promotion steps** (`GUARANTEE.md`), including the self-calibrated design. An end-to-end bound was tested and fails; not claimed. |
 | 4. False alerts at 5% on a larger fresh clean set; explain m | **Done with caveats.** A label-free bound replaces the tuned `m`; fresh2 has 311 clean series from 148 resources and 0% (0-1) false alerts, but the bound is the fixed floor for 98% of them and legitimate growth pays for it. |
 | 5. Formal prior-art search; read arXiv 2609.04388 | **Paper read** (`PRIOR_ART.md` section 6). Desk search with a search log and differs-from rows; a classification-based search by a professional is still needed. |
