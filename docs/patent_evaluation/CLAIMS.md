@@ -21,9 +21,11 @@ recorded in a ledger with a restore point.
 * **Effect 1 (claim 1): the stored baseline is protected from a poisoned start and from slow drift.** Fresh2 (311 clean series,
   148 resources), self-calibrated design: poisoned calibration caught in 85% (80-89), the same as the tuned dual trigger and against
   2% for the adaptive baseline; 2σ, 3σ and fast 4σ attacks detected in 85% (80-89) with 0% (0-1) false alerts, against 79% at 9%
-  false alerts for the tuned dual trigger. The 15% ceiling is 48 bucket series on which no strategy detects any injected attack
-  (cause not diagnosed); on the other 263 series detection is 100%. Without Public IP series: 69% (59-77) at 1% false alerts against
-  58% at 18%. Development data: 98% at 3% false alerts. Validation ablation (earlier run): 21 of 21 held-out NAB entities with
+  false alerts for the tuned dual trigger. **Plain detection is not the differentiator on fresh2: the unguarded adaptive baseline
+  also flags 81%** (62% without Public IP, against 69% here), because most of these series have a tiny robust scale. What the guard
+  adds is the stored state: poisoned calibration 85% against 2%, and the 3σ attack absorbed into the baseline in 0% against 15%.
+  The 15% ceiling is 48 bucket series on which no strategy detects any injected attack (cause not diagnosed); on the other 263
+  series detection is 100%. Without Public IP series: 69% (59-77) at 1% false alerts against 58% at 18%. Development data: 98% at 3% false alerts. Validation ablation (earlier run): 21 of 21 held-out NAB entities with
   validated bounds against 1 of 21 without; 39 of 39 against 28 of 39 on CoreStack.
 * **Effect 2 (claim 2): the held baseline is not discarded, and every step is recorded.** The shadow baseline is promoted in
   capped steps with a ledger entry and a restore point per step (unit-tested, no field data). Absorbed attack at the end of the

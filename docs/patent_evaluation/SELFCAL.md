@@ -80,6 +80,7 @@ design = this file's rule, no threshold tuned on any data. Report files: `final_
 
 | Design | False alerts | 1σ | 2σ | 3σ | fast 4σ | business-hours 4σ | Poisoned calibration |
 |---|---|---|---|---|---|---|---|
+| Adaptive baseline (no guard) | 0% (0-0) | 81% (75-86) | 81% (75-86) | 81% (76-86) | 84% (79-88) | 75% (68-81) | 2% (1-4) |
 | Tuned bound + hold + ledger | 0% (0-0) | 0% | 0% | 0% | 0% | 0% | 85% (80-89) |
 | Tuned dual trigger + ledger | 9% (4-14) | 78% (72-83) | 79% (74-84) | 79% (74-84) | 80% (75-85) | 79% (73-84) | 85% (80-89) |
 | Clipped CUSUM (comparator) | 9% (4-14) | 78% (72-83) | 79% (74-84) | 79% (74-84) | 80% (75-85) | 79% (73-84) | 79% (74-84) |
@@ -87,7 +88,14 @@ design = this file's rule, no threshold tuned on any data. Report files: `final_
 | Self-calibrated + freeze on hold (`Bf`) | 0% (0-1) | 14% (8-21) | 85% (79-89) | 85% (79-89) | 85% (80-89) | 1% (0-3) | 85% (80-89) |
 
 Without Public IP series (154 clean series, 93 resources): tuned dual trigger false alerts **18% (9-27)**, 2σ and 3σ detection 58%;
-self-calibrated **1% (0-2)**, 2σ and 3σ detection **69% (59-77)**, 1σ 28% (17-39), business-hours 3% (1-5).
+self-calibrated **1% (0-2)**, 2σ and 3σ detection **69% (59-77)**, 1σ 28% (17-39), business-hours 3% (1-5); adaptive baseline
+detection 62% at 0% false alerts.
+
+**Plain detection does not separate the self-calibrated design from the unguarded adaptive baseline on this data** (85% against
+81%; 69% against 62% without Public IP; the intervals overlap). On fresh2 most series have a tiny robust scale, so a ramp of
+2σ or more trips an ordinary z-flag on the injected readings. What the guard adds is elsewhere in the tables: a poisoned
+calibration is caught in 85% instead of 2%, the attack is absorbed into the stored baseline in 0% instead of 15% of 3σ runs, and
+the greedy attacker reaches its goal in 0 of 49 instead of 49 of 49.
 
 Resolution and absorption (fresh2):
 
@@ -114,7 +122,7 @@ Literature attacks on fresh2 (implemented by us; not third-party data):
 | Criterion (`PREREG_FRESH2.md`, section 5) | Result | Counts against? |
 |---|---|---|
 | False alerts above 10% or interval excluding 5% from above | 0% (0-1) | no (conservative: far below target) |
-| 2σ and 3σ detection no better than the tuned design at the false-alert rate each reaches | 85% against 79% at 0% against 9% false alerts; 69% against 58% at 1% against 18% without Public IP | no |
+| 2σ and 3σ detection no better than the tuned design at the false-alert rate each reaches | 85% against 79% at 0% against 9% false alerts; 69% against 58% at 1% against 18% without Public IP (the unguarded adaptive baseline detects 81% and 62%) | no |
 | Real shifts and legitimate growth left unresolved more often than the tuned design | growth 99% against 13%; real shifts 73% against 67% (intervals overlap) | **yes, for legitimate growth** |
 | Greedy attacker reaching its goal in more than 25% | 0% | no |
 
