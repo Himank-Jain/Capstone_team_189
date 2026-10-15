@@ -79,6 +79,7 @@ class RunResult:
     flag_days: Set[int] = field(default_factory=set)
     collapsed_days: Set[int] = field(default_factory=set)
     held_end_days: Set[int] = field(default_factory=set)
+    cusum_days: Set[int] = field(default_factory=set)
     first_alert_drift: Optional[float] = None  # stored drift (sigma) when the first post-event alert fired
     first_alert_day: Optional[int] = None
     drift_daily: List[float] = field(default_factory=list)  # stored drift (sigma) at the end of each day
@@ -130,6 +131,7 @@ def run(
     operator_approves: bool = False,
     default_bounds: Optional[Tuple[float, float]] = None,
     margin: float = 1.25,
+    cusum_h: float = CUSUM_H,
     guard_config: Optional[GuardConfig] = None,
     corroborated: Optional[bool] = None,
 ) -> RunResult:
@@ -225,7 +227,8 @@ def run(
                 zd = (xbar - mu0) / sd0
                 s_pos = max(0.0, s_pos + zd - CUSUM_K)
                 s_neg = max(0.0, s_neg - zd - CUSUM_K)
-                if s_pos > CUSUM_H or s_neg > CUSUM_H:
+                if s_pos > cusum_h or s_neg > cusum_h:
+                    res.cusum_days.add(day)
                     res.alert_days.add(day)
                     s_pos = s_neg = 0.0
 

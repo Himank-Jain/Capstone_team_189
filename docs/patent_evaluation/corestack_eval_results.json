@@ -1,0 +1,432 @@
+{
+ "margin": 6.297910968985057,
+ "tuning_resources": 16,
+ "heldout": {
+  "series": 47,
+  "resources": 16,
+  "quiet_series": 21,
+  "quiet_resources": 11,
+  "strategies": {
+   "adaptive": {
+    "control_alert": 4,
+    "control_incident": 0,
+    "detect_t2.0": [
+     44,
+     63
+    ],
+    "detect_t3.0": [
+     49,
+     63
+    ],
+    "detect_t4.0": [
+     53,
+     63
+    ],
+    "poisoned_detect": [
+     0,
+     21
+    ]
+   },
+   "frozen": {
+    "control_alert": 9,
+    "control_incident": 0,
+    "detect_t2.0": [
+     29,
+     63
+    ],
+    "detect_t3.0": [
+     30,
+     63
+    ],
+    "detect_t4.0": [
+     30,
+     63
+    ],
+    "poisoned_detect": [
+     10,
+     21
+    ]
+   },
+   "longwin": {
+    "control_alert": 3,
+    "control_incident": 0,
+    "detect_t2.0": [
+     37,
+     63
+    ],
+    "detect_t3.0": [
+     45,
+     63
+    ],
+    "detect_t4.0": [
+     53,
+     63
+    ],
+    "poisoned_detect": [
+     0,
+     21
+    ]
+   },
+   "clip": {
+    "control_alert": 10,
+    "control_incident": 0,
+    "detect_t2.0": [
+     52,
+     63
+    ],
+    "detect_t3.0": [
+     58,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     3,
+     21
+    ]
+   },
+   "cusum": {
+    "control_alert": 15,
+    "control_incident": 0,
+    "detect_t2.0": [
+     59,
+     63
+    ],
+    "detect_t3.0": [
+     60,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     18,
+     21
+    ]
+   },
+   "rollback": {
+    "control_alert": 7,
+    "control_incident": 0,
+    "detect_t2.0": [
+     44,
+     63
+    ],
+    "detect_t3.0": [
+     48,
+     63
+    ],
+    "detect_t4.0": [
+     53,
+     63
+    ],
+    "poisoned_detect": [
+     11,
+     21
+    ]
+   },
+   "guard_default": {
+    "control_alert": 16,
+    "control_incident": 13,
+    "detect_t2.0": [
+     62,
+     63
+    ],
+    "detect_t3.0": [
+     62,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     21,
+     21
+    ]
+   },
+   "guard_naive": {
+    "control_alert": 7,
+    "control_incident": 5,
+    "detect_t2.0": [
+     52,
+     63
+    ],
+    "detect_t3.0": [
+     62,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     16,
+     21
+    ]
+   },
+   "guard_cal": {
+    "control_alert": 12,
+    "control_incident": 9,
+    "detect_t2.0": [
+     57,
+     63
+    ],
+    "detect_t3.0": [
+     62,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     21,
+     21
+    ]
+   }
+  },
+  "calibration_validation": {
+   "n": 21,
+   "validated_detected": 21,
+   "unvalidated_detected": 16,
+   "validated_rejected": 47,
+   "validation_results_control": {
+    "ok": 41,
+    "trend in calibration period": 6
+   }
+  },
+  "bounds": {
+   "sources": {
+    "entity": 37,
+    "default": 6,
+    "cohort": 4
+   },
+   "cum_quantiles": [
+    0.5,
+    0.5,
+    0.5,
+    0.54,
+    1.28
+   ]
+  }
+ },
+ "all": {
+  "series": 101,
+  "resources": 32,
+  "quiet_series": 39,
+  "quiet_resources": 20,
+  "strategies": {
+   "adaptive": {
+    "control_alert": 19,
+    "control_incident": 0,
+    "detect_t2.0": [
+     76,
+     117
+    ],
+    "detect_t3.0": [
+     85,
+     117
+    ],
+    "detect_t4.0": [
+     94,
+     117
+    ],
+    "poisoned_detect": [
+     0,
+     39
+    ]
+   },
+   "frozen": {
+    "control_alert": 28,
+    "control_incident": 0,
+    "detect_t2.0": [
+     46,
+     117
+    ],
+    "detect_t3.0": [
+     49,
+     117
+    ],
+    "detect_t4.0": [
+     50,
+     117
+    ],
+    "poisoned_detect": [
+     17,
+     39
+    ]
+   },
+   "longwin": {
+    "control_alert": 17,
+    "control_incident": 0,
+    "detect_t2.0": [
+     69,
+     117
+    ],
+    "detect_t3.0": [
+     81,
+     117
+    ],
+    "detect_t4.0": [
+     95,
+     117
+    ],
+    "poisoned_detect": [
+     0,
+     39
+    ]
+   },
+   "clip": {
+    "control_alert": 35,
+    "control_incident": 0,
+    "detect_t2.0": [
+     89,
+     117
+    ],
+    "detect_t3.0": [
+     101,
+     117
+    ],
+    "detect_t4.0": [
+     109,
+     117
+    ],
+    "poisoned_detect": [
+     5,
+     39
+    ]
+   },
+   "cusum": {
+    "control_alert": 39,
+    "control_incident": 0,
+    "detect_t2.0": [
+     97,
+     117
+    ],
+    "detect_t3.0": [
+     111,
+     117
+    ],
+    "detect_t4.0": [
+     115,
+     117
+    ],
+    "poisoned_detect": [
+     32,
+     39
+    ]
+   },
+   "rollback": {
+    "control_alert": 24,
+    "control_incident": 0,
+    "detect_t2.0": [
+     76,
+     117
+    ],
+    "detect_t3.0": [
+     84,
+     117
+    ],
+    "detect_t4.0": [
+     94,
+     117
+    ],
+    "poisoned_detect": [
+     21,
+     39
+    ]
+   },
+   "guard_default": {
+    "control_alert": 44,
+    "control_incident": 34,
+    "detect_t2.0": [
+     115,
+     117
+    ],
+    "detect_t3.0": [
+     115,
+     117
+    ],
+    "detect_t4.0": [
+     117,
+     117
+    ],
+    "poisoned_detect": [
+     39,
+     39
+    ]
+   },
+   "guard_naive": {
+    "control_alert": 25,
+    "control_incident": 11,
+    "detect_t2.0": [
+     93,
+     117
+    ],
+    "detect_t3.0": [
+     103,
+     117
+    ],
+    "detect_t4.0": [
+     112,
+     117
+    ],
+    "poisoned_detect": [
+     28,
+     39
+    ]
+   },
+   "guard_cal": {
+    "control_alert": 34,
+    "control_incident": 22,
+    "detect_t2.0": [
+     104,
+     117
+    ],
+    "detect_t3.0": [
+     109,
+     117
+    ],
+    "detect_t4.0": [
+     116,
+     117
+    ],
+    "poisoned_detect": [
+     39,
+     39
+    ]
+   }
+  },
+  "calibration_validation": {
+   "n": 39,
+   "validated_detected": 39,
+   "unvalidated_detected": 28,
+   "validated_rejected": 98,
+   "validation_results_control": {
+    "ok": 83,
+    "trend in calibration period": 18
+   }
+  },
+  "bounds": {
+   "sources": {
+    "entity": 76,
+    "default": 18,
+    "cohort": 7
+   },
+   "cum_quantiles": [
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    1.45
+   ]
+  }
+ },
+ "fleet_bound": [
+  0.5,
+  0.5
+ ]
+}

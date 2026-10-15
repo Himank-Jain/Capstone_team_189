@@ -1,0 +1,644 @@
+{
+ "heldout": {
+  "n": 72,
+  "n_quiet": 29,
+  "strategies": {
+   "adaptive": {
+    "control_alert": 25,
+    "attack": {
+     "detected": 14,
+     "n": 29,
+     "silent_displacement_median": 0.49254055928406143,
+     "silent_displacement_p90": 1.4189692729414223,
+     "silent_displacement_max": 4.166234261537193,
+     "missed_final_drift_median": 4.045582218815381
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 29,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.9701349338717242
+    },
+    "stealth2.0": {
+     "detected": 1,
+     "n": 29,
+     "silent_displacement_median": 0.48306874634488983,
+     "silent_displacement_p90": 0.48306874634488983,
+     "silent_displacement_max": 0.48306874634488983,
+     "missed_final_drift_median": 1.924914967931254
+    },
+    "benign": {
+     "flagged": 12,
+     "n": 29,
+     "alert_days_median": 1.5,
+     "span_days_median": 1.5,
+     "unresolved_at_end": 0
+    },
+    "benign_held_days_median": 0.0
+   },
+   "frozen": {
+    "control_alert": 14,
+    "attack": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 1,
+     "n": 29,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": 0.0
+    },
+    "stealth2.0": {
+     "detected": 28,
+     "n": 29,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": 0.0
+    },
+    "benign": {
+     "flagged": 18,
+     "n": 29,
+     "alert_days_median": 68.5,
+     "span_days_median": 121.5,
+     "unresolved_at_end": 14
+    },
+    "benign_held_days_median": 0.0
+   },
+   "longwin": {
+    "control_alert": 5,
+    "attack": {
+     "detected": 21,
+     "n": 29,
+     "silent_displacement_median": 0.13016019507890625,
+     "silent_displacement_p90": 0.353809582080327,
+     "silent_displacement_max": 0.4238089451071246,
+     "missed_final_drift_median": 2.768553915534603
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 29,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.7046926040030684
+    },
+    "stealth2.0": {
+     "detected": 0,
+     "n": 29,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 1.5725132158455448
+    },
+    "benign": {
+     "flagged": 14,
+     "n": 29,
+     "alert_days_median": 2.5,
+     "span_days_median": 3.0,
+     "unresolved_at_end": 0
+    },
+    "benign_held_days_median": 0.0
+   },
+   "clip": {
+    "control_alert": 41,
+    "attack": {
+     "detected": 26,
+     "n": 29,
+     "silent_displacement_median": 0.4362815895126148,
+     "silent_displacement_p90": 1.3590432122724552,
+     "silent_displacement_max": 2.2676574929572086,
+     "missed_final_drift_median": 3.7530856768139373
+    },
+    "stealth1.0": {
+     "detected": 3,
+     "n": 29,
+     "silent_displacement_median": 0.34010444349831837,
+     "silent_displacement_p90": 0.4989486832519816,
+     "silent_displacement_max": 0.5386597431903974,
+     "missed_final_drift_median": 0.9732310465931493
+    },
+    "stealth2.0": {
+     "detected": 11,
+     "n": 29,
+     "silent_displacement_median": 0.8449928597917777,
+     "silent_displacement_p90": 1.4499464729065243,
+     "silent_displacement_max": 1.8117835511554705,
+     "missed_final_drift_median": 1.9371207031052788
+    },
+    "benign": {
+     "flagged": 16,
+     "n": 29,
+     "alert_days_median": 3.0,
+     "span_days_median": 5.5,
+     "unresolved_at_end": 1
+    },
+    "benign_held_days_median": 0.0
+   },
+   "cusum": {
+    "control_alert": 25,
+    "attack": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.10599955414609594,
+     "silent_displacement_p90": 0.4302528070452438,
+     "silent_displacement_max": 0.5889784765733812,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.23179590257695265,
+     "silent_displacement_p90": 0.5645175846037674,
+     "silent_displacement_max": 1.0415168284163128,
+     "missed_final_drift_median": null
+    },
+    "stealth2.0": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.18876388282566364,
+     "silent_displacement_p90": 0.471205864844716,
+     "silent_displacement_max": 0.8397282516257446,
+     "missed_final_drift_median": null
+    },
+    "benign": {
+     "flagged": 26,
+     "n": 29,
+     "alert_days_median": 26.0,
+     "span_days_median": 120.5,
+     "unresolved_at_end": 19
+    },
+    "benign_held_days_median": 0.0
+   },
+   "rollback": {
+    "control_alert": 31,
+    "attack": {
+     "detected": 14,
+     "n": 29,
+     "silent_displacement_median": 0.052206392907505915,
+     "silent_displacement_p90": 0.36555311241245675,
+     "silent_displacement_max": 2.0908563783564063,
+     "missed_final_drift_median": 4.045582218815381
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 29,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.9701349338717242
+    },
+    "stealth2.0": {
+     "detected": 1,
+     "n": 29,
+     "silent_displacement_median": 0.07636602731975008,
+     "silent_displacement_p90": 0.07636602731975008,
+     "silent_displacement_max": 0.07636602731975008,
+     "missed_final_drift_median": 1.924914967931254
+    },
+    "benign": {
+     "flagged": 12,
+     "n": 29,
+     "alert_days_median": 19.5,
+     "span_days_median": 29.0,
+     "unresolved_at_end": 4
+    },
+    "benign_held_days_median": 0.0
+   },
+   "guard_fleet": {
+    "control_alert": 25,
+    "attack": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.7892390335769364,
+     "silent_displacement_p90": 0.856837159711187,
+     "silent_displacement_max": 0.8606155686227894,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 28,
+     "n": 29,
+     "silent_displacement_median": 0.8472138199486603,
+     "silent_displacement_p90": 0.8575345602999228,
+     "silent_displacement_max": 0.8604566079813138,
+     "missed_final_drift_median": 0.6597533826502465
+    },
+    "stealth2.0": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.8481682534570096,
+     "silent_displacement_p90": 0.8594623628443159,
+     "silent_displacement_max": 0.8608344535753525,
+     "missed_final_drift_median": null
+    },
+    "benign": {
+     "flagged": 22,
+     "n": 29,
+     "alert_days_median": 1.5,
+     "span_days_median": 1.5,
+     "unresolved_at_end": 19
+    },
+    "benign_held_days_median": 99.0
+   },
+   "guard_cal_full": {
+    "control_alert": 26,
+    "attack": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.6297567732411085,
+     "silent_displacement_p90": 1.3122756321961262,
+     "silent_displacement_max": 2.1698016679161016,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 17,
+     "n": 29,
+     "silent_displacement_median": 0.6451828722366202,
+     "silent_displacement_p90": 1.0143631680348644,
+     "silent_displacement_max": 1.0753432845573943,
+     "missed_final_drift_median": 0.8982375542719341
+    },
+    "stealth2.0": {
+     "detected": 27,
+     "n": 29,
+     "silent_displacement_median": 0.7926327201783008,
+     "silent_displacement_p90": 1.3425110769957151,
+     "silent_displacement_max": 2.0942996104575675,
+     "missed_final_drift_median": 1.818006658276626
+    },
+    "benign": {
+     "flagged": 21,
+     "n": 29,
+     "alert_days_median": 2.0,
+     "span_days_median": 2.0,
+     "unresolved_at_end": 18
+    },
+    "benign_held_days_median": 101.0
+   },
+   "guard_cal_ledger": {
+    "control_alert": 26,
+    "attack": {
+     "detected": 29,
+     "n": 29,
+     "silent_displacement_median": 0.6297567732411085,
+     "silent_displacement_p90": 1.3122756321961262,
+     "silent_displacement_max": 2.1698016679161016,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 17,
+     "n": 29,
+     "silent_displacement_median": 0.6451828722366202,
+     "silent_displacement_p90": 1.0143631680348644,
+     "silent_displacement_max": 1.0753432845573943,
+     "missed_final_drift_median": 0.8982375542719341
+    },
+    "stealth2.0": {
+     "detected": 27,
+     "n": 29,
+     "silent_displacement_median": 0.7926327201783008,
+     "silent_displacement_p90": 1.3425110769957151,
+     "silent_displacement_max": 2.0942996104575675,
+     "missed_final_drift_median": 1.818006658276626
+    },
+    "benign": {
+     "flagged": 21,
+     "n": 29,
+     "alert_days_median": 2.0,
+     "span_days_median": 13.0,
+     "unresolved_at_end": 2
+    },
+    "benign_held_days_median": 18.0
+   }
+  }
+ },
+ "all": {
+  "n": 151,
+  "n_quiet": 53,
+  "strategies": {
+   "adaptive": {
+    "control_alert": 33,
+    "attack": {
+     "detected": 30,
+     "n": 53,
+     "silent_displacement_median": 0.3911102786722245,
+     "silent_displacement_p90": 1.227969923890441,
+     "silent_displacement_max": 4.166234261537193,
+     "missed_final_drift_median": 4.045582218815381
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 53,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.9541757941915897
+    },
+    "stealth2.0": {
+     "detected": 2,
+     "n": 53,
+     "silent_displacement_median": 0.6857915622779143,
+     "silent_displacement_p90": 0.8479698150243338,
+     "silent_displacement_max": 0.8885143782109387,
+     "missed_final_drift_median": 1.911724218726701
+    },
+    "benign": {
+     "flagged": 26,
+     "n": 53,
+     "alert_days_median": 2.0,
+     "span_days_median": 2.0,
+     "unresolved_at_end": 0
+    },
+    "benign_held_days_median": 0.0
+   },
+   "frozen": {
+    "control_alert": 23,
+    "attack": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 2,
+     "n": 53,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": 0.0
+    },
+    "stealth2.0": {
+     "detected": 50,
+     "n": 53,
+     "silent_displacement_median": 0.0,
+     "silent_displacement_p90": 0.0,
+     "silent_displacement_max": 0.0,
+     "missed_final_drift_median": 0.0
+    },
+    "benign": {
+     "flagged": 35,
+     "n": 53,
+     "alert_days_median": 66.0,
+     "span_days_median": 122.0,
+     "unresolved_at_end": 30
+    },
+    "benign_held_days_median": 0.0
+   },
+   "longwin": {
+    "control_alert": 7,
+    "attack": {
+     "detected": 42,
+     "n": 53,
+     "silent_displacement_median": 0.1290643049987017,
+     "silent_displacement_p90": 0.3381328269081346,
+     "silent_displacement_max": 0.4238089451071246,
+     "missed_final_drift_median": 2.7844983427998766
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 53,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.6575139434186789
+    },
+    "stealth2.0": {
+     "detected": 5,
+     "n": 53,
+     "silent_displacement_median": 0.3238753655487108,
+     "silent_displacement_p90": 0.38191459452459237,
+     "silent_displacement_max": 0.38285646538078283,
+     "missed_final_drift_median": 1.4549230078978017
+    },
+    "benign": {
+     "flagged": 28,
+     "n": 53,
+     "alert_days_median": 2.0,
+     "span_days_median": 3.5,
+     "unresolved_at_end": 0
+    },
+    "benign_held_days_median": 0.0
+   },
+   "clip": {
+    "control_alert": 83,
+    "attack": {
+     "detected": 48,
+     "n": 53,
+     "silent_displacement_median": 0.3606612618002849,
+     "silent_displacement_p90": 1.3296841730833642,
+     "silent_displacement_max": 2.8919717003184804,
+     "missed_final_drift_median": 3.7795055188743563
+    },
+    "stealth1.0": {
+     "detected": 7,
+     "n": 53,
+     "silent_displacement_median": 0.34010444349831837,
+     "silent_displacement_p90": 0.7043572863646744,
+     "silent_displacement_max": 0.9529036011260896,
+     "missed_final_drift_median": 0.9518881081384531
+    },
+    "stealth2.0": {
+     "detected": 16,
+     "n": 53,
+     "silent_displacement_median": 0.8229773871897995,
+     "silent_displacement_p90": 1.3442223906947763,
+     "silent_displacement_max": 1.8117835511554705,
+     "missed_final_drift_median": 1.911724218726701
+    },
+    "benign": {
+     "flagged": 32,
+     "n": 53,
+     "alert_days_median": 3.0,
+     "span_days_median": 7.0,
+     "unresolved_at_end": 1
+    },
+    "benign_held_days_median": 0.0
+   },
+   "cusum": {
+    "control_alert": 33,
+    "attack": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.10599955414609594,
+     "silent_displacement_p90": 0.3974679282895851,
+     "silent_displacement_max": 0.5889784765733812,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 51,
+     "n": 53,
+     "silent_displacement_median": 0.26200200847410804,
+     "silent_displacement_p90": 0.6135502456855186,
+     "silent_displacement_max": 1.1323800232375958,
+     "missed_final_drift_median": 0.8296911751137772
+    },
+    "stealth2.0": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.21008578411872153,
+     "silent_displacement_p90": 0.6537440983448236,
+     "silent_displacement_max": 1.0839471212706862,
+     "missed_final_drift_median": null
+    },
+    "benign": {
+     "flagged": 48,
+     "n": 53,
+     "alert_days_median": 26.0,
+     "span_days_median": 120.5,
+     "unresolved_at_end": 36
+    },
+    "benign_held_days_median": 0.0
+   },
+   "rollback": {
+    "control_alert": 43,
+    "attack": {
+     "detected": 30,
+     "n": 53,
+     "silent_displacement_median": 0.08277983860979249,
+     "silent_displacement_p90": 0.33743822161508785,
+     "silent_displacement_max": 2.0908563783564063,
+     "missed_final_drift_median": 4.045582218815381
+    },
+    "stealth1.0": {
+     "detected": 0,
+     "n": 53,
+     "silent_displacement_median": null,
+     "silent_displacement_p90": null,
+     "silent_displacement_max": null,
+     "missed_final_drift_median": 0.9541757941915897
+    },
+    "stealth2.0": {
+     "detected": 2,
+     "n": 53,
+     "silent_displacement_median": 0.13674401989530863,
+     "silent_displacement_p90": 0.1850464139557555,
+     "silent_displacement_max": 0.1971220124708672,
+     "missed_final_drift_median": 1.911724218726701
+    },
+    "benign": {
+     "flagged": 26,
+     "n": 53,
+     "alert_days_median": 20.0,
+     "span_days_median": 36.5,
+     "unresolved_at_end": 9
+    },
+    "benign_held_days_median": 0.0
+   },
+   "guard_fleet": {
+    "control_alert": 57,
+    "attack": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.7752573263255147,
+     "silent_displacement_p90": 0.8552345139131615,
+     "silent_displacement_max": 0.8606155686227894,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 48,
+     "n": 53,
+     "silent_displacement_median": 0.8506301850983508,
+     "silent_displacement_p90": 0.858934840731902,
+     "silent_displacement_max": 0.8607750687511828,
+     "missed_final_drift_median": 0.6597533826502465
+    },
+    "stealth2.0": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.8515201762144311,
+     "silent_displacement_p90": 0.8594353934226894,
+     "silent_displacement_max": 0.8612337195573024,
+     "missed_final_drift_median": null
+    },
+    "benign": {
+     "flagged": 42,
+     "n": 53,
+     "alert_days_median": 2.0,
+     "span_days_median": 11.5,
+     "unresolved_at_end": 38
+    },
+    "benign_held_days_median": 99.5
+   },
+   "guard_cal_full": {
+    "control_alert": 53,
+    "attack": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.5048628552601864,
+     "silent_displacement_p90": 1.2057837234786182,
+     "silent_displacement_max": 2.1698016679161016,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 29,
+     "n": 53,
+     "silent_displacement_median": 0.6745071320202725,
+     "silent_displacement_p90": 0.9668749098223093,
+     "silent_displacement_max": 1.0753432845573943,
+     "missed_final_drift_median": 0.9164408613623292
+    },
+    "stealth2.0": {
+     "detected": 50,
+     "n": 53,
+     "silent_displacement_median": 0.8629256841936275,
+     "silent_displacement_p90": 1.4194500171834221,
+     "silent_displacement_max": 2.0942996104575675,
+     "missed_final_drift_median": 1.7241781531494653
+    },
+    "benign": {
+     "flagged": 41,
+     "n": 53,
+     "alert_days_median": 2.0,
+     "span_days_median": 12.0,
+     "unresolved_at_end": 36
+    },
+    "benign_held_days_median": 102.0
+   },
+   "guard_cal_ledger": {
+    "control_alert": 53,
+    "attack": {
+     "detected": 53,
+     "n": 53,
+     "silent_displacement_median": 0.5048628552601864,
+     "silent_displacement_p90": 1.2057837234786182,
+     "silent_displacement_max": 2.1698016679161016,
+     "missed_final_drift_median": null
+    },
+    "stealth1.0": {
+     "detected": 29,
+     "n": 53,
+     "silent_displacement_median": 0.6745071320202725,
+     "silent_displacement_p90": 0.9668749098223093,
+     "silent_displacement_max": 1.0753432845573943,
+     "missed_final_drift_median": 0.9164408613623292
+    },
+    "stealth2.0": {
+     "detected": 50,
+     "n": 53,
+     "silent_displacement_median": 0.8629256841936275,
+     "silent_displacement_p90": 1.4194500171834221,
+     "silent_displacement_max": 2.0942996104575675,
+     "missed_final_drift_median": 1.7241781531494653
+    },
+    "benign": {
+     "flagged": 41,
+     "n": 53,
+     "alert_days_median": 2.0,
+     "span_days_median": 15.0,
+     "unresolved_at_end": 3
+    },
+    "benign_held_days_median": 20.0
+   }
+  }
+ }
+}
