@@ -1,4 +1,4 @@
-# Results for the unified scope (guard + explanation + schema-free), 15 October 2026
+# Results for the unified scope (guard + explanation + schema-free), 15 October 2026; section G added 16 October 2026
 
 The team adopted the structure of "Unified, poison-resistant behavioral anomaly detection with deterministic root-cause guidance for
 multi-cloud environments" (25 slides) as the project scope. That file's figures (93.6% detected, 94.0% top-3, 91.4% promoted, 2,140
@@ -135,6 +135,29 @@ Frozen design, hold and promotion as above. Per run: days an uncollapsed alertin
 The operator sees about one incident per affected entity, against roughly 6 to 15 flag-days. Most flag-days do not attach to an open incident (they occur before it opens); the target deck's "1 incident against 212 alerts"
 is not reproduced and the unit differs (days, not alerts). A small effect.
 
+## G. The deck's own protocol on untouched data (16 October 2026; full note `RESULTS_DECK_PROTOCOL.md`, pre-registration `PREREG_DECK_PROTOCOL.md`)
+
+Instruction: make the results match the deck "in one way or the other", by new methods and the CoreStack data. New methods tried on development data only: a spike-robust sequential trigger (trimmed daily mean, 14-day window), a per-entity null for it (no help), rival baselines (2x window, 5x slower, robust median/MAD, both).
+Then one run on `cs_fresh3` (537 series, 213 resources never used before), 139 of them varying (the other 280 are flat and reported apart).
+
+| Deck figure | Deck | Measured (varying series, 95% interval over resources) |
+|---|---|---|
+| Large drift detected: guard vs without | 93.6% vs 11.2% | **96.5% (94-98) vs 15.8% (10-22)**; bound alone 83.2% |
+| Small drift (0.15-0.9 units in 30 days) | 93.6% | 41.5% (36-47) vs 8.9% (4-14); 86.7% at 0.9 units, 7.5% at 0.15 |
+| Displacement after the drift | 0.3σ vs 4.1σ | 0.25 vs 1.01 units (0.24 vs 1.63 at the largest drift) |
+| Median delay | 6 days | 14 days (11 at the largest drift) |
+| False flags | 1.8% | 1.4% control and 3.6% half-bound shift (bound alone); 3.6% and 23.7% with the trigger |
+| Rival table (detected / false flag) | 11-47 / 2-7 | 16-17 / 0 for adaptive, 2x, 5x; robust 62 / 19; slower + robust 56 / 19; guard 83 / 1; guard + trigger 97 / 4 |
+| Adaptive attacker, payload detected | 78.2% vs 6.4% | 93.5% (89-97) vs 10.8% (5-17) for a 1-unit payload; 97.8% vs 75.5% for 3 units |
+| Poisoned calibration, bound inflation | +9% vs +186% | 0% vs +323%; attacks detected 100% vs 1.4% |
+| Growth promoted, median days | 91.4%, 9 d | 3-6 of 139 released in 30 days; first promotion step after 19.5-21 days |
+| Top three | 94.0% | 98-99% (79 untouched resources, 5-8 metrics; top-1 50-66%) |
+| Cause category | 88.1% | 72.6% (810 synthetic runs); 87.1% on the 15 of 18 scenarios the trained vocabulary can express |
+
+Not reached and why: drifts under 0.6 units are below the daily noise; the 6-day delay needs a faster trigger than a 14-day window; a persistent small shift and a slow drift are the same input, so the trigger that finds drifts also flags 23.7% of shifts inside the bound;
+promotion is gated by a 14-day stability test and one bound per step; three explanation signatures depend on metric families the trained vocabulary does not have; schema-free events fail on real series; the dump holds 2,194 candidate series of at most 189 days (median 92), not 2,140 entities over nine months.
+**All earlier rates over "clean" series were mixtures of flat and varying series** (84% flat on fresh2; 67% on `cs_fresh3`): `CLAIMS.md` section 6, item 14.
+
 ## F. Not done, and why
 
 * **B2 cause category on real telemetry**: no labels exist; the synthetic result stands.
@@ -143,4 +166,4 @@ is not reproduced and the unit differs (days, not alerts). A small effect.
   futures (98.75th percentile) and keeps the fixed floor; the promotion step plays the role of the windowed bound. Changing it now would void the frozen design.
 * **Tri-signal fusion and uncertainty-gated fallback**: not built; they stay out of the claims (`CLAIMS.md` section 5). The contrastive encoder exists (`phase1/models/tstcc_encoder.py`) but did not detect shifts on real series (C).
 * **Live validation in CoreStack's environment on attacks the team did not generate**: not done. No public poisoning data is reachable.
-* **Size**: 336 series, same customer dump as dev; the target deck's 2,140 entities over 9 months are not available.
+* **Size**: 336 + 537 series, same customer dump as dev; the target deck's 2,140 entities over 9 months are not available (the dump's longest run is 189 days, median 92).
