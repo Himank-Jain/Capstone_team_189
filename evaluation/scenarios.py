@@ -32,6 +32,11 @@ if os.environ.get("EVAL_PROFILE") == "corestack90":
     # Resources only present in the 90-day CoreStack extract (never used during development).
     SNAPSHOT_DAY, BOUNDS_DAY, EVENT_DAY, END_DAY = 30, 60, 60, 90
     DRIFT_DAYS, RAMPS = 10, (10, 20)
+if os.environ.get("EVAL_PROFILE") == "corestack_long":
+    # cs_long: the first 60 real CoreStack days, then day-resampled calibration days to day 200 (a clean future by construction).
+    # Same events and ramps as the 100-day profile; the horizon after the event is 140 days instead of 40, so promotion can complete.
+    SNAPSHOT_DAY, BOUNDS_DAY, EVENT_DAY, END_DAY = 30, 60, 60, 200
+    DRIFT_DAYS, RAMPS = 10, (10, 20, 30)
 if os.environ.get("EVAL_PROFILE") == "smd":
     # Server Machine Dataset (third-party, about 33-40 days per machine): snapshot after 8 days, calibration days 8-14,
     # guard active from day 15, run ends at day 32. Too short for more than one promotion step.

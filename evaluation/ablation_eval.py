@@ -28,15 +28,16 @@ import multiprocessing as mp
 import os
 from dataclasses import replace
 
-from evaluation.final_eval import (DATASET, FAMILY, OUT, ZCLIP, _prep, _s, build, frozen, scenarios, thresholds)
+from evaluation.final_eval import (DATASET, EV, FAMILY, OUT, ZCLIP, _prep, _s, build, frozen, scenarios, thresholds)
 from evaluation.lit_attacks import lit_scenarios
 from evaluation.margin_rule import selfcal
-from evaluation.scenarios import apply_scenario
+from evaluation.scenarios import END_DAY, SNAPSHOT_DAY, apply_scenario
 from evaluation.selfcal_eval import ALPHA, B, FLEET_CACHE, LEDGER_FREEZE, POISONED_CACHE, cohort_stats
 from evaluation.simulate import run
 from phase0.guard import GuardConfig
 
 SET = os.environ.get("ABL_SET", "ablation")
+TS = tuple(t for t in (14, 30, 60, 100) if EV + t < END_DAY)  # days after the event at which the state is read
 FIXED_UNIT = 1.0  # scale units; the unlinked allowance used by S and HS_unlinked
 LEDGER = GuardConfig(promotion_mode="ledger")
 
@@ -121,6 +122,12 @@ def _run_one(args):
             row["unit_sources"] = sorted({x.get("unit_source") for x in (r.ledger or [])})
             row["validation"] = sorted({str(x.get("validation")) for x in (r.ledger or [])})
             row["bound_source"] = r.bound_source
+            dd = r.drift_daily  # stored displacement at the end of each day from SNAPSHOT_DAY on
+            row["drift_at"] = {str(t): (dd[EV + t - SNAPSHOT_DAY] if 0 <= EV + t - SNAPSHOT_DAY < len(dd) else None) for t in TS}
+            row["t15"] = next((i + SNAPSHOT_DAY - EV for i, v in enumerate(dd) if i + SNAPSHOT_DAY >= EV and v >= 1.5), None)
+            held = set(r.held_end_days)
+            row["unres_at"] = {str(t): bool((EV + t) in held or any(EV + t - 14 < x <= EV + t for x in row["spec"])) for t in TS}
+            row["flag_by"] = {str(t): any(EV <= x <= EV + t for x in row["spec"]) for t in TS}
             d[name] = row
         out["res"][lab] = d
     return out

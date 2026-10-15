@@ -253,6 +253,41 @@ Columns by day: 3σ stealth attack absorbed (stored displacement of at least 1.5
 
 Any column that disagrees with these is reported as it comes out. `cs_long` is run after NAB, with the same predictions.
 
+## Long-horizon result 1: NAB dev (exploratory; synthetic order, dependent entities; 118 clean entities from 14 series, 101 with growth)
+
+Files: `ablation_curve_ev0_nab_dev.json`, `allowance_curve_curve_ev0_nab_dev.json`. The self-calibrated bound for NAB has a median of 1.28σ (the 0.5σ floor
+matters little here), so one validated bound is about 1.3σ. State read at 14, 30, 60 and 100 days after the event. Each cell: 3σ stealth attack
+absorbed (stored displacement of at least 1.5σ) / fast 4σ absorbed / flagged growth resolved (of those flagged by then). Intervals are bootstrap over the 14 series, so they are wide.
+
+| Allowance per step | +14 days | +30 days | +60 days | +100 days |
+|---|---|---|---|---|
+| hold only | 14% / 15% / 0% | 14% / 46% / 0% | 48% / 47% / 0% | 48% / 47% / 0% |
+| 0.5 bounds | 14% / 15% / 0% | 14% / 47% / 18% | 54% / 99% / 60% | 81% / 100% / 76% |
+| **1 bound (default)** | 14% / 15% / 0% | 14% / 49% / 18% | 63% / 100% / 67% | **98% (96-100)** / 100% / **74% (65-83)** |
+| 2 bounds | 14% / 15% / 0% | 14% / 52% / 18% | 64% / 100% / 75% | 100% / 100% / 82% |
+| 4 bounds | 14% / 15% / 0% | 14% / 53% / 18% | 64% / 100% / 85% | 100% / 100% / 85% |
+| no cap | 14% / 15% / 0% | 14% / 53% / 16% | 64% / 100% / 92% | 100% / 100% / 90% |
+
+Median days from the event until the stored baseline carries 1.5σ of the 3σ attack (entities that reach it): hold only 46 (63 of 151 reach it); 0.5 bounds 66;
+1 bound 54; 2 bounds 53; no cap 53. Greedy attacker reaching its goal at the end of the run: hold only 3%; **every promoting setting 99%** (0.5 bounds to no cap). False alerts 8%
+and 3σ detection 70% are the same at every setting. Link matched on step size (L1 against F0.5): 0.0 points on absorption, C1 and C2; growth unresolved -1.0 points [-4.6, +2.1].
+
+**Prediction check (written before the results):**
+
+1. *At 1 bound the 3σ attack is at most 15% absorbed at +30 days and above 50% at +100 days:* **as predicted** (14% and 98%). At 0.5 bound the rise is slower (63% against 54% at +60 days,
+   98% against 81% at +100) but not "about half as fast".
+2. *Flagged growth resolved at +100 days is at least 50% at the default and higher at larger allowances:* **as predicted** (74%, then 82%, 85%, 90%).
+3. *The pre-declared rule is met by no setting at +100 days:* **as predicted, and by no setting at any horizon**: absorption is 98-100% at every promoting setting at +100 days, and at +30 days
+   growth resolved is at most 18%. Hold-only absorbs 48% of 3σ attacks (the bound is 1.3σ here) and resolves no growth.
+4. *Hold-only stays at its bound-limited absorption at every horizon:* **partly wrong**: it rises from 14% (+14 days) to 48% (+60 days) because the ramp is 60 days long, then stays at 48%.
+   No-cap equals the large allowances: as predicted.
+
+**Reading.** Over 130 days the allowance sets the speed, not the outcome. Whatever adopts a persistent legitimate shift adopts a persistent attack that sits at the same level; the
+cap delays the 3σ attack by about 1 day at the default and by about 13 days at 0.5 bound against adopting in full. The greedy attacker, who keeps the shadow stable at the attacker's level, reaches its goal in 99%
+of entities at every promoting setting, against 3% for hold-only. This is the "delayed, not prevented" limit (`CLAIMS.md` section 6), now measured: **the promotion path is a
+route for a sustained attacker, and the hold alone is the part that keeps one out.** What the allowance buys is time to notice (the ledger and the restore point exist so that a step can be reverted),
+not resistance. On this set one bound is 1.3σ, so the default allowance moves the baseline faster than on CoreStack.
+
 ---
 
 # Earlier component ablation (tuned design, from the frozen-design runs, no new runs)

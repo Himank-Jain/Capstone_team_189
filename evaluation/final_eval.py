@@ -23,7 +23,7 @@ import json, multiprocessing as mp, os, random, sys
 from pathlib import Path
 
 DATASET, STAGE = sys.argv[1], sys.argv[2]
-os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90"}.get(DATASET, "")
+os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90", "cs_long": "corestack_long"}.get(DATASET, "")
 import numpy as np
 from evaluation.data import Entity, _bucket_scales, _residual_scale, build_entities
 from evaluation.runner import eligible
@@ -46,6 +46,31 @@ TARGETS_FPR = (0.05, 0.10)
 STABLE_SHIFT = 1.0
 
 
+def _cs_long(dev):
+    """Development resources, first 60 real days; every later day to day 200 is a calibration day (days 30-59) of the same
+    weekday type drawn with replacement (the 'clean future' construction of evaluation/margin_rule.py, one fixed draw per
+    series). Synthetic order: it tests the long-horizon behaviour of the mechanism, not real long-horizon behaviour."""
+    import zlib
+    from evaluation.data import SIM_START
+    ents = []
+    for (rid, metric, cat), rec in sorted(dev.items()):
+        v = np.asarray(rec["values"], float)
+        if len(v) < 100 * 24:
+            continue
+        rng = np.random.default_rng(zlib.crc32(f"{rid}|{metric}".encode()))
+        out = np.empty(END_DAY * 24)
+        out[: BOUNDS_DAY * 24] = v[: BOUNDS_DAY * 24]
+        pool = {0: [], 1: []}
+        for d in range(SNAPSHOT_DAY, BOUNDS_DAY):
+            pool[int((SIM_START.weekday() + d) % 7 >= 5)].append(d)
+        for d in range(BOUNDS_DAY, END_DAY):
+            src = int(rng.choice(pool[int((SIM_START.weekday() + d) % 7 >= 5)]))
+            out[d * 24:(d + 1) * 24] = v[src * 24:(src + 1) * 24]
+        ents.append(Entity(entity_id=f"{rid.split('/')[-1]}|{metric}", source=rid.lower(), group=f"{cat}:{metric}", replica=0,
+                           values=out, hour_scale=_residual_scale(out[: 30 * 24]), bucket_scale=_bucket_scales(out[: 30 * 24])))
+    return [e for e in ents if eligible(e)]
+
+
 def build():
     if DATASET == "nab_dev":
         return [e for e in build_entities(ROOT / "data/external/nab_aws_cloudwatch", 12) if eligible(e)]
@@ -53,6 +78,8 @@ def build():
         return [e for e in build_entities(ROOT / "data/external/nab_fresh", 3) if eligible(e)]
     from evaluation.corestack import load_series
     dev = load_series("corestack_series_100d.pkl")
+    if DATASET == "cs_long":
+        return _cs_long(dev)
     if DATASET == "cs_dev":
         S, days = dev, 100
     elif DATASET == "cs_fresh2":  # resources outside both earlier sets; rule in scripts/build_corestack_fresh2.py

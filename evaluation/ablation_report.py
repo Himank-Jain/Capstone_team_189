@@ -141,6 +141,20 @@ def curve():
             "frog_stored_p90": float(np.percentile([r["res"][lab]["frog1.15"]["drift_final"] for r in CLEAN], 90)),
             "C1": boot(CLEAN, lambda r: c1(r, lab)), "C2": boot(GROWTH, lambda r: c2(r, lab)),
         }
+    # time-resolved view (runs made after the horizon fields were added): state read t days after the event
+    for lab in LABELS:
+        r0 = CLEAN[0]["res"][lab]["stealth3.0"]
+        if "drift_at" not in r0:
+            break
+        ts = sorted(int(t) for t in r0["drift_at"])
+        cols[lab]["by_day"] = {}
+        for t in ts:
+            k = str(t)
+            cols[lab]["by_day"][k] = {
+                "absorbed3": boot([r for r in CLEAN if r["res"][lab]["stealth3.0"]["drift_at"][k] is not None], lambda r: r["res"][lab]["stealth3.0"]["drift_at"][k] >= 1.5),
+                "absorbed_fast4": boot([r for r in CLEAN if r["res"][lab]["fast4"]["drift_at"][k] is not None], lambda r: r["res"][lab]["fast4"]["drift_at"][k] >= 1.5),
+                "growth_resolved": boot([r for r in GROWTH if r["res"][lab]["benign"]["flag_by"][k]], lambda r: not r["res"][lab]["benign"]["unres_at"][k]),
+                "growth_flagged": boot(GROWTH, lambda r: r["res"][lab]["benign"]["flag_by"][k])}
     # Link contrast matched on step size (fixed before the sweep was read): allowance of one validated bound (L1) against a fixed
     # allowance equal to the floor that is the bound for most entities (F0.5), same columns.
     link = {}
@@ -178,3 +192,10 @@ if __name__ == "__main__":
                 print(f"link, step size matched: {col} {k} = {100*v['rate']:+.1f} pts [{100*v['lo']:+.1f}, {100*v['hi']:+.1f}]")
         for lab, s in R["points"].items():
             print(f"{lab:<10}{(s['median_bound_unit'] or 0):<8.2f}{pct(s['absorbed3']):<15}{pct(s['absorbed_fast4']):<15}{s['stored3_median']:.2f}/{s['stored3_p90']:.2f}{'':<7}{pct(s['det3']):<14}{pct(s['growth_flagged']):<16}{pct(s['growth_resolved_of_flagged']):<17}{pct(s['real_shift_resolved_of_flagged']):<16}{pct(s['greedy_goal']):<14}")
+        days = sorted({int(t) for s in R["points"].values() for t in s.get("by_day", {})})
+        if days:
+            print("\ntime-resolved (state t days after the event): 3σ absorbed | fast 4σ absorbed | flagged growth resolved (of flagged by t)")
+            print(f"{'point':<10}" + "".join(f"{'+%d d' % t:<44}" for t in days))
+            for lab, s in R["points"].items():
+                if "by_day" in s:
+                    print(f"{lab:<10}" + "".join(f"{pct(s['by_day'][str(t)]['absorbed3']):<14}{pct(s['by_day'][str(t)]['absorbed_fast4']):<14}{pct(s['by_day'][str(t)]['growth_resolved']):<16}" for t in days if str(t) in s["by_day"]))
