@@ -49,7 +49,10 @@ adopting the shadow in full (78%). Inside the proposed range a fast 4σ attack i
 hold only), so the allowance does not add protection against fast large attacks beyond what the hold gives. The pre-declared
 operating-range rule (at most 5% of 3σ attacks absorbed and at least 50% of flagged growth resolved) is met by no setting, so the
 range is proposed post hoc and is a default, not a proven optimum. On the 30-day fresh set the curve is flat because no promotion
-completes inside the horizon; the long-horizon runs are in `ABLATION.md` and are on synthetic or day-resampled order.
+completes inside the horizon. **Long-horizon runs** (`ABLATION.md`; NAB with synthetic order, CoreStack with day-resampled days after day 60; exploratory)
+show that over 130 to 140 days the allowance sets how fast a sustained attacker is adopted, not whether: at the default allowance a 3σ attack is
+absorbed in 98% (NAB) and 100% (CoreStack) of series by 100 days after the event, against 48% and 8% for hold-only, and no setting meets the
+pre-declared rule at any horizon. The step bound above is a bound on speed, and it is the only thing it bounds.
 
 ## What this does not give
 
