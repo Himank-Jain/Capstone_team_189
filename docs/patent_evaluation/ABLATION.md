@@ -55,6 +55,13 @@ large change within it; that is part of what the curve shows.
 stealth attacks absorbed (point estimate) and (b) at least 50% of flagged legitimate growth resolved by the end of the horizon. If no setting
 satisfies both, the report says so and gives the setting that comes closest to each. The range is named on development data only.
 
+### Link contrast matched on step size (added before the sweep results were read)
+
+`HS_unlinked` uses a fixed 1 scale unit, twice the 0.5σ floor that is the bound for most entities, so its difference from `full` mixes
+the link with step size. The matched contrast is taken from the sweep: `L1` (allowance one validated bound) against `F0.5` (a fixed
+allowance of 0.5 scale units), paired per entity, on C1 and C2 (no poisoned-calibration scenario is in the sweep, so not C3), on the
+evidence-off sweep.
+
 ### Confirmation
 
 After the range is named on development data, the same variants and columns are run once on fresh2 (336 series, 158 resources). fresh2 has been

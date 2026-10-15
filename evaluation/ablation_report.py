@@ -139,9 +139,18 @@ def curve():
                                                    lambda r: not (r["res"][lab]["control"]["tail_alert"] or r["res"][lab]["control"]["tail_held"])),
             "greedy_goal": boot([r for r in CLEAN if r["res"][lab]["greedy"]["goal_day"] is not None or True], lambda r: r["res"][lab]["greedy"]["goal_day"] is not None),
             "frog_stored_p90": float(np.percentile([r["res"][lab]["frog1.15"]["drift_final"] for r in CLEAN], 90)),
+            "C1": boot(CLEAN, lambda r: c1(r, lab)), "C2": boot(GROWTH, lambda r: c2(r, lab)),
         }
+    # Link contrast matched on step size (fixed before the sweep was read): allowance of one validated bound (L1) against a fixed
+    # allowance equal to the floor that is the bound for most entities (F0.5), same columns.
+    link = {}
+    if "L1" in LABELS and "F0.5" in LABELS:
+        for col, rows, f in (("C1", CLEAN, c1), ("C2", GROWTH, c2)):
+            link[col] = {"L1_minus_F0.5": boot(rows, lambda r: f(r, "L1") - f(r, "F0.5"))}
+        link["absorbed3"] = {"L1_minus_F0.5": boot(CLEAN, lambda r: abs3(r, "L1") - abs3(r, "F0.5"))}
+        link["growth_unresolved"] = {"L1_minus_F0.5": boot(GROWTH, lambda r: gunres(r, "L1") - gunres(r, "F0.5"))}
     return {"dataset": DATASET, "set": SET, "n_clean": len(CLEAN), "n_clean_sources": len({r["source"] for r in CLEAN}), "n_growth": len(GROWTH),
-            "n_shifted": len(SHIFTED), "points": cols}
+            "n_shifted": len(SHIFTED), "points": cols, "link_matched": link}
 
 
 if __name__ == "__main__":
@@ -164,5 +173,8 @@ if __name__ == "__main__":
         (OUT / f"allowance_curve_{SET}_{DATASET}.json").write_text(json.dumps(R, indent=1))
         print(f"== {DATASET} {SET}: clean {R['n_clean']} ({R['n_clean_sources']} resources), growth {R['n_growth']}, shifted {R['n_shifted']}")
         print(f"{'point':<10}{'unit σ':<8}{'3σ absorbed':<15}{'fast4 abs':<15}{'stored3 med/p90':<17}{'3σ det':<14}{'growth flagged':<16}{'growth resolved':<17}{'shift resolved':<16}{'greedy goal':<14}")
+        for col, t in R.get("link_matched", {}).items():
+            for k, v in t.items():
+                print(f"link, step size matched: {col} {k} = {100*v['rate']:+.1f} pts [{100*v['lo']:+.1f}, {100*v['hi']:+.1f}]")
         for lab, s in R["points"].items():
             print(f"{lab:<10}{(s['median_bound_unit'] or 0):<8.2f}{pct(s['absorbed3']):<15}{pct(s['absorbed_fast4']):<15}{s['stored3_median']:.2f}/{s['stored3_p90']:.2f}{'':<7}{pct(s['det3']):<14}{pct(s['growth_flagged']):<16}{pct(s['growth_resolved_of_flagged']):<17}{pct(s['real_shift_resolved_of_flagged']):<16}{pct(s['greedy_goal']):<14}")
