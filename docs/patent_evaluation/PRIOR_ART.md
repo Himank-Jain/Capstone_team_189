@@ -56,13 +56,23 @@ new parts.**
   result as such.
 * **Objective technical problem:** how to keep an adaptive baseline usable (it must follow legitimate change) without letting a
   slow adversary, or the attacker's own calibration period, rewrite it undetected.
-* **Why not obvious:** the literature treats poisoning defence and drift adaptation as opposed (the Lacuna survey describes the
-  "drift-versus-poisoning tradeoff"). Combining a detector with a freeze (comparator `cusum`/`frozen` in our evaluation) leaves
-  legitimate growth unresolved in 22 of 25 (frozen) or 26 of 35 (CUSUM) NAB cases; unconditional adaptation gives the attacker
-  full displacement; the governed design is the only tested one that gets both (numbers in RESULTS). Counter-argument an examiner
-  will make: "a person skilled in the art would add a shadow model to a CUSUM-frozen detector, as PurePredictive does." The
-  answer must rest on the *capped, evidence-weighted* promotion and the *validated reference*, supported by the ablations
-  (`trigger_ledger`, `full_noledger`, `full`).
+* **Why not obvious (to be argued, not assumed):** the literature treats poisoning defence and drift adaptation as opposed
+  (the Lacuna survey describes the "drift-versus-poisoning tradeoff"). In our frozen-design evaluation the comparators sit at
+  one end or the other: frozen and rollback keep attacks out but leave legitimate shifts unresolved (frozen 80% / 88% / 61% of
+  flagged legitimate growth still unresolved on NAB dev / NAB fresh / CoreStack dev; rollback 49% / 27% / 52%); adaptive and
+  clipped-CUSUM detect or absorb but never close the alert (CUSUM 84% / 83% / 69% unresolved). The proposed combination is the
+  only tested strategy with detection at the level of the best detector at a matched false-alert rate, poisoned-calibration
+  detection of 98–100%, and 0–25% of legitimate growth unresolved (6% / 0% / 25%). Counter-argument an examiner will make: "a
+  person skilled in the art would add a shadow model to a CUSUM-frozen detector, as PurePredictive does, and promote on operator
+  confirmation, as Splunk does." The answer must rest on the *evidence-built, step-limited* promotion with a *restore point per
+  step* and on the *validated, snapshot-anchored reference*, and the ablations show what each part buys: without the ledger
+  (`dual_noledger`) legitimate growth stays 100% unresolved; without validating the bounds, poisoned calibration is caught by 1 of 21 held-out
+  NAB entities against 21 of 21 with validation, and by 28 of 39 against 39 of 39 on CoreStack (earlier ablation run, before the
+  design freeze). Anchoring the CUSUM reference to the snapshot when validation fails adds little (CoreStack dev 66% for clipped
+  CUSUM, 68% with the anchored reference); the poisoned-calibration effect comes from the validated *bounds*.
+* **Evidence limits that weaken this argument:** attacker levels are absorbed within about 60 days of the first alert (the
+  ledger is a delay, not a barrier); the proposed design does not beat rollback on attack absorption, only on resolution; the
+  fresh CoreStack sample of clean series is 8.
 
 ## 4. Recommendations
 

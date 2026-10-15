@@ -1,5 +1,6 @@
 import { Card, PageHeader, StatCard } from '../../components/ui';
 import { evaluation } from '../../data/evaluation';
+import type { FrozenRow, Rate } from '../../data/evaluation';
 
 const SCHEMA_LABELS: Record<string, string> = {
   'shift/in_vocab': 'Known schema',
@@ -9,6 +10,10 @@ const SCHEMA_LABELS: Record<string, string> = {
   'spike/oov_passthrough': 'Unseen schema, old fallback',
   'spike/oov_online': 'Unseen schema, online statistics',
 };
+
+const pct = (r: Rate | null | undefined) => (r ? `${Math.round(r.rate * 100)}% (${Math.round(r.lo * 100)}–${Math.round(r.hi * 100)})` : '–');
+const share = (x: number | null | undefined) => (x === null || x === undefined ? '–' : x.toFixed(2));
+const proportion = (x: number | null | undefined) => (x === null || x === undefined ? '–' : `${Math.round(x * 100)}%`);
 
 function Bar({ value, max, label, detail }: { value: number; max: number; label: string; detail: string }) {
   const width = Math.max(1, Math.min(100, (value / max) * 100));
@@ -24,66 +29,98 @@ function Bar({ value, max, label, detail }: { value: number; max: number; label:
 }
 
 export default function AnalyticsPage() {
-  const { guard, schema_free: schema, explanation, cold_start: cold } = evaluation;
-  const maxDrift = Math.max(...guard.strategies.map((s) => s.stored_drift), 1);
+  const { frozen, schema_free: schema, explanation, cold_start: cold } = evaluation;
   return (
     <main className="app-page">
       <div className="app-page-content">
         <PageHeader
           eyebrow="Operations"
           title="Analytics"
-          description="Measured results from the drift-guard, schema-free encoder and explanation evaluations."
+          description="Frozen-design results for the governed baseline, plus the schema-free encoder, explanation and cold-start evaluations. NAB entities are synthetic replicas of real series."
         />
         <div className="dashboard-stats ui-stat-grid">
-          <StatCard label="Entities evaluated" value={guard.n_entities} detail="AWS CloudWatch series" />
+          <StatCard label="Series evaluated" value={frozen.reduce((n, d) => n + d.series, 0)} detail="2 development and 2 never-run sets" />
           <StatCard label="Identical explanations" value={`${explanation.identical_pct}%`} detail={`${explanation.runs.toLocaleString()} repeated runs`} tone="success" />
           <StatCard label="Explanation latency" value={`${explanation.median_ms.toFixed(2)} ms`} detail={`median, p95 ${explanation.p95_ms.toFixed(2)} ms`} />
           <StatCard label="Network calls" value={explanation.network_attempts} detail="during explanation runs" tone="neutral" />
         </div>
 
-        <Card className="dashboard-alerts">
-          <div className="section-heading">
-            <div>
-              <p className="ui-eyebrow">Invention A</p>
-              <h2>Baseline drift after a slow poisoning ramp</h2>
+        {frozen.map((set) => (
+          <Card key={set.key} className="dashboard-alerts">
+            <div className="section-heading">
+              <div>
+                <p className="ui-eyebrow">Governed baseline · frozen design</p>
+                <h2>{set.title}</h2>
+              </div>
             </div>
-          </div>
-          <p className="eval-note">Median stored baseline shift, in standard deviations, when the ramp ends. Lower means the baseline moved less. Real AWS CloudWatch series with simulated attacks.</p>
-          {guard.strategies.map((s) => (
-            <Bar key={s.key} label={s.label} value={s.stored_drift} max={maxDrift} detail={`${s.stored_drift.toFixed(2)}σ`} />
-          ))}
-        </Card>
-
-        <Card className="dashboard-alerts">
-          <div className="section-heading">
-            <div>
-              <p className="ui-eyebrow">Invention A</p>
-              <h2>Detection and alert rates</h2>
-            </div>
-          </div>
-          <div className="ui-table-scroll">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th scope="col">Strategy</th>
-                  <th scope="col">Attacks detected</th>
-                  <th scope="col">Alerts on clean control</th>
-                  <th scope="col">Alerts on real growth</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guard.strategies.map((s) => (
-                  <tr key={s.key}>
-                    <td>{s.label}</td>
-                    <td>{s.attack.k} / {s.attack.n}</td>
-                    <td>{s.control_alert.k} / {s.control_alert.n}</td>
-                    <td>{s.benign_alert.k} / {s.benign_alert.n}</td>
+            <p className="eval-note">
+              {set.note}. {set.series} series ({set.entities} entities); {set.clean_series} clean series ({set.clean_entities} entities)
+              {set.shifted_series ? `, ${set.shifted_series} with real level shifts` : ''}. Rates are shares with a 95% interval from a bootstrap over whole
+              series. Thresholds fixed so development entities false-alert at 5% or less.
+            </p>
+            <div className="ui-table-scroll">
+              <table className="ui-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Strategy</th>
+                    <th scope="col">False alerts</th>
+                    <th scope="col">2 sigma ramp detected</th>
+                    <th scope="col">3 sigma ramp detected</th>
+                    <th scope="col">Hour-only 4 sigma</th>
+                    <th scope="col">Poisoned calibration</th>
+                    <th scope="col">Silent shift at alert (sigma)</th>
+                    <th scope="col">Growth left unresolved</th>
+                    {set.shifted_series ? <th scope="col">Real shifts unresolved</th> : null}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody>
+                  {set.rows.map((r: FrozenRow) => (
+                    <tr key={r.key}>
+                      <td>{r.label}</td>
+                      <td>{pct(r.fpr)}</td>
+                      <td>{pct(r.tpr2)}</td>
+                      <td>{pct(r.tpr3)}</td>
+                      <td>{pct(r.local)}</td>
+                      <td>{pct(r.poisoned)}</td>
+                      <td>{r.disp2.toFixed(2)}</td>
+                      <td>{pct(r.benign_unresolved)}</td>
+                      {set.shifted_series ? <td>{pct(r.real_unresolved)}</td> : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="eval-note">Share of a 3σ attack already in the stored baseline N days after the strategy&apos;s own first alert, and share of flagged legitimate shifts resolved by then.</p>
+            <div className="ui-table-scroll">
+              <table className="ui-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Strategy</th>
+                    <th scope="col">Attack +14 d</th>
+                    <th scope="col">+30 d</th>
+                    <th scope="col">+60 d</th>
+                    <th scope="col">Resolved +14 d</th>
+                    <th scope="col">+30 d</th>
+                    <th scope="col">+60 d</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {set.rows.filter((r: FrozenRow) => r.key !== 'guard_cal').map((r: FrozenRow) => (
+                    <tr key={r.key}>
+                      <td>{r.label}</td>
+                      <td>{share(r.absorb['14'])}</td>
+                      <td>{share(r.absorb['30'])}</td>
+                      <td>{share(r.absorb['60'])}</td>
+                      <td>{proportion(r.resolved['14'])}</td>
+                      <td>{proportion(r.resolved['30'])}</td>
+                      <td>{proportion(r.resolved['60'])}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        ))}
 
         <Card className="dashboard-alerts">
           <div className="section-heading">
