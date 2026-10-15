@@ -23,7 +23,7 @@ import json, multiprocessing as mp, os, random, sys
 from pathlib import Path
 
 DATASET, STAGE = sys.argv[1], sys.argv[2]
-os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90"}.get(DATASET, "")
+os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90"}.get(DATASET, "")
 import numpy as np
 from evaluation.data import Entity, _bucket_scales, _residual_scale, build_entities
 from evaluation.runner import eligible
@@ -55,6 +55,8 @@ def build():
     dev = load_series("corestack_series_100d.pkl")
     if DATASET == "cs_dev":
         S, days = dev, 100
+    elif DATASET == "cs_fresh2":  # resources outside both earlier sets; rule in scripts/build_corestack_fresh2.py
+        S, days = load_series("corestack_series_fresh2_90d.pkl"), 90
     else:
         used = {k[0] for k in dev}
         S = {k: v for k, v in load_series("corestack_series_90d.pkl").items() if k[0] not in used}

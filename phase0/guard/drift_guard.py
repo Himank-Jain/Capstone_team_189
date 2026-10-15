@@ -71,6 +71,11 @@ class GuardConfig:
     allow_cohort: float = 1.0
     allow_corroborated: float = 3.0
     episode_gap_days: int = 30
+    # When True, the first bound exceedance freezes the entity: from then on every reading goes to the shadow
+    # and none is folded into the live baseline until the hold ends. When False (original behaviour) only the
+    # reading that would breach the bound is held back, so readings that individually stay inside the bound keep
+    # entering the window during a hold.
+    freeze_on_hold: bool = False
 
 
 @dataclass
@@ -256,6 +261,8 @@ class DriftGuard:
             new_incident = False  # continuation of an episode a capped step left open
         ent.held = True
         ent.incident_open = True
+        if self.config.freeze_on_hold:
+            ent.frozen = True
         return GuardDecision(
             GuardAction.HOLD,
             d_win,

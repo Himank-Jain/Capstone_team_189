@@ -67,6 +67,12 @@ def shift_curve(sc: Scenario, n_days: int = END_DAY) -> np.ndarray:
     return curve
 
 
+def frog_factor(sc: Scenario, day: int) -> float:
+    """Rubinstein et al. (IMC 2009) boiling-frog schedule: the attacked metric's average level grows by the factor
+    ``sc.magnitude`` (g = 1.01, 1.02, 1.05 or 1.15 in the paper) every week from ``sc.start``."""
+    return sc.magnitude ** (max(0, day - sc.start + 1) / 7.0)
+
+
 def apply_scenario(entity, sc: Scenario) -> np.ndarray:
     """Return the entity's series with the scenario's shift added. The shift in
     every hour is ``curve[day] * bucket_scale[hour, daytype]``: a coherent
@@ -75,7 +81,11 @@ def apply_scenario(entity, sc: Scenario) -> np.ndarray:
     from datetime import timedelta
 
     out = entity.values.copy()
-    if sc.kind == "control":
+    if sc.kind in ("control", "greedy"):  # "greedy" is closed-loop and is injected reading by reading inside simulate.run
+        return out
+    if sc.kind == "frog":  # open-loop multiplicative growth, g per week, after Rubinstein et al.
+        for d in range(sc.start, len(out) // 24):
+            out[d * 24:(d + 1) * 24] *= frog_factor(sc, d)
         return out
     curve = shift_curve(sc)
     rng = np.random.default_rng(sc.seed)

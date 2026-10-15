@@ -59,6 +59,7 @@ def calibrate_bounds(
     default: Tuple[float, float] = (1.0, 2.0),
     margin: float = MARGIN,
     floor: float = MIN_BOUND,
+    raw_bounds: Optional[Tuple[float, float]] = None,
 ) -> BoundCalibration:
     """Compute and validate bounds from calibration traces.
 
@@ -85,8 +86,13 @@ def calibrate_bounds(
 
     w = [d_windowed[i] for i in keep]
     c = [d_cumulative[i] for i in keep]
-    bound_w = margin * _percentile(w, 99)
-    bound_c = margin * _percentile(c, 99)
+    if raw_bounds is not None:
+        # self-calibrated bound (evaluation/margin_rule.py): the quantile of the largest displacement the entity's own
+        # calibration days produce over the deployment horizon, in place of margin * p99
+        bound_w, bound_c = raw_bounds
+    else:
+        bound_w = margin * _percentile(w, 99)
+        bound_c = margin * _percentile(c, 99)
     source = "entity"
 
     if cohort_p95 is not None:

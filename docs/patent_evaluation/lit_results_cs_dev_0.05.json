@@ -1,0 +1,847 @@
+{
+ "dataset": "cs_dev",
+ "clean_entities": 65,
+ "clean_sources": 25,
+ "scenarios": {
+  "frog1.01": {
+   "n": 7,
+   "sources": 6,
+   "strategies": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.42857142857142855,
+      "lo": 0.14285714285714285,
+      "hi": 0.7142857142857143,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 5.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 5.254470021355482,
+     "reached_goal": null
+    },
+    "frozen": {
+     "detected": {
+      "rate": 0.42857142857142855,
+      "lo": 0.1111111111111111,
+      "hi": 0.8333333333333334,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 36.0,
+     "silent_median": 0.0,
+     "silent_p90": 0.0,
+     "final_median": 0.0,
+     "final_p90": 0.0,
+     "reached_goal": null
+    },
+    "rollback": {
+     "detected": {
+      "rate": 0.42857142857142855,
+      "lo": 0.14285714285714285,
+      "hi": 0.7142857142857143,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 5.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.23897892545545307,
+     "final_p90": 5.254470021355482,
+     "reached_goal": null
+    },
+    "clip": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.6666666666666666,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 22.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 5.254470021355482,
+     "final_median": 0.2828158083349872,
+     "final_p90": 5.254470021355482,
+     "reached_goal": null
+    },
+    "cusum_r": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 10.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 5.254470021355482,
+     "reached_goal": null
+    },
+    "cal_ledger": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 0.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 4.966435526157626,
+     "reached_goal": null
+    },
+    "dual": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 0.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 4.876235354963272,
+     "reached_goal": null
+    },
+    "cal_ledger_B": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 22.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 4.680269320914378,
+     "reached_goal": null
+    },
+    "cal_ledger_Bc": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 0.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 4.921143115680622,
+     "reached_goal": null
+    },
+    "cal_ledger_Bf": {
+     "detected": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 6
+     },
+     "days_to_detect_median": 22.0,
+     "silent_median": 0.23897892545545307,
+     "silent_p90": 4.680269320914378,
+     "final_median": 0.2828158083349872,
+     "final_p90": 4.680269320914378,
+     "reached_goal": null
+    }
+   }
+  },
+  "frog1.02": {
+   "n": 12,
+   "sources": 10,
+   "strategies": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.4166666666666667,
+      "lo": 0.15384615384615385,
+      "hi": 0.7272727272727273,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 4.0,
+     "silent_median": 0.5185104170362741,
+     "silent_p90": 4.291877487269294,
+     "final_median": 0.6474578199418324,
+     "final_p90": 5.294111704036376,
+     "reached_goal": null
+    },
+    "frozen": {
+     "detected": {
+      "rate": 0.9166666666666666,
+      "lo": 0.7272727272727273,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 26.0,
+     "silent_median": 0.0,
+     "silent_p90": 0.0,
+     "final_median": 0.0,
+     "final_p90": 0.0,
+     "reached_goal": null
+    },
+    "rollback": {
+     "detected": {
+      "rate": 0.4166666666666667,
+      "lo": 0.15384615384615385,
+      "hi": 0.7,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 4.0,
+     "silent_median": 0.5185104170362741,
+     "silent_p90": 4.291877487269294,
+     "final_median": 0.5185104170362741,
+     "final_p90": 5.275238881701217,
+     "reached_goal": null
+    },
+    "clip": {
+     "detected": {
+      "rate": 0.8333333333333334,
+      "lo": 0.6363636363636364,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 29.0,
+     "silent_median": 0.22841779093512224,
+     "silent_p90": 5.254757072770835,
+     "final_median": 0.6474578199418324,
+     "final_p90": 5.2931213949544995,
+     "reached_goal": null
+    },
+    "cusum_r": {
+     "detected": {
+      "rate": 0.3333333333333333,
+      "lo": 0.08333333333333333,
+      "hi": 0.6003846153846133,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 20.5,
+     "silent_median": 0.5185104170362741,
+     "silent_p90": 4.291877487269294,
+     "final_median": 0.6474578199418324,
+     "final_p90": 5.294111704036376,
+     "reached_goal": null
+    },
+    "cal_ledger": {
+     "detected": {
+      "rate": 0.16666666666666666,
+      "lo": 0.0,
+      "hi": 0.38461538461538464,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 0.0,
+     "silent_median": 0.5185104170362741,
+     "silent_p90": 4.291877487269294,
+     "final_median": 0.6474578199418324,
+     "final_p90": 4.310750309604454,
+     "reached_goal": null
+    },
+    "dual": {
+     "detected": {
+      "rate": 0.3333333333333333,
+      "lo": 0.08333333333333333,
+      "hi": 0.6,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 15.5,
+     "silent_median": 0.5185104170362741,
+     "silent_p90": 4.291877487269294,
+     "final_median": 0.6114831579750915,
+     "final_p90": 4.291877487269294,
+     "reached_goal": null
+    },
+    "cal_ledger_B": {
+     "detected": {
+      "rate": 0.8333333333333334,
+      "lo": 0.5384615384615384,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 33.0,
+     "silent_median": 0.4640270527759349,
+     "silent_p90": 4.206721190768006,
+     "final_median": 0.49676835210710435,
+     "final_p90": 4.2182611968391175,
+     "reached_goal": null
+    },
+    "cal_ledger_Bc": {
+     "detected": {
+      "rate": 0.8333333333333334,
+      "lo": 0.5384615384615384,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 33.0,
+     "silent_median": 0.4640270527759349,
+     "silent_p90": 4.206721190768006,
+     "final_median": 0.49676835210710435,
+     "final_p90": 4.2182611968391175,
+     "reached_goal": null
+    },
+    "cal_ledger_Bf": {
+     "detected": {
+      "rate": 0.8333333333333334,
+      "lo": 0.5384615384615384,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 10
+     },
+     "days_to_detect_median": 33.0,
+     "silent_median": 0.47040215890877457,
+     "silent_p90": 4.206721190768006,
+     "final_median": 0.48743835879583364,
+     "final_p90": 4.2182611968391175,
+     "reached_goal": null
+    }
+   }
+  },
+  "frog1.05": {
+   "n": 33,
+   "sources": 15,
+   "strategies": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.6060606060606061,
+      "lo": 0.42424242424242425,
+      "hi": 0.7878787878787878,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 18.5,
+     "silent_median": 0.47108861646897976,
+     "silent_p90": 1.7770085162617457,
+     "final_median": 1.2496570865005205,
+     "final_p90": 2.9944704348625018,
+     "reached_goal": null
+    },
+    "frozen": {
+     "detected": {
+      "rate": 0.8484848484848485,
+      "lo": 0.6785714285714286,
+      "hi": 0.9705882352941176,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 15.0,
+     "silent_median": 0.0,
+     "silent_p90": 0.0,
+     "final_median": 0.0,
+     "final_p90": 0.0,
+     "reached_goal": null
+    },
+    "rollback": {
+     "detected": {
+      "rate": 0.6060606060606061,
+      "lo": 0.4229838709677419,
+      "hi": 0.8,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 18.5,
+     "silent_median": 0.2900171085767489,
+     "silent_p90": 1.5931674840083676,
+     "final_median": 0.47108861646897976,
+     "final_p90": 1.6028582733669485,
+     "reached_goal": null
+    },
+    "clip": {
+     "detected": {
+      "rate": 0.9393939393939394,
+      "lo": 0.84375,
+      "hi": 1.0,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 15.0,
+     "silent_median": 0.1014074162309354,
+     "silent_p90": 1.0472877157555935,
+     "final_median": 1.2496570865005205,
+     "final_p90": 2.672495061829108,
+     "reached_goal": null
+    },
+    "cusum_r": {
+     "detected": {
+      "rate": 0.5151515151515151,
+      "lo": 0.3333333333333333,
+      "hi": 0.6666666666666666,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 28.0,
+     "silent_median": 0.43082007645862186,
+     "silent_p90": 1.3505087561656022,
+     "final_median": 1.2496570865005205,
+     "final_p90": 2.9944704348625018,
+     "reached_goal": null
+    },
+    "cal_ledger": {
+     "detected": {
+      "rate": 0.15151515151515152,
+      "lo": 0.03333333333333333,
+      "hi": 0.27586206896551724,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 27.0,
+     "silent_median": 0.43082007645862186,
+     "silent_p90": 1.7770085162617457,
+     "final_median": 1.2496570865005205,
+     "final_p90": 2.9944704348625018,
+     "reached_goal": null
+    },
+    "dual": {
+     "detected": {
+      "rate": 0.5757575757575758,
+      "lo": 0.4,
+      "hi": 0.7222222222222222,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 28.0,
+     "silent_median": 0.3664983730945429,
+     "silent_p90": 1.3505087561656022,
+     "final_median": 0.7173901628560124,
+     "final_p90": 3.1348100472883846,
+     "reached_goal": null
+    },
+    "cal_ledger_B": {
+     "detected": {
+      "rate": 0.7575757575757576,
+      "lo": 0.5861350574712644,
+      "hi": 0.9117647058823529,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 27.0,
+     "silent_median": 0.43082007645862186,
+     "silent_p90": 0.9289749389163598,
+     "final_median": 0.49880870747325057,
+     "final_p90": 1.2554241639983277,
+     "reached_goal": null
+    },
+    "cal_ledger_Bc": {
+     "detected": {
+      "rate": 0.7878787878787878,
+      "lo": 0.6215222575516693,
+      "hi": 0.9166666666666666,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 27.0,
+     "silent_median": 0.43082007645862186,
+     "silent_p90": 0.6392116249818655,
+     "final_median": 0.49880870747325057,
+     "final_p90": 1.3034700484575992,
+     "reached_goal": null
+    },
+    "cal_ledger_Bf": {
+     "detected": {
+      "rate": 0.7575757575757576,
+      "lo": 0.5768939393939393,
+      "hi": 0.9090909090909091,
+      "n": 33,
+      "sources": 15
+     },
+     "days_to_detect_median": 27.0,
+     "silent_median": 0.43082007645862186,
+     "silent_p90": 0.9289749389163598,
+     "final_median": 0.48787413052114703,
+     "final_p90": 1.2958537390077167,
+     "reached_goal": null
+    }
+   }
+  },
+  "frog1.15": {
+   "n": 43,
+   "sources": 19,
+   "strategies": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.8372093023255814,
+      "lo": 0.6428571428571429,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 11.0,
+     "silent_median": 0.5084334597622656,
+     "silent_p90": 4.233933456618243,
+     "final_median": 3.3275829501853083,
+     "final_p90": 6.870585034447106,
+     "reached_goal": null
+    },
+    "frozen": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 14.0,
+     "silent_median": 0.0,
+     "silent_p90": 0.0,
+     "final_median": 0.0,
+     "final_p90": 0.0,
+     "reached_goal": null
+    },
+    "rollback": {
+     "detected": {
+      "rate": 0.8372093023255814,
+      "lo": 0.6326530612244898,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 11.0,
+     "silent_median": 0.1326076342734338,
+     "silent_p90": 4.033538175964235,
+     "final_median": 0.19157559509271938,
+     "final_p90": 4.138071926419315,
+     "reached_goal": null
+    },
+    "clip": {
+     "detected": {
+      "rate": 0.9534883720930233,
+      "lo": 0.8958333333333334,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 13.0,
+     "silent_median": 0.19571478550789467,
+     "silent_p90": 3.8163844751349254,
+     "final_median": 2.999999999999999,
+     "final_p90": 5.565428943587491,
+     "reached_goal": null
+    },
+    "cusum_r": {
+     "detected": {
+      "rate": 0.7674418604651163,
+      "lo": 0.6060406698564593,
+      "hi": 0.8909090909090909,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 15.0,
+     "silent_median": 0.11628874096209339,
+     "silent_p90": 4.233933456618243,
+     "final_median": 3.3275829501853083,
+     "final_p90": 6.870585034447106,
+     "reached_goal": null
+    },
+    "cal_ledger": {
+     "detected": {
+      "rate": 0.4883720930232558,
+      "lo": 0.3333333333333333,
+      "hi": 0.6470860566448801,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 28.0,
+     "silent_median": 0.31456722826613626,
+     "silent_p90": 4.233933456618243,
+     "final_median": 3.3275829501853083,
+     "final_p90": 4.494969178724213,
+     "reached_goal": null
+    },
+    "dual": {
+     "detected": {
+      "rate": 0.9302325581395349,
+      "lo": 0.8437088815789474,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 15.5,
+     "silent_median": 0.04896061508531373,
+     "silent_p90": 4.233933456618243,
+     "final_median": 0.9292753003568707,
+     "final_p90": 4.494969178724213,
+     "reached_goal": null
+    },
+    "cal_ledger_B": {
+     "detected": {
+      "rate": 0.9302325581395349,
+      "lo": 0.8333333333333334,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 20.0,
+     "silent_median": 0.31456722826613626,
+     "silent_p90": 4.0522282972890835,
+     "final_median": 0.4998132644703511,
+     "final_p90": 4.058330105535963,
+     "reached_goal": null
+    },
+    "cal_ledger_Bc": {
+     "detected": {
+      "rate": 0.9302325581395349,
+      "lo": 0.8333333333333334,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 19.0,
+     "silent_median": 0.31456722826613626,
+     "silent_p90": 3.8825855806187937,
+     "final_median": 0.49998925633002267,
+     "final_p90": 4.375227079082421,
+     "reached_goal": null
+    },
+    "cal_ledger_Bf": {
+     "detected": {
+      "rate": 0.9302325581395349,
+      "lo": 0.8333333333333334,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "days_to_detect_median": 20.0,
+     "silent_median": 0.31456722826613626,
+     "silent_p90": 4.0522282972890835,
+     "final_median": 0.491918430626663,
+     "final_p90": 4.0522282972890835,
+     "reached_goal": null
+    }
+   }
+  },
+  "greedy": {
+   "n": 41,
+   "sources": 19,
+   "strategies": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": NaN,
+     "silent_median": 6.565356806305164,
+     "silent_p90": 7.04145341128266,
+     "final_median": 6.565356806305164,
+     "final_p90": 7.04145341128266,
+     "reached_goal": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "frozen": {
+     "detected": {
+      "rate": 0.07317073170731707,
+      "lo": 0.0,
+      "hi": 0.18604651162790697,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 26.0,
+     "silent_median": 0.0,
+     "silent_p90": 0.0,
+     "final_median": 0.0,
+     "final_p90": 0.0,
+     "reached_goal": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "rollback": {
+     "detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": NaN,
+     "silent_median": 6.473781211141104,
+     "silent_p90": 7.04145341128266,
+     "final_median": 6.473781211141104,
+     "final_p90": 7.04145341128266,
+     "reached_goal": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "clip": {
+     "detected": {
+      "rate": 0.024390243902439025,
+      "lo": 0.0,
+      "hi": 0.07317073170731707,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 1.0,
+     "silent_median": 4.228638970018022,
+     "silent_p90": 6.272470072010434,
+     "final_median": 4.2854312007373405,
+     "final_p90": 6.272470072010434,
+     "reached_goal": {
+      "rate": 0.14634146341463414,
+      "lo": 0.047619047619047616,
+      "hi": 0.2501225490196072,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "cusum_r": {
+     "detected": {
+      "rate": 0.8048780487804879,
+      "lo": 0.6756756756756757,
+      "hi": 0.9090909090909091,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 7.0,
+     "silent_median": 0.4624752452500709,
+     "silent_p90": 6.173447358428316,
+     "final_median": 6.565356806305164,
+     "final_p90": 7.04145341128266,
+     "reached_goal": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "cal_ledger": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 21.0,
+     "silent_median": 3.9360631470114917,
+     "silent_p90": 4.618802153517006,
+     "final_median": 3.9897012666710365,
+     "final_p90": 8.17391249769802,
+     "reached_goal": {
+      "rate": 0.34146341463414637,
+      "lo": 0.19044401544401543,
+      "hi": 0.48890070921985807,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "dual": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 7.0,
+     "silent_median": 0.4624752452500709,
+     "silent_p90": 4.618802153517006,
+     "final_median": 4.802608444042784,
+     "final_p90": 8.772470072010433,
+     "reached_goal": {
+      "rate": 0.2926829268292683,
+      "lo": 0.1555128205128205,
+      "hi": 0.43904878048780477,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "cal_ledger_B": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 14.0,
+     "silent_median": 0.4862569099569578,
+     "silent_p90": 4.618802153517006,
+     "final_median": 6.109313659800794,
+     "final_p90": 9.827649423380432,
+     "reached_goal": {
+      "rate": 0.5609756097560976,
+      "lo": 0.375,
+      "hi": 0.75,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "cal_ledger_Bc": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 13.0,
+     "silent_median": 0.4862569099569578,
+     "silent_p90": 4.618802153517006,
+     "final_median": 5.703084327150387,
+     "final_p90": 9.827649423380432,
+     "reached_goal": {
+      "rate": 0.4878048780487805,
+      "lo": 0.32558139534883723,
+      "hi": 0.6511627906976745,
+      "n": 41,
+      "sources": 19
+     }
+    },
+    "cal_ledger_Bf": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 41,
+      "sources": 19
+     },
+     "days_to_detect_median": 14.0,
+     "silent_median": 0.4703022372199225,
+     "silent_p90": 4.618802153517006,
+     "final_median": 2.1470278076870657,
+     "final_p90": 9.237604307034012,
+     "reached_goal": {
+      "rate": 0.12195121951219512,
+      "lo": 0.046485200845665965,
+      "hi": 0.2069128171763174,
+      "n": 41,
+      "sources": 19
+     }
+    }
+   }
+  }
+ }
+}

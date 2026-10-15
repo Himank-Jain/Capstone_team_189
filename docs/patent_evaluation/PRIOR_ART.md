@@ -13,7 +13,7 @@ be commissioned before filing. Nothing here is legal advice.
 | Sequential change detection on a residual (CUSUM) | Page, *Biometrika* 1954; Page–Hinkley; ADWIN (concept-drift literature, e.g. "Learning under Concept Drift: A Review", arXiv 2004.05785) | Not novel on its own. Our trigger is a textbook CUSUM. |
 | Adaptive behavioural baselines that learn from new data | Netskope US10270788 (online streaming learner, "old unusual patterns become the new norm if they persist"); Splunk/Cisco US9516053 ("baseline profiles can be continuously updated"); Darktrace US12223046 (self-learning "pattern of life... dynamically updated") | The vulnerability we address is the disclosed normal operating mode of these systems. |
 | Updating the baseline only after the change is judged legitimate | US9516053 describes updating a baseline when the behaviour change "has been resolved and deemed legitimate" by the platform or an administrator | **Closest conceptual art for hold-then-promote.** It gives no shadow state, no cap, no evidence weighting, no attribution to a trusted snapshot. |
-| Candidate/shadow model compared with the incumbent, then kept or discarded | PurePredictive WO2017201107 (retrain module, A/B trial of retrained vs original, keep the better); "challenger" patterns in ML-ops generally; arXiv 2609.04388 on conditional validation before promoting candidates in adaptive intrusion detection (title/abstract seen only, **PDF not readable, must be read**) | Shadow-and-promote by accuracy is known. Ours promotes on baseline-state stability and evidence, which is not accuracy-based, but an examiner will cite these. |
+| Candidate/shadow model compared with the incumbent, then kept or discarded | PurePredictive WO2017201107 (retrain module, A/B trial of retrained vs original, keep the better); "challenger" patterns in ML-ops generally; Fernández-Barrios et al., arXiv 2609.04388, "Candidate Comparability Before Promotion: Conditional Validation in Adaptive Network Intrusion Detection" (read in this pass, see section 6) | Shadow-and-promote by accuracy is known. Ours promotes on baseline-state stability and evidence, which is not accuracy-based, but an examiner will cite these. |
 | Bounding the influence of each update; attacker gain bounded by constraints | Kloft & Laskov, *Security Analysis of Online Centroid Anomaly Detection*, JMLR 13 (2012), and AISTATS 2010: poisoning of online centroid detectors; with external constraints the attacker's gain has a strict upper bound; bounded false-positive rate | Bounded influence of a poisoning attacker is **known and analysed**. Our headline "bounded drift" cannot be claimed as such. |
 | Stealth/gradual poisoning ("frog-boiling") defeats per-update outlier rejection, history bounds, Kalman prediction and reputation | Chan-Tin, Heorhiadi, Hopper, Kim, *The Frog-Boiling Attack*, SecureComm 2009 / ACM TISSEC 2011; Rubinstein et al., ANTIDOTE, IMC 2009 (PCA subspace detectors poisoned over weeks; robust-PCA defence); Kravchik & Shabtai, "Can't Boil This Frog" (arXiv 2002.02741); Kravchik, Biggio, Shabtai (arXiv 2012.15740, 2020) | The attack is well documented. Our motivation is not new; our defence has to differ from rejection, bounding and robust statistics. |
 | Selective updating from recent, sufficiently similar samples; memory filtering; consensus; quarantine mixtures | FITNESS, MemStream, CIoTA, Xiang & Miller (second-hand, via the Lacuna survey page) | Update-filtering defences exist. None seen holds updates into a shadow and promotes by capped steps. |
@@ -98,7 +98,7 @@ is still not a formal search.**
 | 3 | calibration period validation poisoning anomaly detector threshold bound cohort fallback online learning defense | Kloft & Laskov, Rubinstein et al. (already known); two 2026 arXiv items on self-poisoning in adaptive OOD detection and memory poisoning (titles only, not read). |
 | 4 | US patent "baseline" "snapshot" anomaly detection "update" suspended "shadow model" candidate promoted only after validation | US8887286B2 (opened, see below); US20170063905A1 and about eight other result titles were not opened. None of those opened describes a shadow baseline. |
 | 5 | "data poisoning" anomaly detection "gradual" "baseline" patent claims "limiting the rate" of baseline change | US12405930B2, US12423280B2 (Dell): poisoned-data curation; Berkeley "stealthy poisoning" reports. |
-| 6 | arXiv 2609.04388 (direct fetch and search) | **Not readable.** The abstract page returns an empty PDF placeholder; the API host disallows the fetch. Still unread. |
+| 6 | arXiv 2609.04388 (direct fetch and search) | `arxiv.org/pdf/2609.04388` returned an empty body and the API host disallowed the fetch. The text was read through the ar5iv rendering and the arXiv HTML (v1); see section 6. |
 
 Classes that a formal search should cover: G06N 20/00, G06N 3/08 (training, poisoning), G06F 21/55 (detecting local intrusion
 or anomalies), G06F 21/56, H04L 63/1425 (traffic anomaly), H04L 41/16 and G06F 11/34 (monitoring, AIOps).
@@ -125,8 +125,37 @@ or anomalies), G06F 21/56, H04L 63/1425 (traffic anomaly), H04L 41/16 and G06F 1
 | WO2017201107 PurePredictive | training-data range checks | A/B trial by accuracy; no cap, ledger |
 | US8887286 Allied/Adobe | none | persisted model history; no cap or restore point |
 | US12423280 / US12405930 Dell | data-curation screening, not baseline state | no |
-| arXiv 2609.04388 | **not read** | **not read** |
+| arXiv 2609.04388 | not addressed: it concerns replacing a classifier, not stored baseline state; poisoning is explicitly out of scope | classifier-level promotion gate by a labelled probe; no shadow *baseline*, no capped steps, no restore point (see section 6) |
 
 **Statement for the file.** In the searches above nothing closer than US9516053 (hold-until-legitimate) and Kloft & Laskov
 (bounded influence) was found, but the search was not formal and one candidate reference could not be read; this is not a finding
 that nothing closer exists.
+
+
+## 6. arXiv 2609.04388 (read 15 October 2026)
+
+Fernández-Barrios et al. (Deusto), *Candidate Comparability Before Promotion: Conditional Validation in Adaptive Network
+Intrusion Detection*, Int. J. Inf. Security. **How it was read:** the PDF endpoint returned nothing; the text was taken from
+the ar5iv rendering and the arXiv HTML v1 page. The HTML extraction stopped inside section 5.7, so the replay details of 5.8 and
+the discussion in sections 6 to 8 were **not** read, and the reference list was not checked. Treat the summary below as covering
+the introduction, method and most of the results only.
+
+| Question | What the paper does |
+|---|---|
+| What is promoted | A retrained **classifier** (a challenger) replaces the deployed one (the incumbent) after a drift alarm. |
+| Gates compared | Always deploy; a point gate (promote if the challenger's balanced accuracy on a small labelled probe is at least the incumbent's); a strict gate; a disagreement gate; and secondary risk-controlled gates (McNemar, confidence sequences, commit/reject/defer). |
+| Data | CICIDS2017, UNSW-NB15 and ToN-IoT; thirteen chronological replays of real traffic; SVC-RBF main pipeline. |
+| Poisoning or adversarial drift | **Not addressed**; the paper disclaims defence against a manipulated probe. |
+| Shadow state, capped or stepwise promotion, restore point | **Not present.** Shadow models appear only in related work. The paper logs each trigger and hashes streams and preprocessing, which is experiment provenance, not a revertible ledger. |
+| Headline finding | Whether gating helps depends on the configuration: with self-contained challengers and 2,000 samples per class the gates add no average benefit over always deploy, and across the 13 replays always-deploy showed **no net harm**. The paper says that this does not bound how often harm occurs. |
+
+**What this means for the proposal.**
+
+1. It is the closest *academic* statement that promotion after a drift alarm is a security-relevant decision, so it will be
+   cited. It differs from claim 2 in object (a classifier versus a stored baseline snapshot), in validation (a labelled probe
+   versus baseline-state stability), and in having no cap, ledger or restore point.
+2. It is **evidence against** the premise that a gate is always needed: in its setting, committing every proposal did no net
+   harm. Our setting differs (an attacker can steer the data the baseline learns from, which that paper excludes), but the
+   specification must not claim that gating is generally beneficial, only that it avoids absorbing a slow attacker, at the cost
+   measured in `FINAL_TABLES.md`.
+3. Nothing in the part read describes a validated displacement bound with a hold (claim 1).

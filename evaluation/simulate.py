@@ -84,6 +84,8 @@ class RunResult:
     first_alert_day: Optional[int] = None
     drift_daily: List[float] = field(default_factory=list)  # stored drift (sigma) at the end of each day
     ledger: list = field(default_factory=list)
+    max_cusum: float = 0.0  # largest value of the sequential statistic after BOUNDS_DAY (null-calibration runs)
+    goal_day: Optional[int] = None  # greedy attacker: first day the stored baseline had moved by the attacker's goal
 
     def first_alert_after(self, day: int) -> Optional[int]:
         later = [d for d in self.alert_days if d >= day]
@@ -136,18 +138,19 @@ def run(
     floor: Optional[float] = None,
     guard_config: Optional[GuardConfig] = None,
     corroborated: Optional[bool] = None,
+    raw_bounds: Optional[Tuple[float, float]] = None,
 ) -> RunResult:
     values = series if series is not None else apply_scenario(entity, scenario)
     res = RunResult()
     eid = f"{entity.entity_id}:{METRIC}"
 
     guard_mode = strategy.startswith("guard")
-    gov = strategy in ("guard_gov", "guard_cgov", "guard_full", "guard_dual")  # calibrated bounds + CUSUM trigger on the residual vs the trusted snapshot
+    gov = strategy in ("guard_gov", "guard_cgov", "guard_full", "guard_dual", "guard_dualprobe")  # calibrated bounds + CUSUM trigger on the residual vs the trusted snapshot
     gov_x: List[float] = []
     gov_ref: List[float] = []
     gov_mu = gov_sd = None
     gs_pos = gs_neg = 0.0
-    probe = strategy == "guard_probe"
+    probe = strategy in ("guard_probe", "guard_dualprobe")
     fixed_bound = float(strategy.split("guard_b")[1]) if strategy.startswith("guard_b") else None
     window = 90 if strategy == "longwin" else 30
     guard = DriftGuard(guard_config or GuardConfig()) if guard_mode else None
@@ -162,6 +165,7 @@ def run(
     checkpoints: List[Tuple[int, dict]] = []
     traces = {"d_w": [], "d_c": [], "signed": [], "day": []}
 
+    greedy = scenario.kind == "greedy"  # Kloft & Laskov style edge-of-acceptance attacker (closed loop)
     for day in range(END_DAY):
         flags_today = 0
 
@@ -179,7 +183,7 @@ def run(
                 guard.set_bounds(eid, fixed_bound / 2.0, fixed_bound)
                 res.bounds, res.bound_source = (fixed_bound / 2.0, fixed_bound), "fixed"
             else:
-                _install_bounds(guard, eid, strategy, traces, res, validate_calibration, cohort_stats, default_bounds, margin, floor)
+                _install_bounds(guard, eid, strategy, traces, res, validate_calibration, cohort_stats, default_bounds, margin, floor, raw_bounds)
                 if strategy in ("guard_cgov", "guard_full", "guard_dual"):  # the sequential detector is the only trigger; bounds only size the ledger step
                     guard.set_ledger_unit(eid, res.bounds[1])
                     if strategy != "guard_dual":  # dual keeps the calibrated bounds as a second trigger
@@ -192,6 +196,12 @@ def run(
         for hour in range(24):
             v = float(values[day * 24 + hour])
             ts = _timestamp(day, hour)
+            if greedy and day >= scenario.start and res.goal_day is None:
+                # the attacker adds load so that each reading sits just inside the acceptance region of the deployed
+                # detector (z just under the threshold), which is the greedy optimum against a centroid-style update
+                st_g = store.get_bucket_state(BucketKeyResolver().resolve(entity.entity_id, METRIC, ts))
+                if st_g is not None and st_g.count >= 5 and st_g.std > 0:
+                    v = max(v, st_g.mean + scenario.magnitude * st_g.std)
             point = MetricPoint(entity.entity_id, METRIC, ts, v)
 
             if strategy in ("adaptive", "longwin", "cusum", "cusum_r", "rollback") or guard_mode:
@@ -272,6 +282,7 @@ def run(
                     zd = max(-zclip, min(zclip, zd))
                 gs_pos = max(0.0, gs_pos + zd - CUSUM_K)
                 gs_neg = max(0.0, gs_neg - zd - CUSUM_K)
+                res.max_cusum = max(res.max_cusum, gs_pos, gs_neg)
                 if (gs_pos > cusum_h or gs_neg > cusum_h) and not guard.is_held(eid):
                     gs_pos = gs_neg = 0.0
                     new_inc = guard.trip(eid, day_epoch(day))
@@ -308,6 +319,8 @@ def run(
             res.held_end_days.add(day)
         if day >= SNAPSHOT_DAY:
             res.drift_daily.append(_drift_stats(store, snapshots))
+            if greedy and res.goal_day is None and day >= scenario.start and res.drift_daily[-1] >= scenario.payload:
+                res.goal_day = day
 
         if res.first_alert_drift is None and day >= scenario.start and day in res.alert_days:
             res.first_alert_drift = _drift_stats(store, snapshots)
@@ -328,7 +341,7 @@ def day_epoch(day: int) -> float:
     return _timestamp(day, 0).timestamp() / 86400.0
 
 
-def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, default_bounds, margin, floor=None):
+def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, default_bounds, margin, floor=None, raw_bounds=None):
     dflt = default_bounds or (1.0, 2.0)
     if strategy == "guard_default":
         guard.set_bounds(eid, *dflt)
@@ -355,6 +368,7 @@ def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, d
         default=dflt,
         margin=margin,
         **({"floor": floor} if floor is not None else {}),
+        raw_bounds=raw_bounds,
     )
     guard.set_bounds(eid, cal.windowed, cal.cumulative)
     res.bounds, res.bound_source, res.calib_checks = (cal.windowed, cal.cumulative), cal.source, cal.checks
