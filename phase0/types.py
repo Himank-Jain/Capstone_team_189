@@ -81,3 +81,9 @@ class ScoreResult:
     baseline_std: float
     scored_at: datetime
     cold_start: bool = False  # True if bucket had too few samples to score reliably
+    # Drift-guard outcome (defaults keep the type backward compatible).
+    guard_evaluated: bool = False  # the guard had a snapshot and judged this reading
+    guard_held: bool = False  # reading was kept out of the baseline
+    guard_incident: bool = False  # first hold on this bucket: raise one incident
+    guard_d_cumulative: float = 0.0
+    guard_d_windowed: float = 0.0

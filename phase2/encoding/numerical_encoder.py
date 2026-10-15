@@ -39,26 +39,58 @@ class NumericalEncoder:
         {metric_name: (mean, std)} — sourced from FeatureMetaStore, which
         in turn must come from the SAME compute_metric_value_stats()
         output used to train the loaded TstccEncoder checkpoint.
+    online_oov_stats:
+        If True, a metric the checkpoint has never seen is standardised with
+        statistics learned online from its own readings (Welford), instead of
+        passing through unscaled. Until ``online_min_count`` readings have been
+        seen it encodes as 0.0 (the neutral value), so a brand-new metric cannot
+        inject a huge raw magnitude into the encoder. In-vocabulary metrics are
+        untouched, so behaviour on the trained schema is identical. Default
+        False keeps the original training-time fallback.
     """
 
-    def __init__(self, metric_value_stats_dict: Dict[str, Tuple[float, float]]) -> None:
+    def __init__(
+        self,
+        metric_value_stats_dict: Dict[str, Tuple[float, float]],
+        online_oov_stats: bool = False,
+        online_min_count: int = 8,
+    ) -> None:
         self._stats_dict = metric_value_stats_dict
         self._oov_metric_count = 0
+        self._online = online_oov_stats
+        self._online_min = online_min_count
+        self._online_state: Dict[str, Tuple[int, float, float]] = {}  # count, mean, m2
 
     def encode(self, metric_name: str, raw_value: float) -> float:
         """Z-score `raw_value` using metric_name's precomputed (mean, std)."""
         value = (
             0.0 if raw_value is None or raw_value != raw_value else float(raw_value)
         )  # NaN check
-        mean, std = self._stats_dict.get(metric_name, (0.0, 1.0))
         if metric_name not in self._stats_dict:
             self._oov_metric_count += 1
+            if self._online:
+                return self._encode_online(metric_name, value)
             logger_obj.debug(
                 "[NumericalEncoder] No stats for metric_name=%r — using "
                 "mean=0.0/std=1.0 fallback (value passes through unscaled)",
                 metric_name,
             )
+        mean, std = self._stats_dict.get(metric_name, (0.0, 1.0))
         return (value - mean) / (std + AUG_VALUE_NORM_EPS)
+
+    def _encode_online(self, metric_name: str, value: float) -> float:
+        count, mean, m2 = self._online_state.get(metric_name, (0, 0.0, 0.0))
+        if count >= self._online_min:
+            std = (m2 / count) ** 0.5
+            out = (value - mean) / (std + AUG_VALUE_NORM_EPS)
+        else:
+            out = 0.0
+        count += 1
+        delta = value - mean
+        mean += delta / count
+        m2 += delta * (value - mean)
+        self._online_state[metric_name] = (count, mean, m2)
+        return out
 
     @property
     def oov_metric_count(self) -> int:

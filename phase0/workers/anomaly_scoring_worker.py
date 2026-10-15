@@ -15,10 +15,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import statistics
 from typing import Callable, List, Optional
 
 from phase0.baseline.rolling_baseline_store import RollingBaselineStore
 from phase0.bucketing.bucket_key_resolver import BucketKeyResolver
+from phase0.guard.drift_guard import DriftGuard, GuardAction
 from phase0.scoring.zscore_scorer import ZScoreScorer
 from phase0.seasonality.seasonality_classifier import SeasonalityClassifier
 from phase0.streaming.base_stream_reader import BaseStreamReader
@@ -53,6 +55,7 @@ class AnomalyScoringWorker:
         seasonality_classifier: Optional[SeasonalityClassifier] = None,
         scorer: Optional[ZScoreScorer] = None,
         poll_timeout_ms: int = 1000,
+        guard: Optional[DriftGuard] = None,
     ) -> None:
         self._stream_reader = stream_reader
         self._baseline_store = baseline_store
@@ -62,6 +65,8 @@ class AnomalyScoringWorker:
         self._scorer = scorer or ZScoreScorer()
         self._poll_timeout_ms = poll_timeout_ms
         self._running = False
+        self._guard = guard
+        self._seen_buckets: set = set()
 
         self.points_processed_total: int = 0
         self.anomalies_flagged_total: int = 0
@@ -72,7 +77,11 @@ class AnomalyScoringWorker:
         stream at all — safe to call directly in tests.
         """
         if self._seasonality_classifier.is_seasonal(point.vm_id, point.metric_name):
-            bucket_key = self._bucket_resolver.resolve(point.vm_id, point.metric_name, point.timestamp)
+            bucket_key = self._bucket_resolver.resolve(
+                point.vm_id,
+                point.metric_name,
+                point.timestamp,
+            )
         else:
             bucket_key = BucketKeyResolver.resolve_global(point.vm_id, point.metric_name)
 
@@ -85,11 +94,79 @@ class AnomalyScoringWorker:
             point.vm_id, point.metric_name, bucket_key, point.value, bucket_state,
         )
 
+        self._seen_buckets.add(bucket_key)
+
         # Update AFTER scoring — score against the baseline as it stood
         # BEFORE this point, then fold this point in for future points.
-        self._baseline_store.update_bucket(bucket_key, point.value)
+        entity = f"{point.vm_id}:{point.metric_name}"
+        if self._guard is not None and self._guard.has_snapshot(entity, bucket_key):
+            day = point.timestamp.timestamp() / 86400.0
+            proposed = self._baseline_store.preview_update(bucket_key, point.value)
+            window = list(proposed.window)
+            median = statistics.median(window)
+            decision = self._guard.evaluate(entity, bucket_key, median, point.value, day)
+            result.guard_evaluated = True
+            result.guard_d_cumulative = decision.d_cumulative
+            result.guard_d_windowed = decision.d_windowed
+            if decision.action is GuardAction.HOLD:
+                result.guard_held = True
+                result.guard_incident = decision.new_incident
+                return result
+            self._baseline_store.update_bucket(bucket_key, point.value)
+            self._guard.record_accepted(entity, bucket_key, median, day)
+            return result
 
+        self._baseline_store.update_bucket(bucket_key, point.value)
         return result
+
+    def promote_held(
+        self,
+        day: float,
+        cohort_same_direction_fraction: float,
+        operator_approved: bool = False,
+    ) -> int:
+        """Try to promote every held entity's shadow baseline. ``day`` is in
+        epoch days. Returns the number of entities promoted; entities that do
+        not qualify stay held."""
+        if self._guard is None:
+            return 0
+        promoted = 0
+        for entity in self._guard.held_entities():
+            plan = self._guard.try_promote(
+                entity, day, cohort_same_direction_fraction, operator_approved,
+            )
+            if plan is None:
+                continue
+            buckets = [k for k in self._seen_buckets if f"{k.vm_id}:{k.metric_name}" == entity]
+            for key in buckets:
+                if key in plan.bucket_values:
+                    values = plan.bucket_values[key]
+                else:
+                    state = self._baseline_store.get_bucket_state(key)
+                    if state is None:
+                        continue
+                    shift = plan.shift_sigma * plan.scales.get(key, 0.0)
+                    values = [v + shift for v in state.window]
+                self._baseline_store.reseed_bucket(key, values)
+            self._guard.complete_promotion(entity)
+            self.freeze_snapshots(day, only_entity=entity)
+            promoted += 1
+        return promoted
+
+    def freeze_snapshots(self, day: float, only_entity: Optional[str] = None) -> int:
+        """Take the guard's trusted snapshot of every bucket seen so far
+        (optionally for one entity). Returns the number of buckets snapshotted."""
+        if self._guard is None:
+            return 0
+        taken = 0
+        for key in list(self._seen_buckets):
+            entity = f"{key.vm_id}:{key.metric_name}"
+            if only_entity is not None and entity != only_entity:
+                continue
+            state = self._baseline_store.get_bucket_state(key)
+            if state is not None and self._guard.take_snapshot(entity, key, list(state.window), day):
+                taken += 1
+        return taken
 
     def process_batch(self, points: List[MetricPoint]) -> List[ScoreResult]:
         """Process a list of points synchronously, publishing each via
@@ -105,7 +182,9 @@ class AnomalyScoringWorker:
                 try:
                     self._on_score(result)
                 except Exception:
-                    logger_obj.exception("[AnomalyScoringWorker] on_score callback failed — continuing")
+                    logger_obj.exception(
+                        "[AnomalyScoringWorker] on_score callback failed — continuing"
+                    )
             except Exception:
                 logger_obj.exception(
                     "[AnomalyScoringWorker] Failed to process point %r — skipping", point

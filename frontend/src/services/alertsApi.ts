@@ -1,31 +1,18 @@
-import { fetchJson, getApiBase, getTenantHeaders } from './apiClient';
+import { fetchJson, getApiBase, getTenantHeaders, isMockMode } from './apiClient';
+import { MOCK_ALERTS } from './mockData';
+import type { AlertPayload } from '../types/contracts';
 
-export interface AlertPayload {
-  alert_id: string;
-  entity_id: string;
-  batch_ts: string;
-  final_score: number;
-  severity: string;
-  sev_level: string;
-  deviation_score: number;
-  drift_score: number;
-  similarity_score: number;
-  similar_episodes: Array<Record<string, unknown>>;
-  related_ids: string[];
-  group_type: string;
-  target_team: string;
-  notify_method: string;
-  cloud_provider: string;
-  region: string;
-}
+export type { AlertPayload } from '../types/contracts';
 
 export async function getRecentAlerts(): Promise<AlertPayload[]> {
+  if (isMockMode()) return MOCK_ALERTS;
   return fetchJson<AlertPayload[]>(`${getApiBase()}/alerts/recent`, {
     headers: getTenantHeaders(),
   });
 }
 
 export async function getAlertDetails(alertId: string): Promise<AlertPayload> {
+  if (isMockMode()) return MOCK_ALERTS.find((alert) => alert.alert_id === alertId) || MOCK_ALERTS[0];
   return fetchJson<AlertPayload>(`${getApiBase()}/alerts/${alertId}`, {
     headers: getTenantHeaders(),
   });

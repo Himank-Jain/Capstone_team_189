@@ -79,7 +79,12 @@ class RollingBaselineStore:
         if bucket_key.is_global():
             return f"{self._key_prefix}:{bucket_key.vm_id}:{bucket_key.metric_name}:global"
 
-        parts = [self._key_prefix, bucket_key.vm_id, bucket_key.metric_name, f"hour{bucket_key.hour:02d}"]
+        parts = [
+            self._key_prefix,
+            bucket_key.vm_id,
+            bucket_key.metric_name,
+            f"hour{bucket_key.hour:02d}",
+        ]
         if bucket_key.is_weekend is True:
             parts.append("weekend")
         elif bucket_key.is_weekend is False:
@@ -154,6 +159,25 @@ class RollingBaselineStore:
             f"[RollingBaselineStore] Failed to update {redis_key} after "
             f"{MAX_WATCH_RETRIES} WATCH retries — unexpectedly high contention"
         )
+
+    def reseed_bucket(self, bucket_key: BucketKey, values) -> BucketState:
+        """Replace a bucket's state with one built from ``values`` (used when
+        the drift guard promotes a shadow baseline). Keeps at most
+        ``window_size`` most recent values."""
+        state = BucketState()
+        for v in list(values)[-self._window_size:]:
+            state = self._apply_update(state, float(v))
+        self._write_state(bucket_key, state)
+        return state
+
+    def _write_state(self, bucket_key: BucketKey, state: BucketState) -> None:
+        self._redis.set(self.redis_key(bucket_key), self._serialize(state))
+
+    def preview_update(self, bucket_key: BucketKey, new_value: float) -> BucketState:
+        """Return the state that update_bucket() WOULD produce, without
+        writing it. Used by the drift guard to test a proposed update."""
+        current = self.get_bucket_state(bucket_key) or BucketState()
+        return self._apply_update(current, new_value)
 
     def _apply_update(self, state: BucketState, new_value: float) -> BucketState:
         """Pure state-transition logic, factored out so it's testable

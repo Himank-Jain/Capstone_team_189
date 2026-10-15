@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -66,13 +66,26 @@ class RecordEncoder:
         lengths_tensor rather than zero-padded to look like real data.
     """
 
-    def __init__(self, feature_meta: FeatureMetaStore, seq_len: int = DEFAULT_SEQ_LEN) -> None:
+    def __init__(
+        self,
+        feature_meta: FeatureMetaStore,
+        seq_len: int = DEFAULT_SEQ_LEN,
+        online_oov_stats: bool = False,
+    ) -> None:
         self._seq_len = seq_len
         self._categorical_encoder = CategoricalEncoder(feature_meta.vocab_maps_dict)
-        self._numerical_encoder = NumericalEncoder(feature_meta.metric_value_stats_dict)
+        self._numerical_encoder = NumericalEncoder(
+            feature_meta.metric_value_stats_dict, online_oov_stats=online_oov_stats
+        )
         self._context_encoder = ContextEncoder()
 
-    # â”€â”€ Single-entity encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    def observe_records(self, records: List[RawRecord]) -> None:
+        """Feed readings to the online OOV statistics without encoding a window
+        (warm-up). No effect on in-vocabulary metrics or when online mode is off."""
+        for rec in sorted(records, key=lambda r: (r.timestamp, r.metric_name)):
+            self._numerical_encoder.encode(rec.metric_name, rec.value)
+
+    # Single-entity encodingâ”€
 
     def encode_entity_records(self, records: List[RawRecord]) -> Dict[str, torch.Tensor]:
         """
@@ -123,7 +136,7 @@ class RecordEncoder:
             "timestamps": torch.tensor(timestamp_rows, dtype=torch.float32),
         }
 
-    # â”€â”€ Batch encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Batch encoding
 
     def encode_event_batch(self, batch: EventBatch) -> Dict[str, Dict[str, torch.Tensor]]:
         """

@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --color-app-bg: #0e1714;
+  --color-app-surface: #15211d;
+  --color-app-raised: #1b2b25;
+  --color-app-border: #30443a;
+  --color-app-text: #f1f4ec;
+  --color-app-muted: #a7b8ad;
+  --color-brand: #a3e635;
+  --color-accent: #67e8d0;
+  --color-severity-low: #78c98d;
+  --color-severity-medium: #f5bc57;
+  --color-severity-high: #fb956a;
+  --color-severity-critical: #fb8079;
+  --color-status-open: #fb956a;
+  --color-status-acknowledged: #67e8d0;
+  --color-status-resolved: #78c98d;
+  --color-status-regression: #c3a0ff;
+  --color-confidence-high: #78c98d;
+  --color-confidence-medium: #f5bc57;
+  --color-confidence-low: #a7b8ad;
+  --color-overlay: rgb(0 0 0 / 65%);
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --radius-card: 0.75rem;
+  --radius-control: 0.5rem;
+  --radius-pill: 999px;
+  --spacing-page: 1.75rem;
+  --shadow-panel: 0 18px 48px rgb(0 0 0 / 18%);
+  --font-sans: "Segoe UI", "Trebuchet MS", sans-serif;
+  --font-display: "Bahnschrift", "Segoe UI", sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --color-text-primary: var(--color-app-text);
+  --color-text-muted: var(--color-app-muted);
+  --color-surface-page: var(--color-app-bg);
+  --color-surface-panel: var(--color-app-surface);
+  --color-surface-raised: var(--color-app-raised);
+  --color-border-default: var(--color-app-border);
+  --color-brand-accent: var(--color-brand);
+  --color-feedback-error: var(--color-severity-critical);
+  --color-feedback-warning: var(--color-severity-medium);
+  --color-feedback-success: var(--color-severity-low);
+  --color-neutral-subtle: var(--color-app-muted);
+  --color-white: var(--color-app-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+  background: var(--color-surface-page);
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}

@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8001";
 const TENANT_KEY = "capstone.activeTenantId";
+const USER_KEY = "capstone.userId";
+const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true';
+
+export function isMockMode(): boolean {
+  return MOCK_MODE;
+}
 
 export function getApiBase() {
   return API_BASE;
@@ -19,7 +25,11 @@ export function getTenantHeaders(): Record<string, string> {
     tenantId = 'google';
     setActiveTenantId(tenantId);
   }
-  return { "X-Tenant-Id": tenantId };
+  const userId = localStorage.getItem(USER_KEY);
+  return {
+    "X-Tenant-Id": tenantId,
+    ...(userId ? { "X-User-Id": userId } : {}),
+  };
 }
 
 export async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {

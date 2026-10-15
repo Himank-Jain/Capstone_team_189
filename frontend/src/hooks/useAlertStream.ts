@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isMockMode } from '../services/apiClient';
 
 const DEFAULT_API_BASE = 'http://127.0.0.1:8001';
 const MAX_RECONNECT_ATTEMPTS = 15; // Stop trying after 15 attempts
@@ -7,10 +8,10 @@ const HEARTBEAT_STALE_MS = 90000;
 
 export type AlertStreamConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
-export default function useAlertStream(onMessage: (msg: any) => void) {
+export default function useAlertStream(onMessage: (msg: unknown) => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const onMessageRef = useRef(onMessage);
-  const [connectionState, setConnectionState] = useState<AlertStreamConnectionState>('connecting');
+  const [connectionState, setConnectionState] = useState<AlertStreamConnectionState>(isMockMode() ? 'disconnected' : 'connecting');
   const [error, setError] = useState<string | null>(null);
   const lastHeartbeatAtRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -23,6 +24,12 @@ export default function useAlertStream(onMessage: (msg: any) => void) {
 
   useEffect(() => {
     mountedRef.current = true;
+    if (isMockMode()) {
+      // Mock mode has no backend: do not open a socket that can only fail.
+      return () => {
+        mountedRef.current = false;
+      };
+    }
     const base = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
     const wsUrl = base.replace(/^http/, 'ws') + '/ws/heartbeat';
 
@@ -53,7 +60,7 @@ export default function useAlertStream(onMessage: (msg: any) => void) {
           lastHeartbeatAtRef.current = Date.now();
           setConnectionState('connected');
           try {
-            const payload = JSON.parse(event.data);
+            const payload: unknown = JSON.parse(event.data);
             onMessageRef.current(payload);
           } catch {
             onMessageRef.current(event.data);
@@ -129,9 +136,7 @@ export default function useAlertStream(onMessage: (msg: any) => void) {
       clearInterval(staleHeartbeatTimer);
       if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
       if (wsRef.current) {
-        try {
-          wsRef.current.close();
-        } catch {}
+        wsRef.current.close();
       }
       wsRef.current = null;
     };

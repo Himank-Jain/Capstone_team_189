@@ -63,6 +63,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+import yaml
 
 from phase1.corpus.base_historical_record_provider import BaseHistoricalRecordProvider
 from phase1.models.tstcc_encoder import TstccEncoder, build_tstcc_encoder_for_aug_pairs
@@ -85,6 +86,36 @@ logger_obj: logging.Logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 # Registry loading (see module docstring's "Registry-loading note")
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def resolve_registry_path(raw_path_str: str, manifest_path: Path) -> Path:
+    """Resolve a path stored in the manifest on any OS.
+
+    The manifest records whatever the writer's machine used: relative
+    Windows paths ("model_registry\\x.pt") and absolute ones
+    ("C:\\Users\\...\\model_registry\\synthetic_32\\x.pt"). Take the
+    portion after the registry directory name and resolve it next to the
+    manifest, so the checkpoint of the *requested* version is always the one
+    loaded (never a same-named file from another version).
+    """
+    normalized = raw_path_str.replace("\\", "/")
+    direct = Path(normalized)
+    if direct.is_absolute() and direct.exists():
+        return direct
+    registry_dir = manifest_path.parent
+    parts = [p for p in normalized.split("/") if p and not p.endswith(":")]
+    if registry_dir.name in parts:
+        tail = parts[len(parts) - 1 - parts[::-1].index(registry_dir.name) + 1:]
+        candidate = registry_dir.joinpath(*tail)
+        if candidate.exists() or Path(str(candidate) + ".faiss").exists():
+            return candidate
+        return candidate
+    candidate = registry_dir.joinpath(*parts)
+    if candidate.exists():
+        return candidate
+    raise FileNotFoundError(
+        f"[ReferenceEncoderService] Could not resolve '{raw_path_str}' relative to {manifest_path}"
+    )
 
 
 def load_inference_encoder_from_manifest(
@@ -142,28 +173,7 @@ def load_inference_encoder_from_manifest(
 
     device_str = device_str or ("cuda" if torch.cuda.is_available() else "cpu")
 
-    # manifest stores paths with the OS separator of whoever wrote it
-    # (observed as Windows "\\"); normalize before resolving.
-    encoder_path_str = entry_dict["encoder_path"].replace("\\", "/")
-    # Resolve relative to the manifest's own directory, not the CWD, so
-    # this works regardless of where the caller's process starts.
-    encoder_path = Path(encoder_path_str)
-    if not encoder_path.is_absolute():
-        encoder_path = (
-            manifest_path.parent.parent / encoder_path_str
-            if manifest_path.parent.name != Path(encoder_path_str).parent.name
-            else manifest_path.parent / Path(encoder_path_str).name
-        )
-    if not encoder_path.exists():
-        # last resort: try relative to the manifest's own directory directly
-        candidate = manifest_path.parent / Path(encoder_path_str).name
-        if candidate.exists():
-            encoder_path = candidate
-        else:
-            raise FileNotFoundError(
-                f"[ReferenceEncoderService] Could not resolve encoder_path "
-                f"'{entry_dict['encoder_path']}' relative to manifest at {manifest_path}"
-            )
+    encoder_path = resolve_registry_path(entry_dict["encoder_path"], manifest_path)
 
     encoder: TstccEncoder = build_tstcc_encoder_for_aug_pairs(
         cloud_vocab_size_int=len(vocab_maps_dict["cloud"]),
@@ -219,6 +229,25 @@ class ReferenceEncoderServiceConfigData:
     seq_len_int: int = REF_SEQ_LEN
     centroid_ema_alpha_float: float = REF_CENTROID_ALPHA
     drift_alarm_std_float: float = REF_DRIFT_ALARM_STD
+    baseline_adaptation_alpha_float: float = 0.35
+    baseline_adaptation_window_int: int = 20
+    baseline_adaptation_batches_int: int = 5
+
+    @classmethod
+    def from_yaml(cls, path: Optional[str] = None) -> "ReferenceEncoderServiceConfigData":
+        config_path = (
+            Path(path)
+            if path is not None
+            else Path(__file__).resolve().parents[2] / "config" / "config.yaml"
+        )
+        with config_path.open("r", encoding="utf-8") as config_file:
+            document = yaml.safe_load(config_file) or {}
+        baseline = (document.get("incident_lifecycle") or {}).get("baseline") or {}
+        return cls(
+            baseline_adaptation_alpha_float=float(baseline.get("adaptation_alpha", 0.35)),
+            baseline_adaptation_window_int=int(baseline.get("adaptation_window", 20)),
+            baseline_adaptation_batches_int=int(baseline.get("adaptation_batches", 5)),
+        )
 
 
 class ReferenceEncoderService:
@@ -272,7 +301,7 @@ class ReferenceEncoderService:
         self._record_encoder = record_encoder
         self._historical_record_provider = historical_record_provider
         self._entity_store_writer = entity_store_writer
-        self._config = config or ReferenceEncoderServiceConfigData()
+        self._config = config or ReferenceEncoderServiceConfigData.from_yaml()
         if global_mean_emb is not None:
             norm = float(np.linalg.norm(global_mean_emb))
             self._global_mean_emb = (
@@ -403,7 +432,7 @@ class ReferenceEncoderService:
     # ── Incremental update path ─────────────────────────────────────────────
 
     def update_profile_incremental(
-        self, entity_id: str, new_records: List[RawRecord]
+        self, entity_id: str, new_records: List[RawRecord], tenant_id: Optional[str] = None
     ) -> Tuple[EntityProfile, bool]:
         """
         Incremental EMA update: encode ONLY new_records (not the full
@@ -432,9 +461,9 @@ class ReferenceEncoderService:
         if new_embs.shape[0] == 0:
             return prior, False
 
-        alpha = self._config.centroid_ema_alpha_float
         drift_alarm = False
         std_dev = float(np.sqrt(max(prior.emb_variance, 0.0)))
+        alpha_for_drift = self._config.centroid_ema_alpha_float
 
         updated_centroid = prior.centroid_emb
         for new_emb in new_embs:
@@ -449,6 +478,21 @@ class ReferenceEncoderService:
                     self._config.drift_alarm_std_float * std_dev,
                     self._config.drift_alarm_std_float,
                 )
+            updated_centroid = (
+                alpha_for_drift * new_emb + (1.0 - alpha_for_drift) * updated_centroid
+            )
+
+        if tenant_id and self._entity_store_writer.is_baseline_frozen(entity_id, tenant_id):
+            self._entity_store_writer.record_frozen_embeddings(
+                entity_id, list(new_embs), tenant_id
+            )
+            return prior, drift_alarm
+
+        alpha = self._entity_store_writer.next_baseline_alpha(
+            entity_id, self._config.centroid_ema_alpha_float, tenant_id
+        )
+        updated_centroid = prior.centroid_emb
+        for new_emb in new_embs:
             updated_centroid = alpha * new_emb + (1.0 - alpha) * updated_centroid
         norm = np.linalg.norm(updated_centroid)
         updated_centroid = (updated_centroid / norm if norm > 0 else updated_centroid).astype(

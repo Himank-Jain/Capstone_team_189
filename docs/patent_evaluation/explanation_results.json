@@ -1,0 +1,10 @@
+{
+  "scenarios": 18,
+  "runs_total": 10008,
+  "identical_runs": 10008,
+  "identical_pct": 100.0,
+  "latency_ms_median": 1.4267280000694882,
+  "latency_ms_p95": 2.2416110000449407,
+  "network_connection_attempts": 0,
+  "output_sha256_of_first_scenario": "1c831508c5388889"
+}
