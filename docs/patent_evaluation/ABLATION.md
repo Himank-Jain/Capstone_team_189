@@ -288,6 +288,35 @@ of entities at every promoting setting, against 3% for hold-only. This is the "d
 route for a sustained attacker, and the hold alone is the part that keeps one out.** What the allowance buys is time to notice (the ledger and the restore point exist so that a step can be reverted),
 not resistance. On this set one bound is 1.3σ, so the default allowance moves the baseline faster than on CoreStack.
 
+## Long-horizon result 2: cs_long (exploratory; first 60 real CoreStack days, then day-resampled; 75 clean series from 28 resources, 63 with growth)
+
+Files: `ablation_curve_ev0_cs_long.json`, `allowance_curve_curve_ev0_cs_long.json`. Event at day 60, run to day 200 (140 days after the event), bound recomputed for that horizon (median
+0.5σ with the floor; 47% of series at the floor, against 62% on dev). The future after day 60 is clean by construction, so the population called "shifted" (19) is not real shifts and is not used. Same cell
+format as above (3σ absorbed / fast 4σ absorbed / flagged growth resolved).
+
+| Allowance per step | +14 days | +30 days | +60 days | +100 days |
+|---|---|---|---|---|
+| hold only | 7% / 7% / 0% | 7% / 8% / 0% | 8% / 8% / 0% | 8% / 8% / 0% |
+| 0.5 bounds | 7% / 7% / 0% | 7% / 9% / 26% | 93% / 100% / 72% | 100% / 100% / 70% |
+| **1 bound (default)** | 7% / 7% / 0% | 7% / 17% / 26% | 100% / 100% / 70% | **100%** / 100% / **57% (43-69)** |
+| 2 bounds | 7% / 7% / 0% | 8% / 25% / 26% | 100% / 100% / 75% | 100% / 100% / 83% |
+| 4 bounds | 7% / 7% / 0% | 8% / 32% / 26% | 100% / 100% / 87% | 100% / 100% / 98% |
+| no cap | 7% / 7% / 0% | 8% / 32% / 26% | 100% / 100% / 100% | 100% / 100% / 100% |
+
+Median days until the stored baseline carries 1.5σ of the 3σ attack (82 stable series): hold only: 6 of 82 ever reach it; 0.5 bounds 56; 1 bound 46; 2 bounds 40; 4 bounds 39; no cap 39. Greedy attacker reaching its goal at the end:
+hold only 0%; **every promoting setting 64-65%** (0.5 bounds to no cap). False alerts 3% and 3σ detection 100% at every setting. Link matched on step size (L1 against F0.5): exactly 0 on every column (the bound is the floor for 47% of series and
+the two allowances coincide there; where the bound is larger the outcomes did not differ).
+
+**Prediction check (same four predictions):** (1) at 1 bound 3σ absorbed 7% at +30 days and 100% at +100: **as predicted**. (2) growth resolved at +100 days 57% (43-69) at the default, 83% at 2 bounds, 98% at 4: **as predicted**
+(the share at the default falls from 70% at +60 to 57% at +100 as more entities are flagged late). (3) the pre-declared rule met by no setting at any horizon: **as predicted** (hold only resolves nothing; every promoting setting has absorbed
+the 3σ attack in full by +60 days, and at +30 days growth resolved is at most 26%). (4) hold-only stays at 7-8% at every horizon, no-cap equals the large allowances: **as predicted**.
+
+**Both long-horizon sets say the same thing.** With a horizon long enough for several promotion steps, **capped promotion delays a persistent attacker but does not keep it out**: the 3σ attack is absorbed
+in 98-100% of series by +100 days at the default allowance, a greedy attacker reaches its goal in 65% (CoreStack, day-resampled) and 99% (NAB, synthetic order) of series against 0% and 3% for hold-only, and the
+cap buys 1 day (NAB) to 7 days (CoreStack) at the default allowance and 13 to 17 days at half of it, against adopting in full. On the 30- to 40-day real horizons the same design shows 0% and 8-12% greedy
+success; that low number is a property of the horizon (at most one step fits), not of the mechanism. Pre-declared rule and operating range: **none of the allowances separates a sustained attack from sustained
+legitimate change**; what the allowance sets is the speed.
+
 ---
 
 # Earlier component ablation (tuned design, from the frozen-design runs, no new runs)
