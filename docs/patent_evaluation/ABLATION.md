@@ -157,6 +157,47 @@ and C3 (interaction not above 0); the cap contrast will again be large; the vali
 (earlier fresh2 result 99% unresolved); the proposed range will not be distinguishable from hold-only on absorption. Any column or contrast that
 disagrees with this is reported as it comes out.
 
+## fresh2 confirmation, run once (336 series from 158 resources; 311 clean from 148; 264 with growth of at least 1σ; 49 greedy-applicable from 19)
+
+Same variants, columns and tests; nothing changed after the dev results. Files: `ablation_ablation_cs_fresh2.json`, `ablation_results_cs_fresh2.json`.
+fresh2 had been used for the earlier tuned and self-calibrated results, not for these variants. Horizon: event at day 60, end at day 90.
+
+| Variant | False alert | 3σ stealth detected | 3σ absorbed at end | Growth unresolved (of flagged) | Poisoned calibration detected | Greedy reaches goal | C1 | C2 | C3 |
+|---|---|---|---|---|---|---|---|---|---|
+| adaptive (no guard) | 0% (0-0) | 81% (76-86) | 15% (9-22) | 2% (0-4) | 2% (1-4) | 100% (100-100) | 69% (61-77) | 69% (61-77) | 0% (0-0) |
+| H: claim 1 alone (validated bound + hold) | 0% (0-1) | 85% (80-89) | 0% (0-1) | 100% (100-100) | 85% (80-89) | 0% (0-0) | 84% (79-88) | 19% (15-24) | 98% (93-100) |
+| S: claim 2 alone (CUSUM trigger, shadow, capped ledger, fixed 1σ) | 9% (4-14) | 79% (74-84) | 5% (2-8) | 13% (6-20) | 79% (74-84) | 6% (0-15) | 70% (63-77) | 70% (62-78) | 10% (0-24) |
+| both, allowance fixed at 1σ (not from the bound) | 0% (0-1) | 85% (80-89) | 0% (0-1) | 99% (97-100) | 85% (80-89) | 0% (0-0) | 84% (79-88) | 20% (16-25) | 98% (93-100) |
+| both, bound not validated | 0% (0-1) | 85% (80-89) | 0% (0-1) | 99% (97-100) | 84% (79-89) | 0% (0-0) | 84% (79-88) | 20% (16-25) | 98% (93-100) |
+| both, no cap (stable shadow adopted in full) | 0% (0-1) | 85% (80-89) | 0% (0-1) | 99% (97-100) | 85% (80-89) | 10% (0-26) | 84% (79-88) | 20% (16-25) | 88% (72-100) |
+| **full** (claim 3) | 0% (0-1) | 85% (80-89) | 0% (0-1) | 99% (97-100) | 85% (80-89) | 0% (0-0) | 84% (79-88) | 20% (16-25) | 98% (93-100) |
+| full with partial hold (`B`) | 0% (0-1) | 85% (79-89) | 0% (0-1) | 99% (97-100) | 85% (80-89) | 0% (0-0) | 84% (79-88) | 20% (15-25) | 98% (93-100) |
+
+| Column | adaptive | H | S | full | Interaction `full - H - S + adaptive` (points) | `full - max(H, S)` (points) |
+|---|---|---|---|---|---|---|
+| C1 quiet and safe (n = 311) | 69% | 84% | 70% | 84% | **-1** [-3, +1] | -0 [-1, 0] |
+| C2 and operable (n = 264) | 69% | 19% | 70% | 20% | **-1** [-2, +1] | **-53** [-60, -45] |
+| C3 governed under attack (n = 49) | 0% | 98% | 10% | 98% | **-10** [-23, 0] | -2 [-7, 0] |
+
+**What fresh2 shows**
+
+* **No super-additivity** (interaction -1, -1, -10; none above 0). The full design equals hold-only on every column: promotion changes nothing that these
+  columns can see within 30 days.
+* **The dev gain on the operable column does not replicate.** On dev the design beat the better single part on C2 by 18 points; on fresh2 it is
+  53 points below the better part (claim 2 alone, 70%) and 49 below the unguarded baseline (69%). The unguarded baseline already scores 69% on
+  C1 here because these series have a tiny robust scale (it detects 81% and absorbs 15% of 3σ attacks), so the guard's gain on C1 is +15 points and its
+  cost on C2 is -49 points.
+* **The cap, the link to the bound and validation cannot show an effect here.** The shadow needs about 28 days (14 stable plus 14 prior), so the first
+  promotion falls at about day 88 of 90, the bound is the floor for 98% of series (linked and fixed allowances coincide), and a poisoned calibration is caught by the
+  floor-sized bound whether or not it was validated. Removing the cap changes only the greedy attacker (0% to 10% reaching its goal, interval 0 to 26).
+  This is a property of the 30-day horizon, not evidence that the parts do nothing.
+* **Against the predictions written before the run:** hold-only at or above the design on C1 and C3, interaction not above 0: as predicted.
+  Validation and matched link contrasts about 0: as predicted. Growth unresolved at almost every setting: as predicted (99%). The cap contrast
+  "will again be large": **wrong**, it is 0 on C1 and C2 and +10 on C3 only.
+* **Claim 2 alone (S) is not a rival on safety** (3σ absorbed 5%, poisoned calibration 79%, greedy 6% reaching its goal, 9% false alerts) but it
+  resolves growth (13% unresolved) and matches the unguarded baseline on operability. The design buys safety at the price of operability; which
+  point is right is the allowance question below.
+
 ---
 
 # Earlier component ablation (tuned design, from the frozen-design runs, no new runs)
