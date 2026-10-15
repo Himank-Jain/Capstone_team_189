@@ -1,0 +1,42 @@
+{
+ "dataset": "cs_dev",
+ "n": 87,
+ "resources": 25,
+ "unseeded": {
+  "detected": 0.40229885057471265,
+  "detected_ci": [
+   0.29473684210526313,
+   0.495685840707964
+  ],
+  "false_alerts_per_100_mean": 6.3058748403576,
+  "false_alerts_ci": [
+   4.424156133646875,
+   8.782235027580764
+  ]
+ },
+ "seeded": {
+  "detected": 0.6091954022988506,
+  "detected_ci": [
+   0.5617834212336621,
+   0.6625037650602409
+  ],
+  "false_alerts_per_100_mean": 2.501064282673478,
+  "false_alerts_ci": [
+   1.0003981325732798,
+   4.418333434196722
+  ]
+ },
+ "paired_detected_diff": 0.20689655172413796,
+ "paired_detected_diff_ci": [
+  0.09090909090909094,
+  0.3333333333333333
+ ],
+ "paired_false_alert_diff": -3.804810557684122,
+ "paired_false_alert_diff_ci": [
+  -5.161831312293454,
+  -2.2247900633317306
+ ],
+ "median_hours_saved_to_scoring": 144.0,
+ "seeded_fa_over_10_share": 0.04597701149425287,
+ "unseeded_fa_over_10_share": 0.1724137931034483
+}

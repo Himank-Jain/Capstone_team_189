@@ -141,9 +141,10 @@ Dependent features carry the prefix D so they cannot be confused with the three 
 | D7 | Promotion steps at least the shadow period apart; step size at most a stated allowance | 2 | `guarantee_check`: 715 steps, 0 violations; self-calibrated design `envelope_check`: 186 steps, 0 over the allowance | supported |
 | D8 | Episode continuity after a capped step | 2 | unit tests | implemented |
 | D9 | *Optional:* allowance increased by evidence (cohort agreement, control-plane change event); operator lifts the cap | 2 | cohort evidence never occurred in dev runs; change events explain 0 of 78 usage shifts and 16% of configuration shifts | **not shown to help**; keep only as a fallback |
-| D10 | *Fallback:* attribution against the trusted baseline with the baseline state recorded | 1 or 2 | 67.0% Top-1, 81.1% Top-3 | weak |
-| D11 | *Fallback:* schema-free event encoder | 1 | level-shift AUC 1.00; spike AUC 0.68 | weak |
-| D12 | *Fallback:* cohort seeding of new entities | 1 | 16 entities: 12 h vs 156 h | small sample |
+| D10 | **Deterministic explanation** (attribute, evidence, ordered rules, confidence, versioned knowledge base), with attribution run against the trusted baseline and the baseline state recorded | 1 or 2 | Reproducible: 13,500 builds over 54 cases, one output each, no network (`determinism_check.json`). Cause category (synthetic generator, constant baseline): 67.0% top-1, 81.1% top-3, 810 runs. **Real telemetry, metric attribution against the snapshot** (`UNIFIED_RESULTS.md` B1): top-1 42-94%, top-3 (>= 5 metrics) 85-100%; beats the adaptive reference only 39+ days after the event (+43 to +57 points), equal at 29 days (fresh2), worse early; 0.4-0.8 false attributions per control case | **partly supported**: the determinism is a measured property; the accuracy is modest and the link to the snapshot has value only after absorption |
+| D11 | *Fallback:* schema-free event encoder | 1 | synthetic level-shift AUC 1.00 with online statistics; **real telemetry: AUC 0.56-0.66 in vocabulary and 0.50 on unseen schemas against 0.83-1.00 for a per-metric z-score** (`UNIFIED_RESULTS.md` C) | **not supported on real data**; do not claim |
+| D12 | **Cohort seeding** of new entities from other resources of the same entity type and metric | 1 | dev 87 entities: scoring starts at 12 h vs 156 h, detected 61% vs 40% (+21 [9, 33]); fresh2 314 entities / 151 resources: detected 34% vs 5% (+29 [23, 35]); false alerts unchanged (`UNIFIED_RESULTS.md` D) | **supported on two sets**, same cloud only |
+| D13 | Incident collapsing during a hold, severity capped | 1 | median 1 incident per run against 6-15 flag-days; 6-38% of flag-days attach to an open incident (`UNIFIED_RESULTS.md` E) | small effect |
 
 ## 5. Removed from the claims (kept out until they beat the current design on new data)
 
@@ -152,7 +153,8 @@ Dependent features carry the prefix D so they cannot be confused with the three 
 | Tri-signal fusion, uncertainty gate, episode novelty | Never built or evaluated. |
 | Evidence-weighted promotion as part of an independent claim | Not shown to help; including it only narrows claim 2. Moved to dependent D9. |
 | Bounded drift as a standalone lead claim | A long window or a frozen baseline gives a similar bound; Kloft and Laskov analyse bounded influence. |
-| Explanation as an independent claim | Rule-based determinism is not new; accuracy is modest. |
+| Explanation as an independent claim | Rule-based determinism is not new; accuracy is modest (cause category 67.0% top-1 on the synthetic generator; metric top-1 42-94% on real telemetry). Kept as dependent D10. |
+| Schema-free event encoder as a claim ("Invention C") | Real-data test negative (D11). |
 | "Attacker cost bound" as the technical effect | The cap does not stop a 3σ attack at the tuned settings. |
 
 ## 6. Known weaknesses an examiner or the evaluation will expose
@@ -199,6 +201,14 @@ Dependent features carry the prefix D so they cannot be confused with the three 
     operator approval (operator approval lifting the cap is already a dependent claim).
 13. Software and mathematical-method objections: the effect is integrity of stored state, with a stated bound on promotion and a
     recorded, reversible record, not a statistical result as such.
+
+## 6a. Unified scope (adopted 15 October 2026)
+
+The team adopted the structure of the 25-slide unified proposal (drift guard, deterministic explanation, schema-free events, cohort seeding) as the
+project scope. `UNIFIED_GAP.md` compares every statement of that file with code and measurement; `UNIFIED_RESULTS.md` holds the new measurements.
+Outcome: the guard claims (1 to 3) stay as above with the same limits; explanation is dependent D10 (partly supported); schema-free events are
+not supported on real data (D11); cohort seeding is supported on two sets (D12); collapsing is a small effect (D13). The file's planned figures
+(93.6%, 94.0%, 88.1%, 91.4%, 2,140 entities) are not results of this repository.
 
 ## 7. Status of the five further steps requested
 

@@ -1,0 +1,50 @@
+{
+ "control": {
+  "runs": 101,
+  "runs_with_flags": 21,
+  "median_flag_days": 3.0,
+  "median_incidents": 0.0,
+  "share_flag_days_collapsed": 0.42857142857142855,
+  "median_held_days": 0.0
+ },
+ "stealth2.0": {
+  "runs": 101,
+  "runs_with_flags": 68,
+  "median_flag_days": 9.5,
+  "median_incidents": 1.0,
+  "share_flag_days_collapsed": 0.17552334943639292,
+  "median_held_days": 14.0
+ },
+ "stealth3.0": {
+  "runs": 101,
+  "runs_with_flags": 75,
+  "median_flag_days": 11.0,
+  "median_incidents": 1.0,
+  "share_flag_days_collapsed": 0.3303684879288437,
+  "median_held_days": 15.0
+ },
+ "fast4": {
+  "runs": 101,
+  "runs_with_flags": 92,
+  "median_flag_days": 7.0,
+  "median_incidents": 1.0,
+  "share_flag_days_collapsed": 0.37662337662337664,
+  "median_held_days": 17.0
+ },
+ "benign": {
+  "runs": 101,
+  "runs_with_flags": 71,
+  "median_flag_days": 6.0,
+  "median_incidents": 1.0,
+  "share_flag_days_collapsed": 0.2944915254237288,
+  "median_held_days": 15.0
+ },
+ "greedy": {
+  "runs": 101,
+  "runs_with_flags": 14,
+  "median_flag_days": 3.5,
+  "median_incidents": 1.0,
+  "share_flag_days_collapsed": 0.30952380952380953,
+  "median_held_days": 16.0
+ }
+}

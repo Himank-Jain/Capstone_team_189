@@ -92,8 +92,10 @@ class MetricAttributor:
         metric_vocabulary: Sequence[str],
         threshold: float = DEFAULT_THRESHOLD,
         families: Mapping[str, tuple] = METRIC_FAMILY_KEYWORDS,
+        peak_window: int = PEAK_WINDOW,
     ) -> None:
         self._threshold = threshold
+        self._peak_window = max(1, int(peak_window))
         self._family_of: Dict[str, Tuple[str, ...]] = {}
         vocab = list(metric_vocabulary)
         for family in sorted(families):
@@ -101,14 +103,13 @@ class MetricAttributor:
                 self._family_of.setdefault(name, ())
                 self._family_of[name] = self._family_of[name] + (family,)
 
-    @staticmethod
-    def _peak(recs: List[RawRecord], expected: float) -> Tuple[float, float]:
+    def _peak(self, recs: List[RawRecord], expected: float) -> Tuple[float, float]:
         """Largest deviation of any ``PEAK_WINDOW``-reading median from the
         expected level. Medians keep one stray reading from counting; short
         windows catch steps, ramps and short spikes that a whole-window
         median would average away."""
         values = [r.value for r in recs]
-        width = min(PEAK_WINDOW, len(values))
+        width = min(self._peak_window, len(values))
         best_obs, best_delta = values[0], values[0] - expected
         for i in range(len(values) - width + 1):
             med = statistics.median(values[i:i + width])

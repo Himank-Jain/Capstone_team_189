@@ -1,0 +1,1328 @@
+{
+ "dataset": "cs_dev",
+ "n_entities": 87,
+ "n_resources": 25,
+ "rows": [
+  {
+   "entity": "Test-UAMI_OsDisk_1_01d210855ace43e3b7974cde2579ccc3|Composite Disk Write Operations/sec",
+   "group": "Disks:Composite Disk Write Operations/sec",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.compute/disks/test-uami_osdisk_1_01d210855ace43e3b7974cde2579ccc3",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 150,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 24.537037037037038
+   }
+  },
+  {
+   "entity": "azure-patch-mangement-vm_OsDisk_1_7d33b8c7f25d48249de85df740c14869|Composite Disk Write Operations/sec",
+   "group": "Disks:Composite Disk Write Operations/sec",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.compute/disks/azure-patch-mangement-vm_osdisk_1_7d33b8c7f25d48249de85df740c14869",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 8,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "Testing-2503-Patch-Report_disk1_20c29038cb234a86864615a4593164d7|Composite Disk Write Operations/sec",
+   "group": "Disks:Composite Disk Write Operations/sec",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/apiautomationtestingrg/providers/microsoft.compute/disks/testing-2503-patch-report_disk1_20c29038cb234a86864615a4593164d7",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 12.962962962962964
+   }
+  },
+  {
+   "entity": "patch-report-aug22_OsDisk_1_9a9c856d1453495cb9b743bf752a0f99|Composite Disk Write Operations/sec",
+   "group": "Disks:Composite Disk Write Operations/sec",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/apiautomationtestingrg/providers/microsoft.compute/disks/patch-report-aug22_osdisk_1_9a9c856d1453495cb9b743bf752a0f99",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 179,
+    "false_alerts_per_100": 1.3888888888888888
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "test-12|SuccessfulRequests",
+   "group": "Event_Hub_Namespaces:SuccessfulRequests",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.eventhub/namespaces/test-12",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 1.3888888888888888
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "test-13|SuccessfulRequests",
+   "group": "Event_Hub_Namespaces:SuccessfulRequests",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.eventhub/namespaces/test-13",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "test-feed1|SuccessfulRequests",
+   "group": "Event_Hub_Namespaces:SuccessfulRequests",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.eventhub/namespaces/test-feed1",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 1.3888888888888888
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "testthreats|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/azurebackuprg_eastus_1/providers/microsoft.storage/storageaccounts/testthreats",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "snehapmstorage145|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "34jinnyzxczeqtestdep|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/34jinnyzxczeqtestdep",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "logicaldiskacc|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/logicaldiskacc",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfracorestack|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfracorestack",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9142|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9142",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9449|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9449",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9711|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9711",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9d5b|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9d5b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarga94b|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarga94b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrargaccf|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrargaccf",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "saccnontagged|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/saccnontagged",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "clusteridlesa|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/clusteridlepolicy-test_group/providers/microsoft.storage/storageaccounts/clusteridlesa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "configtestsa|Availability",
+   "group": "Storage_Accounts:Availability",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/config-test_group/providers/microsoft.storage/storageaccounts/configtestsa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "testthreats|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/azurebackuprg_eastus_1/providers/microsoft.storage/storageaccounts/testthreats",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 133,
+    "false_alerts_per_100": 9.722222222222221
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "snehapmstorage145|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 13.88888888888889
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "logicaldiskacc|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/logicaldiskacc",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfracorestack|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfracorestack",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 13.88888888888889
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 11,
+    "false_alerts_per_100": 5.092592592592593
+   }
+  },
+  {
+   "entity": "qainfrarg9142|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9142",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 6.944444444444445
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9449|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9449",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9711|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9711",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 165,
+    "false_alerts_per_100": 22.22222222222222
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9d5b|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9d5b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 6.944444444444445
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarga94b|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarga94b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 6.944444444444445
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrargaccf|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrargaccf",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "saccnontagged|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/saccnontagged",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 13.88888888888889
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "clusteridlesa|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/clusteridlepolicy-test_group/providers/microsoft.storage/storageaccounts/clusteridlesa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "configtestsa|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/config-test_group/providers/microsoft.storage/storageaccounts/configtestsa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 128,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgo|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgo",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 2.7777777777777777
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgoers|Egress",
+   "group": "Storage_Accounts:Egress",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgoers",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 2.7777777777777777
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "snehapmstorage145|Ingress",
+   "group": "Storage_Accounts:Ingress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 151,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 4,
+    "false_alerts_per_100": 5.555555555555555
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|Ingress",
+   "group": "Storage_Accounts:Ingress",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgo|Ingress",
+   "group": "Storage_Accounts:Ingress",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgo",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgoers|Ingress",
+   "group": "Storage_Accounts:Ingress",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgoers",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 2.7777777777777777
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "testthreats|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/azurebackuprg_eastus_1/providers/microsoft.storage/storageaccounts/testthreats",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 9.722222222222221
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 2,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "snehapmstorage145|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 135,
+    "false_alerts_per_100": 12.5
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 35,
+    "false_alerts_per_100": 3.7037037037037037
+   }
+  },
+  {
+   "entity": "34jinnyzxczeqtestdep|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/34jinnyzxczeqtestdep",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 8,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "logicaldiskacc|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/logicaldiskacc",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 178,
+    "false_alerts_per_100": 40.27777777777778
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 3.240740740740741
+   }
+  },
+  {
+   "entity": "qainfrarg9142|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9142",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 163,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 17,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "qainfrarg9449|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9449",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 154,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 21,
+    "false_alerts_per_100": 2.314814814814815
+   }
+  },
+  {
+   "entity": "qainfrarg9711|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9711",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 140,
+    "false_alerts_per_100": 12.5
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 6,
+    "false_alerts_per_100": 2.7777777777777777
+   }
+  },
+  {
+   "entity": "qainfrarg9d5b|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9d5b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 129,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 4.166666666666667
+   }
+  },
+  {
+   "entity": "qainfrarga94b|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarga94b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 11.11111111111111
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 33,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "qainfrargaccf|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrargaccf",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 136,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 22,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 124,
+    "false_alerts_per_100": 19.444444444444443
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 17,
+    "false_alerts_per_100": 5.555555555555555
+   }
+  },
+  {
+   "entity": "saccnontagged|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/saccnontagged",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 6,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "clusteridlesa|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/clusteridlepolicy-test_group/providers/microsoft.storage/storageaccounts/clusteridlesa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 149,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 3,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "configtestsa|SuccessE2ELatency",
+   "group": "Storage_Accounts:SuccessE2ELatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/config-test_group/providers/microsoft.storage/storageaccounts/configtestsa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 23,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "testthreats|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/azurebackuprg_eastus_1/providers/microsoft.storage/storageaccounts/testthreats",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 185,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 2,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "snehapmstorage145|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 135,
+    "false_alerts_per_100": 13.88888888888889
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 35,
+    "false_alerts_per_100": 3.7037037037037037
+   }
+  },
+  {
+   "entity": "34jinnyzxczeqtestdep|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/34jinnyzxczeqtestdep",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 4.166666666666667
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 13,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "logicaldiskacc|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/logicaldiskacc",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 178,
+    "false_alerts_per_100": 37.5
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 2.314814814814815
+   }
+  },
+  {
+   "entity": "qainfracorestack|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfracorestack",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 142,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "qainfrarg9142|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9142",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 163,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 17,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "qainfrarg9449|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9449",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 154,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 21,
+    "false_alerts_per_100": 2.314814814814815
+   }
+  },
+  {
+   "entity": "qainfrarg9711|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9711",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 138,
+    "false_alerts_per_100": 13.88888888888889
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 6,
+    "false_alerts_per_100": 4.166666666666667
+   }
+  },
+  {
+   "entity": "qainfrarg9d5b|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9d5b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 129,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 4.166666666666667
+   }
+  },
+  {
+   "entity": "qainfrarga94b|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarga94b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 180,
+    "false_alerts_per_100": 5.555555555555555
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 33,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "qainfrargaccf|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrargaccf",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 136,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 1.3888888888888888
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 124,
+    "false_alerts_per_100": 20.833333333333332
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 2,
+    "false_alerts_per_100": 7.87037037037037
+   }
+  },
+  {
+   "entity": "saccnontagged|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/saccnontagged",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 8.333333333333334
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 6,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "clusteridlesa|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/clusteridlepolicy-test_group/providers/microsoft.storage/storageaccounts/clusteridlesa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": 149,
+    "false_alerts_per_100": 6.944444444444445
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 3,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "configtestsa|SuccessServerLatency",
+   "group": "Storage_Accounts:SuccessServerLatency",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/config-test_group/providers/microsoft.storage/storageaccounts/configtestsa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 9.722222222222221
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 6,
+    "false_alerts_per_100": 0.9259259259259259
+   }
+  },
+  {
+   "entity": "snehapmstorage145|Transactions",
+   "group": "Storage_Accounts:Transactions",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.46296296296296297
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgo|Transactions",
+   "group": "Storage_Accounts:Transactions",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgo",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 7,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "ureayhguejhrtgoers|Transactions",
+   "group": "Storage_Accounts:Transactions",
+   "resource": "/subscriptions/ac981b7e-1fd6-4001-8a83-7cc55f09f276/resourcegroups/snow_test_rg/providers/microsoft.storage/storageaccounts/ureayhguejhrtgoers",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 7,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "snehapmstorage145|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/newrg49805/providers/microsoft.storage/storageaccounts/snehapmstorage145",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "34jinnyzxczeqtestdep|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/34jinnyzxczeqtestdep",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "cjj5havault939asrcache|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/cjj5havault939asrcache",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "logicaldiskacc|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/logicaldiskacc",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 29.166666666666668
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 1,
+    "false_alerts_per_100": 44.44444444444444
+   }
+  },
+  {
+   "entity": "qainfracorestack|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfracorestack",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 31.944444444444443
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 55.092592592592595
+   }
+  },
+  {
+   "entity": "qainfrarg9449|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9449",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrarg9711|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarg9711",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 5.092592592592593
+   }
+  },
+  {
+   "entity": "qainfrarga94b|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrarga94b",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "qainfrargaccf|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/qainfrargaccf",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "rytdukjkyuik0oij|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/rytdukjkyuik0oij",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "saccnontagged|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/qa_infra_rg/providers/microsoft.storage/storageaccounts/saccnontagged",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "clusteridlesa|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/clusteridlepolicy-test_group/providers/microsoft.storage/storageaccounts/clusteridlesa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  },
+  {
+   "entity": "configtestsa|UsedCapacity",
+   "group": "Storage_Accounts:UsedCapacity",
+   "resource": "/subscriptions/a77dabbb-bad5-4929-8194-ab32b10b1e6f/resourcegroups/config-test_group/providers/microsoft.storage/storageaccounts/configtestsa",
+   "unseeded": {
+    "scoring_start_h": 156,
+    "detect_delay_h": null,
+    "false_alerts_per_100": 0.0
+   },
+   "seeded": {
+    "scoring_start_h": 12,
+    "detect_delay_h": 0,
+    "false_alerts_per_100": 0.0
+   }
+  }
+ ],
+ "unseeded": {
+  "scored_within_10d": 87,
+  "scoring_start_h_median": 156,
+  "detected_k": 35,
+  "detect_delay_h_median": 136,
+  "false_alerts_per_100_median": 4.166666666666667,
+  "false_alerts_per_100_mean": 6.3058748403576
+ },
+ "seeded": {
+  "scored_within_10d": 87,
+  "scoring_start_h_median": 12,
+  "detected_k": 53,
+  "detect_delay_h_median": 2,
+  "false_alerts_per_100_median": 0.0,
+  "false_alerts_per_100_mean": 2.501064282673478
+ }
+}

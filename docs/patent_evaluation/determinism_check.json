@@ -1,0 +1,10 @@
+{
+ "cases": 54,
+ "repeats_per_case": 250,
+ "runs": 13500,
+ "cases_with_one_distinct_output": 54,
+ "max_distinct_outputs_per_case": 1,
+ "median_ms": 0.1734890001898748,
+ "p95_ms": 0.3364300000612275,
+ "network_blocked": true
+}

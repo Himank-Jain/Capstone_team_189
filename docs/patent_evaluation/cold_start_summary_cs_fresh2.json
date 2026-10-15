@@ -1,0 +1,42 @@
+{
+ "dataset": "cs_fresh2",
+ "n": 314,
+ "resources": 151,
+ "unseeded": {
+  "detected": 0.050955414012738856,
+  "detected_ci": [
+   0.017844742063492063,
+   0.0883350636904524
+  ],
+  "false_alerts_per_100_mean": 1.7914012738853504,
+  "false_alerts_ci": [
+   0.9920475424896646,
+   2.685864925742164
+  ]
+ },
+ "seeded": {
+  "detected": 0.34076433121019106,
+  "detected_ci": [
+   0.2765877579707367,
+   0.40925183647396995
+  ],
+  "false_alerts_per_100_mean": 1.8076197216324605,
+  "false_alerts_ci": [
+   0.9136967155835082,
+   2.8912245845743376
+  ]
+ },
+ "paired_detected_diff": 0.2898089171974522,
+ "paired_detected_diff_ci": [
+  0.23144843656713093,
+  0.350172644815502
+ ],
+ "paired_false_alert_diff": 0.01621844774711012,
+ "paired_false_alert_diff_ci": [
+  -0.5354642817666053,
+  0.5278734373174438
+ ],
+ "median_hours_saved_to_scoring": 144.0,
+ "seeded_fa_over_10_share": 0.041401273885350316,
+ "unseeded_fa_over_10_share": 0.06369426751592357
+}
