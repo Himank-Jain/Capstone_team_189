@@ -223,6 +223,36 @@ series, 264 with growth of at least 1σ, 49 where the greedy attacker succeeds a
   bound the design is indistinguishable from hold-only on every column.
 * The pre-declared rule (at most 5% absorbed and at least 50% of flagged growth resolved) is not met by any setting here either (condition (b) fails everywhere).
 
+## Long-horizon runs: plan and predictions (written before any long-horizon result was read)
+
+Why: on real data the horizon after the event is 40 days (CoreStack dev) or 30 days (fresh2), so at most one promotion step completes and the
+dial cannot be seen beyond one step. Two sets can run longer. Both are **exploratory** and their order is synthetic, so they test the
+mechanism's long-horizon behaviour, not real long-horizon behaviour:
+
+* **NAB dev** (`nab_dev`; 151 entities from 14 AWS series; event at day 90, run ends at day 220, 130 days after the event). Synthetic day order,
+  dependent entities (replicas of the same series), intervals bootstrap over the 14 series.
+* **cs_long** (`cs_long`, profile `corestack_long`; the 101 CoreStack dev series): the first 60 real days, then every day to day 200 is a calibration
+  day (days 30-59) of the same weekday type drawn with replacement (one fixed draw per series, `final_eval._cs_long`). Event at day 60, run ends at
+  day 200 (140 days after the event). The bound is recomputed over this longer horizon (`evaluation/fleet_cache.py`), because the largest displacement over 140 days is
+  larger than over 40. The real level shifts and ambient events of days 60-99 are replaced by clean calibration days, so "clean" is true by construction.
+
+Same evidence-off sweep (`curve_ev0`: hold-only, no cap, 0.5 to 16 validated bounds, 0.25 to 8 fixed σ). New per-run fields read the state at 14, 30, 60 and
+100 days after the event (the horizons that fit): stored displacement, whether the entity is still alerting or held, whether it was flagged by then.
+Columns by day: 3σ stealth attack absorbed (stored displacement of at least 1.5σ), fast 4σ attack absorbed, flagged growth resolved.
+
+**Predictions, fixed now:**
+
+1. At the default allowance (1 bound) the 3σ attack is **not** absorbed early (at most 15% at +30 days, close to hold-only) and **is** absorbed late:
+   above 50% at +100 days. Promotion is stability-gated: a shadow that has settled at the attack level is eventually adopted, one capped step at a time,
+   so "delayed, not prevented" is the expected long-horizon outcome. At 0.5 bound the rise is about half as fast.
+2. Flagged legitimate growth resolved at +100 days is at least 50% at the default allowance and higher at larger allowances.
+3. **The pre-declared range rule (at most 5% absorbed and at least 50% growth resolved) is met by no setting at +100 days.** A persistent 3σ attack and a persistent
+   3σ legitimate shift are the same thing to a stability-gated promotion, so whatever adopts the growth also adopts the attack; the curve is a trade-off along one axis, and the
+   allowance only sets the speed. The range is then a choice of how long the attacker has to be sustained, not a setting that separates the two.
+4. Hold-only stays at its bound-limited absorption at every horizon; no-cap equals the large allowances.
+
+Any column that disagrees with these is reported as it comes out. `cs_long` is run after NAB, with the same predictions.
+
 ---
 
 # Earlier component ablation (tuned design, from the frozen-design runs, no new runs)
