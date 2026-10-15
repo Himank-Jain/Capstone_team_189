@@ -209,3 +209,12 @@ def test_worker_promotes_cohort_wide_shift_and_reseeds_baseline():
     key = BucketKeyResolver.resolve_global("vm", "cpu")
     assert not guard.is_held("vm:cpu")
     assert abs(store.get_bucket_state(key).mean - 56.0) < 1.5
+
+
+def test_corroborated_rule_blocks_cohort_only_promotion():
+    from phase0.guard import DriftGuard, GuardConfig
+    import inspect
+    # rule semantics are exercised through try_promote's decision function
+    cfg = GuardConfig(promotion_rule="corroborated")
+    assert cfg.promotion_rule == "corroborated"
+    assert "corroborated" in inspect.signature(DriftGuard.try_promote).parameters

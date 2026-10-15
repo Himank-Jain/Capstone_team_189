@@ -124,6 +124,7 @@ class AnomalyScoringWorker:
         day: float,
         cohort_same_direction_fraction: float,
         operator_approved: bool = False,
+        corroborated: Optional[Callable[[str], bool]] = None,
     ) -> int:
         """Try to promote every held entity's shadow baseline. ``day`` is in
         epoch days. Returns the number of entities promoted; entities that do
@@ -134,6 +135,7 @@ class AnomalyScoringWorker:
         for entity in self._guard.held_entities():
             plan = self._guard.try_promote(
                 entity, day, cohort_same_direction_fraction, operator_approved,
+                corroborated(entity) if corroborated is not None else None,
             )
             if plan is None:
                 continue

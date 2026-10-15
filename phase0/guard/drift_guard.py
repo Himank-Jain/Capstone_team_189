@@ -57,6 +57,9 @@ class GuardConfig:
     min_snapshot_samples: int = 5
     min_shadow_per_period: int = 5
     max_incident_severity: str = "MEDIUM"
+    # Promotion rule: "cohort" (cohort agreement or operator), "corroborated"
+    # (a control-plane change event explains the shift, or operator) or "both".
+    promotion_rule: str = "cohort"
 
 
 @dataclass
@@ -268,13 +271,23 @@ class DriftGuard:
         day: float,
         cohort_same_direction_fraction: float,
         operator_approved: bool = False,
+        corroborated: Optional[bool] = None,
     ) -> Optional[PromotionPlan]:
         """Return a plan to adopt the shadow baseline, or None if the entity
         must stay held."""
         ent = self._entities.get(entity)
         if ent is None or not ent.held or not self.shadow_is_stable(entity, day):
             return None
-        if not (operator_approved or cohort_same_direction_fraction >= self.config.cohort_agreement):
+        cohort_ok = cohort_same_direction_fraction >= self.config.cohort_agreement
+        corro_ok = bool(corroborated)
+        rule = self.config.promotion_rule
+        if rule == "corroborated":
+            auto = corro_ok
+        elif rule == "both":
+            auto = cohort_ok and corro_ok
+        else:
+            auto = cohort_ok
+        if not (operator_approved or auto):
             return None
         span = self.config.shadow_min_days
         recent = [s for d, _, _, s in ent.shadow if d > day - span]
