@@ -7,7 +7,7 @@ Included entities are clean (stable, ambient-free) and the attack must be materi
 Rates carry 95% intervals from a bootstrap over whole source series.
 """
 from __future__ import annotations
-import json, sys
+import json, os, sys
 from pathlib import Path
 import numpy as np
 
@@ -17,7 +17,8 @@ FAMILY = "cs" if DATASET.startswith("cs") else "nab"
 EV = 60 if FAMILY == "cs" else 90
 OUT = Path(__file__).resolve().parents[1] / "docs/patent_evaluation"
 D = json.load(open(OUT / f"lit_{DATASET}_{TARGET}.json"))
-ROWS = [r for r in D["rows"] if r["stable"] and r["ambient_free"]]
+EXCLUDE = [p for p in os.environ.get("EXCLUDE_CATEGORY", "").split(",") if p]  # category = text before the colon in the group
+ROWS = [r for r in D["rows"] if r["stable"] and r["ambient_free"] and not any(r["group"].startswith(p + ":") for p in EXCLUDE)]
 rng = np.random.default_rng(0)
 
 
@@ -66,7 +67,7 @@ def main():
             row = {"detected": det, "days_to_detect_median": q(ttd, 50), "silent_median": q(sil, 50), "silent_p90": q(sil, 90), "final_median": q(fin, 50), "final_p90": q(fin, 90), "reached_goal": goal}
             res["scenarios"][scen]["strategies"][lab] = row
             print(f"{lab:<14}{fm(det):<16}{q(ttd,50):<16.0f}{q(sil,50):>6.2f} / {q(sil,90):<6.2f}{'':<20}{q(fin,50):>6.2f} / {q(fin,90):<6.2f}{'':<12}" + (fm(goal) if goal else ''))
-    (OUT / f"lit_results_{DATASET}_{TARGET}.json").write_text(json.dumps(res, indent=1))
+    (OUT / f"lit_results_{DATASET}_{TARGET}{'_no_' + '_'.join(EXCLUDE) if EXCLUDE else ''}.json").write_text(json.dumps(res, indent=1))
 
 
 main()

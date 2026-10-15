@@ -83,3 +83,12 @@ These are **not** third-party attack data; they are other people's attack strate
    data, seeds and settings. No output of stage B had been written or read before the restart, so this changes no choice.
 2. **Reporting addition.** `final_report.py` gained an `EXCLUDE_CATEGORY` option so the same tables can be produced without
    Public IP series, as section 1 announced. No design or metric was changed.
+
+## Outcome (15 October 2026)
+
+Full tables and caveats are in `SELFCAL.md`, section "Fresh data". Against the criteria in section 5: false alerts 0% (0-1) on
+311 clean series (not above 10%); 2σ and 3σ detection 85% against 79% for the tuned dual trigger, which had 9% false alerts
+(better); greedy attacker reached its goal in 0 of 49 (not above 25%); **legitimate growth left unresolved in 99% of flagged
+cases against 13% for the tuned design (counts against)**; real shifts left unresolved 73% against 67%, intervals overlapping.
+The tuned design as frozen had 9% (4-14) false alerts, 18% (9-27) without Public IP series, and its bound-only variants detected no
+1-4σ attack. The self-calibrated bound equals the fixed 0.5σ floor for 98% of the clean series.

@@ -1,7 +1,7 @@
 # A rule for the displacement bound that needs no per-dataset tuning
 
-Status: designed and checked on **development data only** (this file). The fresh2 result is added in the last section
-after the pre-registered run (`PREREG_FRESH2.md`).
+Status: designed and checked on development data, frozen (commit `2af0fca`), then run once on 336 series from 158 resources
+never used before ("fresh2", pre-registered in `PREREG_FRESH2.md`). The fresh2 result is in the last section and is mixed.
 
 ## The problem
 
@@ -70,6 +70,70 @@ Strategies from the literature, implemented by us (`evaluation/lit_attacks.py`).
   entity at the first breach (**`Bf`**, now the design under test) reduces this to **12% (5-21)**, median stored displacement
   2.2σ instead of 6.1σ, with no change in false alerts or stealth detection.
 
-## Fresh data
+## Fresh data (fresh2, run once, pre-registered)
 
-(to be added after the pre-registered run)
+Data: 336 hourly series from 158 CoreStack resources that appear in neither earlier set; 311 clean series (148 resources) and 18
+series with a real shift of at least one scale unit (13 resources). New resources from the same customer dump, not a different
+deployment. Rates are with 95% intervals from a bootstrap over whole resources. Tuned design = frozen at `9c892e5`. Self-calibrated
+design = this file's rule, no threshold tuned on any data. Report files: `final_results_cs_fresh2_0.05B.json`,
+`lit_results_cs_fresh2_0.05.json`, and the same without Public IP series (`..._no_Public_IP_Address.json`).
+
+| Design | False alerts | 1σ | 2σ | 3σ | fast 4σ | business-hours 4σ | Poisoned calibration |
+|---|---|---|---|---|---|---|---|
+| Tuned bound + hold + ledger | 0% (0-0) | 0% | 0% | 0% | 0% | 0% | 85% (80-89) |
+| Tuned dual trigger + ledger | 9% (4-14) | 78% (72-83) | 79% (74-84) | 79% (74-84) | 80% (75-85) | 79% (73-84) | 85% (80-89) |
+| Clipped CUSUM (comparator) | 9% (4-14) | 78% (72-83) | 79% (74-84) | 79% (74-84) | 80% (75-85) | 79% (73-84) | 79% (74-84) |
+| **Self-calibrated bound + hold + ledger** | **0% (0-1)** | 14% (8-20) | **85% (80-89)** | **85% (80-89)** | **85% (80-89)** | 1% (0-3) | 85% (80-89) |
+| Self-calibrated + freeze on hold (`Bf`) | 0% (0-1) | 14% (8-21) | 85% (79-89) | 85% (79-89) | 85% (80-89) | 1% (0-3) | 85% (80-89) |
+
+Without Public IP series (154 clean series, 93 resources): tuned dual trigger false alerts **18% (9-27)**, 2σ and 3σ detection 58%;
+self-calibrated **1% (0-2)**, 2σ and 3σ detection **69% (59-77)**, 1σ 28% (17-39), business-hours 3% (1-5).
+
+Resolution and absorption (fresh2):
+
+| Design | Legitimate growth flagged | ...left unresolved | Real shifts flagged | ...left unresolved | Share of attack absorbed at end (3σ stealth) |
+|---|---|---|---|---|---|
+| Tuned dual trigger + ledger | 81% | 13% (6-20) | 83% (71-100) | 67% (47-86) | 5% (2-8) |
+| Self-calibrated | 66% (60-71) | **99% (97-100)** | 83% (71-100) | 73% (56-92) | 0% (0-1) |
+| Self-calibrated + freeze on hold | 66% (59-71) | **99% (97-100)** | 83% (71-100) | 80% (59-100) | 0% (0-1) |
+
+Literature attacks on fresh2 (implemented by us; not third-party data):
+
+* Greedy attacker (Kloft and Laskov), 49 clean series from 19 resources in which it reaches its goal against the adaptive
+  baseline: both self-calibrated variants detect 100% (median 18 days), **reach the goal in 0 of 49**, stored displacement at the end
+  median 0.39σ (`B`) and 0.34σ (`Bf`), 90th percentile 0.55σ and 0.82σ. The tuned dual trigger also detects 100% (8 days) and none
+  reach the goal, but its 90th-percentile stored displacement is 4.1σ. The adaptive baseline never flags it and reaches the goal in
+  100%, as does clipped CUSUM (which detects 94%). (On development data the partial hold reached the goal in 56% and the freeze in 12%; this was 0% on fresh2.)
+* Boiling frog (Rubinstein et al.): g = 1.01 and 1.02 move no series by one scale unit within 90 days; g = 1.05 qualifies 4
+  series; g = 1.15 qualifies 45 series from 19 resources: self-calibrated detects 11% (2-23), the tuned dual trigger and clipped CUSUM 71% (53-86), the
+  baseline that clips each update 91% (79-100). Stored displacement at the end is about 0.5σ at the 90th percentile for every strategy, so this
+  test does not separate them. The evidence on this attack is thin.
+
+### Against the pre-registered criteria
+
+| Criterion (`PREREG_FRESH2.md`, section 5) | Result | Counts against? |
+|---|---|---|
+| False alerts above 10% or interval excluding 5% from above | 0% (0-1) | no (conservative: far below target) |
+| 2σ and 3σ detection no better than the tuned design at the false-alert rate each reaches | 85% against 79% at 0% against 9% false alerts; 69% against 58% at 1% against 18% without Public IP | no |
+| Real shifts and legitimate growth left unresolved more often than the tuned design | growth 99% against 13%; real shifts 73% against 67% (intervals overlap) | **yes, for legitimate growth** |
+| Greedy attacker reaching its goal in more than 25% | 0% | no |
+
+### What the fresh result does and does not show
+
+* **The bound is the fixed floor for 98% of the clean series** (304 of 311; 157 of 157 Public IP, 48 of 48 bucket series).
+  The self-calibration decides the bound for 2% of them, so on this data the low false-alert rate comes from the fixed 0.5σ floor,
+  not from the resampling. The tuned design's floor was tuned to 4σ and never trips; the fixed floor does the work. What the rule
+  does show is that no per-dataset number was needed to get 0% false alerts here. It does not show that the resampling improves
+  on a fixed 0.5σ bound.
+* **A 15% ceiling on stealth detection comes from 48 bucket series** (one per resource; GCP `total_byte_seconds`): no strategy,
+  including the adaptive baseline's ordinary z-flag and the tuned dual trigger, detects any injected attack on them. The cause was
+  not diagnosed. Detection is 100% on the other 263 clean series. These 48 series also contribute zero false alerts.
+* **Legitimate growth is the price of the bound.** With the unit at the 0.5σ floor a promotion step moves the baseline by about
+  0.5σ per 14 days (`GUARANTEE.md`), so a 2σ change takes at least 42 days to be adopted and only 30 days follow the event in
+  these 90-day series. This is the guarantee working as stated and it is also the failure of the criterion above. The operator-set
+  allowance multiple would trade this against the bound; it was not changed after seeing fresh2.
+* **Small and business-hours attacks go through.** 1σ stealth is detected for 14% and a 4σ attack in business hours only for 1%
+  (tuned dual trigger: 78% and 79%). A fleet-wide statistic that needs a coherent shift across hour buckets will not see an
+  attacker who touches eight hours.
+* **Not third-party attack data.** The only attack strategies are ours or implemented from papers.
+* One false alert in 311 series (an app-service plan), so the false-alert rate on this data cannot be distinguished from 0%.
