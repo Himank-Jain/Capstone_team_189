@@ -203,3 +203,62 @@ def test_rescoring_before_revert_flags_what_the_step_made_normal():
     now = [w._scorer.score("vm", "cpu", key, p.value, store.get_bucket_state(key)) for p in shifted]
     assert sum(r.z_score for r in scored) > sum(r.z_score for r in now) + 1.0
     assert all(r.baseline_mean < n.baseline_mean for r, n in zip(scored, now))
+
+
+# -- the allowance is derived from the validated bound, and the ledger records the validation outcome ---------------
+
+def _first_step(guard, **kw):
+    _hold_for_days(guard, 40, sigma=10.0)
+    plan = guard.try_promote("e", 40, 0.0, **kw)
+    assert plan is not None
+    return plan, guard.ledger[-1]
+
+
+def test_allowance_is_the_validated_bound_times_the_evidence_multiple_and_the_ledger_says_so():
+    g = _ledger_guard(bound=0.7)
+    g.set_bound_provenance("e", "entity", "ok")
+    plan, entry = _first_step(g)
+    assert plan.allowance == 0.7 * 1.0 and abs(entry["step"]) == entry["allowance"] == 0.7
+    assert (entry["unit"], entry["unit_source"], entry["validation"], entry["bound_source"]) == (0.7, "validated_bound", "ok", "entity")
+    assert entry["allow_multiple"] == 1.0
+
+
+def test_a_larger_validated_bound_buys_a_proportionally_larger_step():
+    small, large = _ledger_guard(bound=0.5), _ledger_guard(bound=2.0)
+    for g in (small, large):
+        g.set_bound_provenance("e", "entity", "ok")
+    assert abs(_first_step(small)[1]["step"]) * 4 == abs(_first_step(large)[1]["step"])
+
+
+def test_failed_validation_falls_back_to_the_default_bound_and_the_ledger_records_the_failure():
+    g = _ledger_guard(bound=0.5)  # the default bound the entity was given
+    g.set_bound_provenance("e", "default", "trend in calibration period")
+    _, entry = _first_step(g)
+    assert entry["unit_source"] == "fallback_bound" and entry["validation"] == "trend in calibration period"
+    assert entry["unit"] == 0.5
+
+
+def test_an_unvalidated_bound_is_recorded_as_such():
+    g = _ledger_guard(bound=0.9)
+    g.set_bound_provenance("e", "unvalidated", "unvalidated")
+    assert _first_step(g)[1]["unit_source"] == "unvalidated_bound"
+
+
+def test_a_guard_with_no_provenance_says_it_was_never_validated():
+    entry = _first_step(_ledger_guard(bound=1.0))[1]
+    assert (entry["validation"], entry["bound_source"]) == ("not run", "configured") and entry["unit_source"] == "unvalidated_bound"
+
+
+def test_a_fixed_unit_replaces_the_link_and_is_recorded():
+    g = _ledger_guard(bound=0.5, fixed_unit=2.0)
+    g.set_bound_provenance("e", "entity", "ok")
+    plan, entry = _first_step(g)
+    assert plan.allowance == 2.0 and entry["unit_source"] == "fixed" and entry["unit"] == 2.0
+
+
+def test_hold_only_mode_has_no_promotion_path():
+    g = _snap_guard(promotion_mode="none")
+    g.set_bounds("e", 1.0, 1.0)
+    _hold_for_days(g, 40, sigma=10.0)
+    assert g.try_promote("e", 40, 1.0, operator_approved=True, corroborated=True) is None
+    assert g.is_held("e") and not g.ledger

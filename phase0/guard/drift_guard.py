@@ -65,7 +65,8 @@ class GuardConfig:
     # move the baseline by at most ``allow_base`` cumulative bounds per
     # promotion; each independent piece of evidence adds its own allowance, and
     # only an operator can lift the cap. A capped step keeps the episode open
-    # (a later hold within ``episode_gap_days`` is not a new incident).
+    # (a later hold within ``episode_gap_days`` is not a new incident). "none": hold only; there is no promotion
+    # path, so a held entity stays held until an operator resolves it (used to test the hold on its own).
     promotion_mode: str = "full"
     allow_base: float = 1.0
     allow_cohort: float = 1.0
@@ -76,6 +77,11 @@ class GuardConfig:
     # reading that would breach the bound is held back, so readings that individually stay inside the bound keep
     # entering the window during a hold.
     freeze_on_hold: bool = False
+    # Ledger mode only. None (default): one allowance multiple is worth one *validated* cumulative bound of the entity
+    # (the allowance is derived from the calibration that sized the trigger). A number: every allowance multiple is
+    # worth that many scale units for every entity, independent of calibration (the "unlinked" allowance used to test
+    # what the link contributes).
+    fixed_unit: Optional[float] = None
 
 
 @dataclass
@@ -157,12 +163,22 @@ class DriftGuard:
         self._bounds: Dict[Hashable, Tuple[float, float]] = {}
         self._episode: Dict[Hashable, float] = {}  # entity -> day of last capped step
         self._unit: Dict[Hashable, float] = {}  # ledger step unit when the bound is not the trigger
+        self._provenance: Dict[Hashable, Tuple[str, str]] = {}  # entity -> (bound source, validation outcome)
         self.ledger: List[dict] = []  # provenance of every promotion step
 
     # -- configuration ------------------------------------------------------
 
     def set_bounds(self, entity: Hashable, windowed: float, cumulative: float) -> None:
         self._bounds[entity] = (windowed, cumulative)
+
+    def set_bound_provenance(self, entity: Hashable, source: str, validation: str) -> None:
+        """Record how the entity's bound was obtained: its source ("entity", "cohort", "default", ...) and the
+        outcome of the calibration validation ("ok", or the reason it failed and the default was used). Every
+        ledger step records this next to the allowance that was derived from the bound."""
+        self._provenance[entity] = (source, validation)
+
+    def bound_provenance(self, entity: Hashable) -> Tuple[str, str]:
+        return self._provenance.get(entity, ("configured", "not run"))
 
     def set_ledger_unit(self, entity: Hashable, unit: float) -> None:
         """Scale-unit width of one ledger allowance. Defaults to the entity's cumulative bound; set
@@ -359,6 +375,9 @@ class DriftGuard:
         scales = {b: s for b, (_, s) in ent.snaps.items()}
         shadow_shift = statistics.median(recent)
 
+        if self.config.promotion_mode == "none":
+            return None
+
         if self.config.promotion_mode == "ledger":
             evidence = ["stable_shadow"]
             allow = self.config.allow_base
@@ -368,18 +387,29 @@ class DriftGuard:
             if corro_ok:
                 evidence.append("change_event")
                 allow += self.config.allow_corroborated
-            c_bound = self._unit.get(entity) or self.bounds_for(entity)[1]
+            bound_source, validation = self.bound_provenance(entity)
+            if self.config.fixed_unit is not None:
+                c_bound, unit_source = self.config.fixed_unit, "fixed"
+            elif self._unit.get(entity):
+                c_bound, unit_source = self._unit[entity], "external_unit"
+            else:
+                c_bound = self.bounds_for(entity)[1]
+                unit_source = "validated_bound" if validation == "ok" else (
+                    "fallback_bound" if bound_source == "default" and validation != "not run" else "unvalidated_bound")
             allowance = allow * c_bound
             need = shadow_shift - self.signed_drift(entity)
+            entry = {"entity": entity, "day": day, "evidence": evidence, "need": need, "allow_multiple": allow,
+                     "unit": c_bound, "unit_source": unit_source, "bound_source": bound_source, "validation": validation,
+                     "allowance": allowance}
             if operator_approved:
                 evidence.append("operator")
-                self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": need, "capped": False})
+                self.ledger.append({**entry, "step": need, "capped": False})
                 return PromotionPlan(values, shadow_shift, scales, False, float("inf"), tuple(evidence))
             if abs(need) <= allowance:
-                self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": need, "capped": False})
+                self.ledger.append({**entry, "step": need, "capped": False})
                 return PromotionPlan(values, shadow_shift, scales, False, allowance, tuple(evidence))
             step = allowance if need > 0 else -allowance
-            self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": step, "capped": True})
+            self.ledger.append({**entry, "step": step, "capped": True})
             return PromotionPlan({}, step, scales, True, allowance, tuple(evidence))
 
         rule = self.config.promotion_rule

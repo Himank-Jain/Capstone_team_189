@@ -43,6 +43,7 @@ from evaluation.scenarios import (
 from phase0.baseline.in_memory_store import InMemoryRollingBaselineStore
 from phase0.bucketing.bucket_key_resolver import BucketKeyResolver
 from phase0.guard import DriftGuard, GuardConfig, calibrate_bounds
+from phase0.guard.calibration import MIN_BOUND
 from phase0.guard.drift_guard import robust_scale
 from phase0.scoring.zscore_scorer import ZScoreScorer
 from phase0.seasonality.seasonality_classifier import SeasonalityClassifier
@@ -345,16 +346,25 @@ def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, d
     dflt = default_bounds or (1.0, 2.0)
     if strategy == "guard_default":
         guard.set_bounds(eid, *dflt)
+        guard.set_bound_provenance(eid, "default", "not run")
         res.bounds, res.bound_source = dflt, "default"
         return
     dw, dc = traces["d_w"], traces["d_c"]
     if strategy == "guard_naive" or not validate:
-        if len(dc) >= 20:
+        if raw_bounds is not None and strategy != "guard_naive":
+            # self-calibrated bound taken as it is: no alert exclusion, no trend check, no default fallback
+            fl = MIN_BOUND if floor is None else floor
+            w, c = max(raw_bounds[0], fl), max(raw_bounds[1], fl)
+            src = "unvalidated"
+        elif len(dc) >= 20:
             w, c = margin * float(np.percentile(dw, 99)), margin * float(np.percentile(dc, 99))
+            src = "naive"
         else:
             w, c = dflt
+            src = "naive"
         guard.set_bounds(eid, w, c)
-        res.bounds, res.bound_source = (w, c), "naive"
+        guard.set_bound_provenance(eid, src, "unvalidated")
+        res.bounds, res.bound_source = (w, c), src
         return
     alert_flags = None
     if res.flag_days:
@@ -371,6 +381,7 @@ def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, d
         raw_bounds=raw_bounds,
     )
     guard.set_bounds(eid, cal.windowed, cal.cumulative)
+    guard.set_bound_provenance(eid, cal.source, str(cal.checks.get("result")))
     res.bounds, res.bound_source, res.calib_checks = (cal.windowed, cal.cumulative), cal.source, cal.checks
 
 
