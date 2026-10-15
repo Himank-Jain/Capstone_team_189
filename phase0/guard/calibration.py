@@ -30,6 +30,11 @@ MARGIN = 1.25  # default; evaluation tunes it on held-out entities (see evaluati
 TREND_LIMIT_SIGMA = 0.5
 COHORT_CAP = 1.5
 MIN_TRACE = 20
+# Noise floor for any bound, in scale units. The median of ~30 readings per bucket wanders by about
+# 1.25*sigma/sqrt(30) = 0.23 sigma on its own; a bound below ~2 such standard errors would hold on
+# sampling noise. Real CoreStack series that are flat or mostly zero produced own-p99 drift of exactly 0
+# and therefore a bound of 0 (every reading held); the floor prevents that.
+MIN_BOUND = 0.5
 
 
 @dataclass
@@ -53,6 +58,7 @@ def calibrate_bounds(
     cohort_median_bound: Optional[Tuple[float, float]] = None,
     default: Tuple[float, float] = (1.0, 2.0),
     margin: float = MARGIN,
+    floor: float = MIN_BOUND,
 ) -> BoundCalibration:
     """Compute and validate bounds from calibration traces.
 
@@ -100,5 +106,8 @@ def calibrate_bounds(
         bound_w = min(bound_w, cap_w)
         bound_c = min(bound_c, cap_c)
 
+    if bound_w < floor or bound_c < floor:
+        checks["floored"] = True
+    bound_w, bound_c = max(bound_w, floor), max(bound_c, floor)
     checks["result"] = "ok"
     return BoundCalibration(bound_w, bound_c, source, checks)

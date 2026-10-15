@@ -78,6 +78,11 @@ class RunResult:
     traces: Optional[dict] = None
     flag_days: Set[int] = field(default_factory=set)
     collapsed_days: Set[int] = field(default_factory=set)
+    held_end_days: Set[int] = field(default_factory=set)
+    first_alert_drift: Optional[float] = None  # stored drift (sigma) when the first post-event alert fired
+    first_alert_day: Optional[int] = None
+    drift_daily: List[float] = field(default_factory=list)  # stored drift (sigma) at the end of each day
+    ledger: list = field(default_factory=list)
 
     def first_alert_after(self, day: int) -> Optional[int]:
         later = [d for d in self.alert_days if d >= day]
@@ -91,13 +96,15 @@ def _timestamp(day: int, hour: int):
 def _drift_stats(store, snapshots) -> float:
     """Coherent drift of the stored baseline: |median over buckets of the
     normalised shift from the day-30 snapshot|."""
-    ds = []
+    from phase0.guard.drift_guard import coherent_drift
+
+    ds = {}
     for key, (med, scale) in snapshots.items():
         st = store.get_bucket_state(key)
         if st is None or not st.window:
             continue
-        ds.append((statistics.median(st.window) - med) / scale)
-    return abs(float(np.median(ds))) if ds else 0.0
+        ds[key] = (statistics.median(st.window) - med) / scale
+    return abs(float(coherent_drift(ds))) if ds else 0.0
 
 
 def _make_worker(window: int, guard: Optional[DriftGuard]):
@@ -123,6 +130,8 @@ def run(
     operator_approves: bool = False,
     default_bounds: Optional[Tuple[float, float]] = None,
     margin: float = 1.25,
+    guard_config: Optional[GuardConfig] = None,
+    corroborated: Optional[bool] = None,
 ) -> RunResult:
     values = series if series is not None else apply_scenario(entity, scenario)
     res = RunResult()
@@ -132,7 +141,7 @@ def run(
     probe = strategy == "guard_probe"
     fixed_bound = float(strategy.split("guard_b")[1]) if strategy.startswith("guard_b") else None
     window = 90 if strategy == "longwin" else 30
-    guard = DriftGuard(GuardConfig()) if guard_mode else None
+    guard = DriftGuard(guard_config or GuardConfig()) if guard_mode else None
     worker, store = _make_worker(window, guard)
     if guard is not None:
         guard.set_bounds(eid, 1e9, 1e9)  # inactive until bounds are set at BOUNDS_DAY
@@ -185,7 +194,11 @@ def run(
                         traces["day"].append(day)
                         key_ = BucketKeyResolver().resolve(point.vm_id, point.metric_name, ts)
                         traces["signed"].append(guard.residual(eid, key_, v))
-                    elif probe and day >= BOUNDS_DAY:
+                    if probe and day >= SNAPSHOT_DAY:
+                        traces.setdefault("all_day", []).append(day)
+                        traces.setdefault("all_dc", []).append(r.guard_d_cumulative)
+                        traces.setdefault("all_dw", []).append(r.guard_d_windowed)
+                    if probe and day >= BOUNDS_DAY:
                         traces["later_w"] = max(traces.get("later_w", 0.0), r.guard_d_windowed)
                         traces["later_c"] = max(traces.get("later_c", 0.0), r.guard_d_cumulative)
             elif strategy in ("frozen", "clip"):
@@ -230,15 +243,27 @@ def run(
         if guard_mode and not probe and day >= BOUNDS_DAY and res.bounds is not None:
             if res.incident_days and day in res.incident_days:
                 res.alert_days.add(day)
-            n = worker.promote_held(day_epoch(day), scenario.cohort_fraction, operator_approves)
+            n = worker.promote_held(day_epoch(day), scenario.cohort_fraction, operator_approves,
+                                        (lambda _e: corroborated) if corroborated is not None else None)
             if n:
                 res.promoted_buckets += n
                 res.promotion_days.append(day)
+
+        if guard_mode and guard.is_held(eid):
+            res.held_end_days.add(day)
+        if guard_mode and day >= SNAPSHOT_DAY:
+            res.drift_daily.append(_drift_stats(store, snapshots))
+
+        if res.first_alert_drift is None and day >= scenario.start and day in res.alert_days:
+            res.first_alert_drift = _drift_stats(store, snapshots)
+            res.first_alert_day = day
 
         if day == probe_day(scenario):
             res.stored_drift_end = _drift_stats(store, snapshots)
 
     res.stored_drift_final = _drift_stats(store, snapshots)
+    if guard_mode:
+        res.ledger = list(guard.ledger)
     if collect_traces or probe:
         res.traces = traces
     return res

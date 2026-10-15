@@ -27,6 +27,7 @@ import numpy as np
 from evaluation.data import Entity, build_entities
 from evaluation.scenarios import END_DAY, EVENT_DAY, adaptive_attack, draw_scenarios
 from evaluation.simulate import run
+from phase0.guard.calibration import MIN_BOUND
 
 STRATEGIES = [
     "adaptive", "frozen", "longwin", "clip", "cusum", "rollback",
@@ -94,7 +95,7 @@ def tune_and_cohorts(entities: List[Entity], pool) -> dict:
     for group, items in by_group.items():
         all_w = np.concatenate([np.asarray(t["d_w"]) for _, _, _, t in items])
         all_c = np.concatenate([np.asarray(t["d_c"]) for _, _, _, t in items])
-        raw = [(margin * float(np.percentile(t["d_w"], 99)), margin * float(np.percentile(t["d_c"], 99)))
+        raw = [(max(MIN_BOUND, margin * float(np.percentile(t["d_w"], 99))), max(MIN_BOUND, margin * float(np.percentile(t["d_c"], 99))))
                for _, _, _, t in items]
         raw_all.extend(raw)
         stats[group] = {

@@ -60,6 +60,17 @@ class GuardConfig:
     # Promotion rule: "cohort" (cohort agreement or operator), "corroborated"
     # (a control-plane change event explains the shift, or operator) or "both".
     promotion_rule: str = "cohort"
+    # Promotion mode. "full": the whole stable shadow is adopted once the rule
+    # passes. "ledger": evidence-weighted promotion. A stable shadow alone may
+    # move the baseline by at most ``allow_base`` cumulative bounds per
+    # promotion; each independent piece of evidence adds its own allowance, and
+    # only an operator can lift the cap. A capped step keeps the episode open
+    # (a later hold within ``episode_gap_days`` is not a new incident).
+    promotion_mode: str = "full"
+    allow_base: float = 1.0
+    allow_cohort: float = 1.0
+    allow_corroborated: float = 3.0
+    episode_gap_days: int = 30
 
 
 @dataclass
@@ -77,6 +88,9 @@ class PromotionPlan:
     bucket_values: Dict[Hashable, List[float]]  # buckets with enough shadow data
     shift_sigma: float  # coherent shadow shift, in scale units
     scales: Dict[Hashable, float]  # old per-bucket scale (to shift the rest)
+    capped: bool = False  # True when only part of the shadow shift is adopted
+    allowance: float = 0.0  # scale units the evidence allowed (ledger mode)
+    evidence: Tuple[str, ...] = ()  # evidence that justified the step
 
 
 @dataclass
@@ -87,6 +101,24 @@ class _Entity:
     held: bool = False
     incident_open: bool = False
     shadow: List[Tuple[float, Hashable, float, float]] = field(default_factory=list)  # day,bucket,value,shift
+
+
+def _group_of(bucket: Hashable):
+    """Day-type group of a bucket (weekday / weekend / none). Weekday buckets receive
+    five times the readings of weekend buckets, so they move five times faster; a single
+    median over all buckets would let the whole weekday half absorb an attack before the
+    overall median moved."""
+    return getattr(bucket, "is_weekend", None)
+
+
+def coherent_drift(shifts: Dict[Hashable, float]) -> float:
+    """Signed coherent shift: the median shift within each day-type group, taking the
+    group with the larger magnitude. With no grouping this is the plain median."""
+    groups: Dict[object, List[float]] = {}
+    for b, v in shifts.items():
+        groups.setdefault(_group_of(b), []).append(v)
+    meds = [statistics.median(v) for v in groups.values()]
+    return max(meds, key=abs)
 
 
 def _pstdev(values: Sequence[float]) -> float:
@@ -117,6 +149,8 @@ class DriftGuard:
         self.config = config or GuardConfig()
         self._entities: Dict[Hashable, _Entity] = {}
         self._bounds: Dict[Hashable, Tuple[float, float]] = {}
+        self._episode: Dict[Hashable, float] = {}  # entity -> day of last capped step
+        self.ledger: List[dict] = []  # provenance of every promotion step
 
     # -- configuration ------------------------------------------------------
 
@@ -165,10 +199,8 @@ class DriftGuard:
         if ent is None or not ent.shifts:
             return 0.0
         if override:
-            vals = [override.get(k, v) for k, v in ent.shifts.items()]
-        else:
-            vals = list(ent.shifts.values())
-        return statistics.median(vals)
+            return coherent_drift({k: override.get(k, v) for k, v in ent.shifts.items()})
+        return coherent_drift(ent.shifts)
 
     def _reference(self, ent: _Entity, day: float) -> float:
         cutoff = day - self.config.window_days
@@ -209,6 +241,9 @@ class DriftGuard:
 
         ent.shadow.append((day, bucket, value, (value - snap_med) / snap_scale))
         new_incident = not ent.incident_open
+        last = self._episode.get(entity)
+        if new_incident and last is not None and day - last <= self.config.episode_gap_days:
+            new_incident = False  # continuation of an episode a capped step left open
         ent.held = True
         ent.incident_open = True
         return GuardDecision(
@@ -234,7 +269,7 @@ class DriftGuard:
             return
         snap_med, snap_scale = ent.snaps[bucket]
         ent.shifts[bucket] = (median - snap_med) / snap_scale
-        d = statistics.median(ent.shifts.values())
+        d = coherent_drift(ent.shifts)
         if ent.history and ent.history[-1][0] == day:
             ent.history[-1] = (day, d)
         else:
@@ -280,6 +315,39 @@ class DriftGuard:
             return None
         cohort_ok = cohort_same_direction_fraction >= self.config.cohort_agreement
         corro_ok = bool(corroborated)
+        span = self.config.shadow_min_days
+        recent = [s for d, _, _, s in ent.shadow if d > day - span]
+        per_bucket: Dict[Hashable, List[float]] = {}
+        for d, b, v, _ in ent.shadow:
+            if d > day - 2 * span:
+                per_bucket.setdefault(b, []).append(v)
+        values = {b: vs[-30:] for b, vs in per_bucket.items() if len(vs) >= self.config.min_snapshot_samples}
+        scales = {b: s for b, (_, s) in ent.snaps.items()}
+        shadow_shift = statistics.median(recent)
+
+        if self.config.promotion_mode == "ledger":
+            evidence = ["stable_shadow"]
+            allow = self.config.allow_base
+            if cohort_ok:
+                evidence.append("cohort")
+                allow += self.config.allow_cohort
+            if corro_ok:
+                evidence.append("change_event")
+                allow += self.config.allow_corroborated
+            _, c_bound = self.bounds_for(entity)
+            allowance = allow * c_bound
+            need = shadow_shift - self.signed_drift(entity)
+            if operator_approved:
+                evidence.append("operator")
+                self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": need, "capped": False})
+                return PromotionPlan(values, shadow_shift, scales, False, float("inf"), tuple(evidence))
+            if abs(need) <= allowance:
+                self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": need, "capped": False})
+                return PromotionPlan(values, shadow_shift, scales, False, allowance, tuple(evidence))
+            step = allowance if need > 0 else -allowance
+            self.ledger.append({"entity": entity, "day": day, "evidence": evidence, "need": need, "step": step, "capped": True})
+            return PromotionPlan({}, step, scales, True, allowance, tuple(evidence))
+
         rule = self.config.promotion_rule
         if rule == "corroborated":
             auto = corro_ok
@@ -289,20 +357,14 @@ class DriftGuard:
             auto = cohort_ok
         if not (operator_approved or auto):
             return None
-        span = self.config.shadow_min_days
-        recent = [s for d, _, _, s in ent.shadow if d > day - span]
-        per_bucket: Dict[Hashable, List[float]] = {}
-        for d, b, v, _ in ent.shadow:
-            if d > day - 2 * span:
-                per_bucket.setdefault(b, []).append(v)
-        values = {b: vs[-30:] for b, vs in per_bucket.items() if len(vs) >= self.config.min_snapshot_samples}
-        return PromotionPlan(
-            bucket_values=values,
-            shift_sigma=statistics.median(recent),
-            scales={b: s for b, (_, s) in ent.snaps.items()},
-        )
+        return PromotionPlan(values, shadow_shift, scales)
 
-    def complete_promotion(self, entity: Hashable) -> None:
+    def complete_promotion(self, entity: Hashable, day: Optional[float] = None, capped: bool = False) -> None:
         """Called after the worker reseeded the buckets: clear the held state
-        so the next snapshot starts from the adopted baseline."""
+        so the next snapshot starts from the adopted baseline. A capped step
+        remembers the day so the remaining shift continues the same episode."""
         self._entities.pop(entity, None)
+        if capped and day is not None:
+            self._episode[entity] = day
+        else:
+            self._episode.pop(entity, None)

@@ -150,7 +150,7 @@ class AnomalyScoringWorker:
                     shift = plan.shift_sigma * plan.scales.get(key, 0.0)
                     values = [v + shift for v in state.window]
                 self._baseline_store.reseed_bucket(key, values)
-            self._guard.complete_promotion(entity)
+            self._guard.complete_promotion(entity, day, plan.capped)
             self.freeze_snapshots(day, only_entity=entity)
             promoted += 1
         return promoted

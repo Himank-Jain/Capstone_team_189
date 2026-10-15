@@ -16,12 +16,18 @@ from typing import Optional
 
 import numpy as np
 
+import os
+
 SNAPSHOT_DAY = 30
 BOUNDS_DAY = 90
 EVENT_DAY = 90
 END_DAY = 220
 DRIFT_DAYS = 30
 RAMPS = (30, 60, 90)  # attack ramp durations, days
+if os.environ.get("EVAL_PROFILE") == "corestack":
+    # Real CoreStack series are at most 100 contiguous days: compressed timeline.
+    SNAPSHOT_DAY, BOUNDS_DAY, EVENT_DAY, END_DAY = 30, 60, 60, 100
+    DRIFT_DAYS, RAMPS = 10, (10, 20, 30)
 PROFILES = ("linear", "stepped", "noise_masked")
 TARGETS = (4.0, 6.0, 8.0)  # final level above original, in scale units
 

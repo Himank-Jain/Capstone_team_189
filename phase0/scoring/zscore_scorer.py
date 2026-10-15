@@ -71,7 +71,10 @@ class ZScoreScorer:
         else:
             z = RobustStatsAccumulator.robust_z_score(value, bucket_state.window)
             baseline_mean = RobustStatsAccumulator.median(bucket_state.window)
-            baseline_std = RobustStatsAccumulator.mad(bucket_state.window, median_value=baseline_mean)
+            baseline_std = RobustStatsAccumulator.mad(
+                bucket_state.window,
+                median_value=baseline_mean,
+            )
 
         return ScoreResult(
             vm_id=vm_id, metric_name=metric_name, bucket_key=bucket_key,

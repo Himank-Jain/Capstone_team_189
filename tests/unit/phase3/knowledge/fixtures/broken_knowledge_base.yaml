@@ -1,0 +1,4 @@
+kb_version: "invalid"
+causes:
+  - cause_category: "BROKEN"
+    title: "Incomplete entry"

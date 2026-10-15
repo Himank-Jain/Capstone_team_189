@@ -1,12 +1,9 @@
 import asyncio
 from datetime import datetime, timezone
 
-import pytest
-
 from phase3.shared.types import (
     NotificationEndpoint,
     NotificationPolicy,
-    NotificationDeliveryResult,
 )
 from shared.types import AlertPayload, EpisodeMatch, GroupType, NotifyMethod, Severity, SevLevel
 
@@ -71,9 +68,27 @@ def test_severity_filtering_and_channel_filtering():
         dispatcher = NotificationDispatcher(
             notifiers=[_FakeNotifier("slack"), _FakeNotifier("email"), _FakeNotifier("pagerduty")],
             endpoints=[
-                NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/abc", enabled=True),
-                NotificationEndpoint(endpoint_id="e2", tenant_id="tenant-a", channel="email", target="ops@example.com", enabled=True),
-                NotificationEndpoint(endpoint_id="e3", tenant_id="tenant-a", channel="pagerduty", target="pagerduty-route", enabled=True),
+                NotificationEndpoint(
+                    endpoint_id="e1",
+                    tenant_id="tenant-a",
+                    channel="slack",
+                    target="https://hooks.slack.test/abc",
+                    enabled=True,
+                ),
+                NotificationEndpoint(
+                    endpoint_id="e2",
+                    tenant_id="tenant-a",
+                    channel="email",
+                    target="ops@example.com",
+                    enabled=True,
+                ),
+                NotificationEndpoint(
+                    endpoint_id="e3",
+                    tenant_id="tenant-a",
+                    channel="pagerduty",
+                    target="pagerduty-route",
+                    enabled=True,
+                ),
             ],
         )
 
@@ -102,7 +117,15 @@ def test_quiet_hours_skip_and_no_exception_escapes():
         payload = _sample_payload()
         dispatcher = NotificationDispatcher(
             notifiers=[_FakeNotifier("slack")],
-            endpoints=[NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/abc", enabled=True)],
+            endpoints=[
+                NotificationEndpoint(
+                    endpoint_id="e1",
+                    tenant_id="tenant-a",
+                    channel="slack",
+                    target="https://hooks.slack.test/abc",
+                    enabled=True,
+                )
+            ],
         )
 
         results = await dispatcher.dispatch(payload, policy)
@@ -117,14 +140,31 @@ def test_one_failing_channel_does_not_block_others_and_timeout_isolation():
     async def _run():
         payload = _sample_payload()
         dispatcher = NotificationDispatcher(
-            notifiers=[_FakeNotifier("slack", delay=0.1), _FakeNotifier("email", delay=0.5, fail=True)],
+            notifiers=[
+                _FakeNotifier("slack", delay=0.1),
+                _FakeNotifier("email", delay=0.5, fail=True),
+            ],
             endpoints=[
-                NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/abc", enabled=True),
-                NotificationEndpoint(endpoint_id="e2", tenant_id="tenant-a", channel="email", target="ops@example.com", enabled=True),
+                NotificationEndpoint(
+                    endpoint_id="e1",
+                    tenant_id="tenant-a",
+                    channel="slack",
+                    target="https://hooks.slack.test/abc",
+                    enabled=True,
+                ),
+                NotificationEndpoint(
+                    endpoint_id="e2",
+                    tenant_id="tenant-a",
+                    channel="email",
+                    target="ops@example.com",
+                    enabled=True,
+                ),
             ],
         )
 
-        results = await dispatcher.dispatch(payload, NotificationPolicy(tenant_id="tenant-a"), timeout_seconds=0.2)
+        results = await dispatcher.dispatch(
+            payload, NotificationPolicy(tenant_id="tenant-a"), timeout_seconds=0.2
+        )
         by_channel = {r.channel: r for r in results}
         assert by_channel["slack"].success is True
         assert by_channel["email"].success is False
@@ -140,7 +180,15 @@ def test_idempotent_double_dispatch_sends_once_and_records_retry_count():
         payload = _sample_payload(alert_id="alert-42")
         dispatcher = NotificationDispatcher(
             notifiers=[_FakeNotifier("slack")],
-            endpoints=[NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/abc", enabled=True)],
+            endpoints=[
+                NotificationEndpoint(
+                    endpoint_id="e1",
+                    tenant_id="tenant-a",
+                    channel="slack",
+                    target="https://hooks.slack.test/abc",
+                    enabled=True,
+                )
+            ],
         )
 
         first = await dispatcher.dispatch(payload, NotificationPolicy(tenant_id="tenant-a"))
@@ -153,6 +201,38 @@ def test_idempotent_double_dispatch_sends_once_and_records_retry_count():
     asyncio.run(_run())
 
 
+def test_resolved_delivery_uses_lifecycle_idempotency_key():
+    from phase3.notifications.notification_dispatcher import NotificationDispatcher
+
+    class _KeyRecorder:
+        def __init__(self):
+            self.keys = []
+
+        async def acquire(self, key, ttl_seconds):
+            self.keys.append(key)
+            return True
+
+    async def _run():
+        key_recorder = _KeyRecorder()
+        dispatcher = NotificationDispatcher(
+            notifiers=[_FakeNotifier("page")],
+            endpoints=[
+                NotificationEndpoint(
+                    endpoint_id="endpoint-9", tenant_id="tenant-a", channel="page", target="dash"
+                )
+            ],
+            idempotency_store=key_recorder,
+        )
+        await dispatcher.dispatch(
+            _sample_payload("alert-42"),
+            NotificationPolicy(tenant_id="tenant-a", allowed_channels=["page"]),
+            idempotency_suffix="resolved",
+        )
+        assert key_recorder.keys == ["alert-42:endpoint-9:resolved"]
+
+    asyncio.run(_run())
+
+
 def test_tenant_scoping_restricts_endpoints():
     from phase3.notifications.notification_dispatcher import NotificationDispatcher
 
@@ -161,8 +241,20 @@ def test_tenant_scoping_restricts_endpoints():
         dispatcher = NotificationDispatcher(
             notifiers=[_FakeNotifier("slack")],
             endpoints=[
-                NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-b", channel="slack", target="https://hooks.slack.test/b", enabled=True),
-                NotificationEndpoint(endpoint_id="e2", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/a", enabled=True),
+                NotificationEndpoint(
+                    endpoint_id="e1",
+                    tenant_id="tenant-b",
+                    channel="slack",
+                    target="https://hooks.slack.test/b",
+                    enabled=True,
+                ),
+                NotificationEndpoint(
+                    endpoint_id="e2",
+                    tenant_id="tenant-a",
+                    channel="slack",
+                    target="https://hooks.slack.test/a",
+                    enabled=True,
+                ),
             ],
         )
 
@@ -180,7 +272,15 @@ def test_masked_logging_does_not_expose_full_target(caplog):
     payload = _sample_payload()
     dispatcher = NotificationDispatcher(
         notifiers=[_FakeNotifier("slack")],
-        endpoints=[NotificationEndpoint(endpoint_id="e1", tenant_id="tenant-a", channel="slack", target="https://hooks.slack.test/secret-token", enabled=True)],
+        endpoints=[
+            NotificationEndpoint(
+                endpoint_id="e1",
+                tenant_id="tenant-a",
+                channel="slack",
+                target="https://hooks.slack.test/secret-token",
+                enabled=True,
+            )
+        ],
     )
 
     with caplog.at_level("INFO"):

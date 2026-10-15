@@ -155,8 +155,17 @@ def test_calibration_uses_cohort_when_entity_is_noisier_and_caps():
     c = calibrate_bounds(w, w, signed_drift=[0.0] * n, cohort_p95=(0.5, 0.5),
                          cohort_median_bound=(1.0, 2.0))
     assert c.source == "cohort" and (c.windowed, c.cumulative) == (1.0, 2.0)
-    c2 = calibrate_bounds(w, w, signed_drift=[0.0] * n, cohort_median_bound=(0.3, 0.3))
-    assert c2.windowed <= 0.45 + 1e-9
+    c2 = calibrate_bounds(w, w, signed_drift=[0.0] * n, cohort_median_bound=(0.8, 0.8))
+    assert c2.windowed <= 1.2 + 1e-9
+
+
+def test_flat_series_gets_the_noise_floor_not_a_zero_bound():
+    # real flat / mostly-zero series have own p99 drift of exactly 0
+    z = [0.0] * 60
+    c = calibrate_bounds(z, z, signed_drift=[0.0] * 60)
+    assert c.windowed == c.cumulative == 0.5 and c.checks["floored"] is True
+    c2 = calibrate_bounds(z, z, signed_drift=[0.0] * 60, cohort_median_bound=(0.0, 0.0))
+    assert c2.windowed >= 0.5
 
 
 def test_worker_with_guard_holds_a_slow_poisoning_that_unguarded_absorbs():
@@ -218,3 +227,26 @@ def test_corroborated_rule_blocks_cohort_only_promotion():
     cfg = GuardConfig(promotion_rule="corroborated")
     assert cfg.promotion_rule == "corroborated"
     assert "corroborated" in inspect.signature(DriftGuard.try_promote).parameters
+
+
+def test_weekday_half_cannot_absorb_an_attack_while_the_overall_median_stays_low():
+    """Regression: with one median over all buckets, 24 weekday buckets could move by the full
+    attack while 24 untouched weekend buckets held the overall median near zero."""
+    from phase0.types import BucketKey
+    g = DriftGuard()
+    keys = [BucketKey("v", "m", hour=h, is_weekend=w) for h in range(24) for w in (False, True)]
+    for k in keys:
+        g.take_snapshot("e", k, BASE, day=0)
+    g.set_bounds("e", 5.0, 1.0)
+    held, accepted = False, 0
+    for k in keys:
+        if k.is_weekend:
+            continue  # only weekday buckets receive the shifted readings
+        d = g.evaluate("e", k, MED + 6 * SCALE, MED + 6 * SCALE, day=1)
+        if d.action is GuardAction.HOLD:
+            held = True
+            break
+        g.record_accepted("e", k, MED + 6 * SCALE, 1)
+        accepted += 1
+    assert held, "weekday group drifted 6 sigma without a hold"
+    assert accepted <= 12, f"{accepted} weekday buckets absorbed the shift before the hold"
