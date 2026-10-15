@@ -53,9 +53,15 @@ for (rid, m), (cat, start, vals) in cand.items():
         continue
     h = hashlib.sha1(f"{rid}|{m}".encode()).hexdigest()
     per[rid.lower()].append((h, rid, m, cat, last.isoformat(), v))
+# ATTR=1 (with FRESH3=1): the attribution set cs_fresh3a. Same resources, same window rule, but up to 8 series per resource, and only
+# resources with at least 5 eligible series are kept, so that "in the top three" can fail (the 3-series cap of cs_fresh3 cannot test it).
+ATTR = FRESH3 and os.environ.get("ATTR") == "1"
+CAP, MINN = (8, 5) if ATTR else (3, 1)
 out = {}
 for rid, items in per.items():
-    for h, r, m, cat, st, v in sorted(items)[:3]:
+    if len(items) < MINN:
+        continue
+    for h, r, m, cat, st, v in sorted(items)[:CAP]:
         out[(r, m, cat)] = {"start": st, "values": np.asarray(v, float)}
-pickle.dump(out, open("data/external/corestack/corestack_series_%s_90d.pkl" % ("fresh3" if FRESH3 else "fresh2"), "wb"))
+pickle.dump(out, open("data/external/corestack/corestack_series_%s_90d.pkl" % ("fresh3a" if ATTR else "fresh3" if FRESH3 else "fresh2"), "wb"))
 print("resources", len({k[0].lower() for k in out}), "series", len(out))

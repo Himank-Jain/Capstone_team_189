@@ -23,7 +23,7 @@ import json, multiprocessing as mp, os, random, sys
 from pathlib import Path
 
 DATASET, STAGE = sys.argv[1], sys.argv[2]
-os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90", "cs_fresh3": "corestack90", "cs_long": "corestack_long"}.get(DATASET, "")
+os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90", "cs_fresh3": "corestack90", "cs_fresh3a": "corestack90", "cs_long": "corestack_long"}.get(DATASET, "")
 import numpy as np
 from evaluation.data import Entity, _bucket_scales, _residual_scale, build_entities
 from evaluation.runner import eligible
@@ -74,7 +74,7 @@ def _cs_long(dev):
 def _wk0(rec) -> int:
     """Weekday of the series' first day (Monday = 0). Every set before cs_fresh3 starts on a Monday."""
     import datetime as _dt
-    return _dt.date.fromisoformat(rec["start"]).weekday() if DATASET == "cs_fresh3" and rec.get("start") else 0
+    return _dt.date.fromisoformat(rec["start"]).weekday() if DATASET in ("cs_fresh3", "cs_fresh3a") and rec.get("start") else 0
 
 
 def build():
@@ -92,6 +92,8 @@ def build():
         S, days = load_series("corestack_series_fresh2_90d.pkl"), 90
     elif DATASET == "cs_fresh3":  # resources outside dev, fresh and fresh2; same rule, scripts/build_corestack_fresh2.py FRESH3=1
         S, days = load_series("corestack_series_fresh3_90d.pkl"), 90
+    elif DATASET == "cs_fresh3a":  # attribution set: the resources of cs_fresh3 with at least 5 eligible series, up to 8 each
+        S, days = load_series("corestack_series_fresh3a_90d.pkl"), 90
     else:
         used = {k[0] for k in dev}
         S = {k: v for k, v in load_series("corestack_series_90d.pkl").items() if k[0] not in used}

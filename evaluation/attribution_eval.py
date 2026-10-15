@@ -2,7 +2,7 @@
 Invention B, step 1 on real telemetry: does metric attribution name the metric that was moved, and does it matter
 which baseline the attribution is computed against?
 
-    python -m evaluation.attribution_eval <cs_dev|cs_fresh2|cs_long>
+    python -m evaluation.attribution_eval <cs_dev|cs_fresh2|cs_fresh3|cs_fresh3a|cs_long>
 
 Per resource with at least 3 eligible metrics, each metric is the target once. A scenario (stealth 2σ, stealth 3σ, fast 4σ)
 is added to the target metric only; the other metrics of the resource are the real series (their own natural variation is the
@@ -26,7 +26,7 @@ from datetime import timedelta
 from pathlib import Path
 
 DATASET = sys.argv[1]
-os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh2": "corestack90", "cs_long": "corestack_long"}[DATASET]
+os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh2": "corestack90", "cs_fresh3": "corestack90", "cs_fresh3a": "corestack90", "cs_long": "corestack_long"}[DATASET]
 _argv = sys.argv
 sys.argv = ["x", DATASET, "none"]
 import numpy as np  # noqa: E402
@@ -53,8 +53,11 @@ ATTRS = {"pk3": MetricAttributor([], peak_window=3), "pk24": MetricAttributor([]
 LOOK = ConstantBaselineLookup(level=0.0, scale=1.0)
 
 
+WK0 = 0  # weekday offset of the resource being processed (Entity.wk0; 0 for the Monday-aligned sets)
+
+
 def _daytype(day: int) -> int:
-    return int((SIM_START + timedelta(days=day)).weekday() >= 5)
+    return int((SIM_START + timedelta(days=day + WK0)).weekday() >= 5)
 
 
 def _bucket_vals(values: np.ndarray, days, hour: int, dtype: int):
@@ -95,6 +98,9 @@ def main():
         group = sorted(by[rid], key=lambda e: e.entity_id)
         if len(group) < 3:
             continue
+        global WK0
+        assert len({getattr(e, "wk0", 0) for e in group}) == 1, rid
+        WK0 = getattr(group[0], "wk0", 0)
         for ti, tgt in enumerate(group):
             for sname, make in SCEN.items():
                 base = {e.entity_id: np.asarray(e.values, float) for e in group}

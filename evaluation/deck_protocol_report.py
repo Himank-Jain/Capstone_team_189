@@ -77,6 +77,13 @@ def attacked(r, st, name):
     return first_in(r["res"][name][st], EV, DRIFT_END) is not None
 
 
+def cloud_of(source: str) -> str:
+    """Cloud from the shape of the resource id (secondary breakdown only): Azure resource ids start with /subscriptions, OCI ones with ocid1;
+    everything else is AWS-style ids (EC2 'i-...', 'vol-...', bucket and function names) and is labelled as such, not verified."""
+    low = source.lower()
+    return "Azure" if low.startswith("/subscriptions") else ("OCI" if low.startswith("ocid1") else "AWS-style ids")
+
+
 def main():
     summary = {"dataset": DATASET, "trigger": D["trigger"], "default_bound": D["default_bound"], "populations": {}}
     for pname, rows in pops().items():
@@ -188,6 +195,19 @@ def main():
             g = S["growth"][st]
             print(f"   {st}: flagged {g['flagged']} of {g['of']}; at least one promotion step {g['promoted_at_least_once']}; released (not held) by the end {g['released_by_end']}; "
                   f"median days to first promotion {g['median_days_to_first_promotion']}; median flag-days {g['median_flag_days']}, median incidents {g['median_incidents']}")
+        # ---- secondary: by cloud (shape of the resource id) ---------------------------------------------------------
+        print("\n-- by cloud (secondary; the id shape decides the label)")
+        S["by_cloud"] = {}
+        for cl in sorted({cloud_of(r["source"]) for r in rows}):
+            sub = [r for r in rows if cloud_of(r["source"]) == cl]
+            cell = {"n_series": len(sub), "n_resources": len({r["source"] for r in sub})}
+            for st in ("adaptive", "guard", "guard_trig"):
+                d3 = boot([(r["source"], int(attacked(r, st, f"R3_{p}"))) for r in sub if quiet(r, st) for p in PROFILES])
+                ctl = boot([(r["source"], int(first_in(r["res"]["control"][st], EV, END) is not None)) for r in sub])
+                cell[st] = {"R3_detected_control_quiet": d3, "control_false_alarm": ctl}
+            S["by_cloud"][cl] = cell
+            print(f"   {cl:<14} {cell['n_series']:>3} series / {cell['n_resources']:>3} resources   "
+                  + "   ".join(f"{st}: R3 {fmt(cell[st]['R3_detected_control_quiet']).split(' (')[0].strip()}, control {fmt(cell[st]['control_false_alarm']).split(' (')[0].strip()}" for st in ("adaptive", "guard", "guard_trig")))
     (OUT / f"deckproto_summary_{DATASET}.json").write_text(json.dumps(summary, indent=1, default=float))
 
 

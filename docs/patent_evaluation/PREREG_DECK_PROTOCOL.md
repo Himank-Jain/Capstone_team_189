@@ -134,3 +134,18 @@ All rows on the 22 flat series are reported in the JSON and not used (the adapti
 Not on this table, for the record: `robust` detects most drifts at a third of controls alarmed, so it is not a better detector, it is a more alarming one.
 
 **Frozen at this point:** the code in `evaluation/deck_protocol.py` and `deck_protocol_report.py` as committed with this note, `frozen_trigger.json`, and `phase0` unchanged. No parameter is changed after this commit.
+
+---
+
+## 9. Addendum, written after the main held-out run and before the attribution run: explanation on untouched resources (`cs_fresh3a`)
+
+The main run (`cs_fresh3`, section 4) is recorded in `RESULTS_DECK_PROTOCOL.md`. The deck's explanation figure (94.0% of injected cause metrics in the top three) needs resources with at least five metrics, which the
+3-series cap of `cs_fresh3` cannot provide. **Set `cs_fresh3a`:** the same 213 resources, the same window rule, every eligible series up to 8 per resource (ordered by sha1), only resources with at least 5 eligible series:
+**79 resources, 408 series** (`FRESH3=1 ATTR=1 scripts/build_corestack_fresh2.py`). Nothing was run on it before this note. Protocol, thresholds and code: `evaluation/attribution_eval.py` and `PREREG_UNIFIED_B.md`, unchanged apart from the weekday offset
+(`WK0`) needed for non-Monday series. Variant `pk24` is reported first (chosen after the dev result of an earlier phase); `pk3` (module default) is stored as well.
+
+Predictions, on resources without Microsoft.Network series ("non-network"; the network resources carry flat distractors and are reported separately):
+1. Snapshot reference, stealth 3σ, probe at the end of the ramp (day 85): top-3 between 80% and 100%, top-1 between 50% and 90%. Whether top-3 reaches the deck's 94.0% is not predicted.
+2. Snapshot minus adaptive top-1 at the last probe (day 89, 29 days after the event): between -6 and +10 points (fresh2 gave -1; the adaptive baseline has not yet absorbed the shift at 29 days).
+3. At the first probe (day 70, 10 days after the event) the snapshot is not better than the adaptive reference (dev: 33 points worse).
+4. Control runs: the snapshot flags between 0.1 and 1.0 non-target metrics per case.
