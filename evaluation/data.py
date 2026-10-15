@@ -41,6 +41,7 @@ class Entity:
     values: np.ndarray  # TOTAL_DAYS * 24 hourly values
     hour_scale: float  # median over buckets of the bucket robust scale (first 30 days)
     bucket_scale: np.ndarray = None  # (24 hours x 2 day-types) robust scale of the first 30 days
+    wk0: int = 0  # weekday of day 0 (Monday = 0); 0 for every set built before cs_fresh3
 
 
 def _group_of(stem: str) -> str:
@@ -153,7 +154,7 @@ def _smooth(values: np.ndarray, rng: random.Random) -> np.ndarray:
     return out
 
 
-def _residual_scale(first30: np.ndarray) -> float:
+def _residual_scale(first30: np.ndarray, wk0: int = 0) -> float:
     """Entity scale unit: the median, over the 48 (hour, weekday/weekend)
     buckets, of the robust scale of each bucket's first-30-day window. This is
     the same quantity the drift guard divides by (s_snap), so one scale unit
@@ -163,13 +164,13 @@ def _residual_scale(first30: np.ndarray) -> float:
     by_bucket: Dict[tuple, List[float]] = {}
     for i, v in enumerate(first30):
         day, hour = divmod(i, 24)
-        weekend = (SIM_START + timedelta(days=day)).weekday() >= 5
+        weekend = (SIM_START + timedelta(days=day + wk0)).weekday() >= 5
         by_bucket.setdefault((hour, weekend), []).append(float(v))
     scales = [robust_scale(w) for w in by_bucket.values() if len(w) >= 5]
     return float(np.median(scales))
 
 
-def _bucket_scales(first30: np.ndarray) -> np.ndarray:
+def _bucket_scales(first30: np.ndarray, wk0: int = 0) -> np.ndarray:
     """Robust scale of every (hour, weekday/weekend) bucket over the first 30
     days, shape (24, 2). An attacker who mimics the entity's variance shifts
     each bucket in proportion to its own scale."""
@@ -178,7 +179,7 @@ def _bucket_scales(first30: np.ndarray) -> np.ndarray:
     by_bucket: Dict[tuple, List[float]] = {}
     for i, v in enumerate(first30):
         day, hour = divmod(i, 24)
-        weekend = (SIM_START + timedelta(days=day)).weekday() >= 5
+        weekend = (SIM_START + timedelta(days=day + wk0)).weekday() >= 5
         by_bucket.setdefault((hour, int(weekend)), []).append(float(v))
     out = np.zeros((24, 2))
     fallback = float(np.median([robust_scale(w) for w in by_bucket.values() if len(w) >= 5]))

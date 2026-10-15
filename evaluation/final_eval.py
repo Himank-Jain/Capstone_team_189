@@ -23,7 +23,7 @@ import json, multiprocessing as mp, os, random, sys
 from pathlib import Path
 
 DATASET, STAGE = sys.argv[1], sys.argv[2]
-os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90", "cs_long": "corestack_long"}.get(DATASET, "")
+os.environ["EVAL_PROFILE"] = {"cs_dev": "corestack", "cs_fresh": "corestack90", "cs_fresh2": "corestack90", "cs_fresh3": "corestack90", "cs_long": "corestack_long"}.get(DATASET, "")
 import numpy as np
 from evaluation.data import Entity, _bucket_scales, _residual_scale, build_entities
 from evaluation.runner import eligible
@@ -71,6 +71,12 @@ def _cs_long(dev):
     return [e for e in ents if eligible(e)]
 
 
+def _wk0(rec) -> int:
+    """Weekday of the series' first day (Monday = 0). Every set before cs_fresh3 starts on a Monday."""
+    import datetime as _dt
+    return _dt.date.fromisoformat(rec["start"]).weekday() if DATASET == "cs_fresh3" and rec.get("start") else 0
+
+
 def build():
     if DATASET == "nab_dev":
         return [e for e in build_entities(ROOT / "data/external/nab_aws_cloudwatch", 12) if eligible(e)]
@@ -84,6 +90,8 @@ def build():
         S, days = dev, 100
     elif DATASET == "cs_fresh2":  # resources outside both earlier sets; rule in scripts/build_corestack_fresh2.py
         S, days = load_series("corestack_series_fresh2_90d.pkl"), 90
+    elif DATASET == "cs_fresh3":  # resources outside dev, fresh and fresh2; same rule, scripts/build_corestack_fresh2.py FRESH3=1
+        S, days = load_series("corestack_series_fresh3_90d.pkl"), 90
     else:
         used = {k[0] for k in dev}
         S = {k: v for k, v in load_series("corestack_series_90d.pkl").items() if k[0] not in used}
@@ -94,8 +102,9 @@ def build():
         if len(v) < days * 24:
             continue
         v = v[: days * 24]
+        wk0 = _wk0(rec)
         ents.append(Entity(entity_id=f"{rid.split('/')[-1]}|{metric}", source=rid.lower(), group=f"{cat}:{metric}", replica=0,
-                           values=v, hour_scale=_residual_scale(v[: 30 * 24]), bucket_scale=_bucket_scales(v[: 30 * 24])))
+                           values=v, hour_scale=_residual_scale(v[: 30 * 24], wk0), bucket_scale=_bucket_scales(v[: 30 * 24], wk0), wk0=wk0))
     return [e for e in ents if eligible(e)]
 
 
@@ -114,7 +123,7 @@ def label(e):
     """Strategy-independent truth: stable = no 14-day window beyond STABLE_SHIFT hour-scale units after the event day."""
     if FAMILY == "nab":
         return True, 0.0
-    ms = max_shift(e.values, e.hour_scale, BOUNDS_DAY, EVENT_DAY)
+    ms = max_shift(e.values, e.hour_scale, BOUNDS_DAY, EVENT_DAY, getattr(e, 'wk0', 0))
     return bool(ms < STABLE_SHIFT), float(ms)
 
 

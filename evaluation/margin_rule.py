@@ -32,15 +32,15 @@ from evaluation.scenarios import BOUNDS_DAY, END_DAY, SNAPSHOT_DAY, Scenario  # 
 from evaluation.simulate import run  # noqa: E402
 
 
-def resampled_series(values: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+def resampled_series(values: np.ndarray, rng: np.random.Generator, wk0: int = 0) -> np.ndarray:
     """Training days unchanged; every later day is a calibration day of the same type drawn with replacement."""
     n_days = END_DAY
     out = np.array(values[: n_days * 24], dtype=float, copy=True)
     pool = {0: [], 1: []}
     for d in range(SNAPSHOT_DAY, BOUNDS_DAY):
-        pool[int((SIM_START.weekday() + d) % 7 >= 5)].append(d)
+        pool[int((SIM_START.weekday() + d + wk0) % 7 >= 5)].append(d)
     for d in range(SNAPSHOT_DAY, n_days):
-        wk = int((SIM_START.weekday() + d) % 7 >= 5)
+        wk = int((SIM_START.weekday() + d + wk0) % 7 >= 5)
         src = int(rng.choice(pool[wk]))
         out[d * 24:(d + 1) * 24] = values[src * 24:(src + 1) * 24]
     return out
@@ -51,7 +51,7 @@ def future_max_samples(entity, B: int, seed: int = 0):
     rng = np.random.default_rng(seed)
     wc, ww = [], []
     for _ in range(B):
-        v = resampled_series(entity.values, rng)
+        v = resampled_series(entity.values, rng, getattr(entity, 'wk0', 0))
         r = run(entity, Scenario("control"), "guard_probe", series=v)
         t = r.traces
         wc.append(t.get("later_c", 0.0))
@@ -68,7 +68,7 @@ ZCLIP = 3.0  # residual clip of the sequential trigger (a fixed design constant,
 H_MIN = 3.0  # the sequential trigger never fires below this level (smallest value of the grid used for the tuned design)
 
 
-def selfcal(entity, values: np.ndarray, B: int = 80, alpha: float = 0.05, seed: int = 0) -> dict:
+def selfcal(entity, values: np.ndarray, B: int = 80, alpha: float = 0.05, seed: int = 0, trig_src: str = "mean", trig_floor: float = 0.05, trig_k: float = 0.5, trig_w: int = 0) -> dict:
     """Self-calibrated operating point for one entity from its own calibration days (see module docstring).
 
     alpha is the target probability of a false hold per entity over the horizon, split evenly between the displacement
@@ -76,13 +76,15 @@ def selfcal(entity, values: np.ndarray, B: int = 80, alpha: float = 0.05, seed: 
     rng = np.random.default_rng(seed)
     wc, ww, hh = [], [], []
     for _ in range(B):
-        r = run(entity, Scenario("control"), "guard_dualprobe", series=resampled_series(values, rng), zclip=ZCLIP, cusum_h=1e18)
+        r = run(entity, Scenario("control"), "guard_dualprobe", series=resampled_series(values, rng, getattr(entity, 'wk0', 0)), zclip=ZCLIP, cusum_h=1e18,
+                trig_src=trig_src, trig_floor=trig_floor, trig_k=trig_k, trig_w=trig_w)
         wc.append(r.traces.get("later_c", 0.0))
         ww.append(r.traces.get("later_w", 0.0))
         hh.append(r.max_cusum)
     qb, qh = 1 - alpha / 4, 1 - alpha / 2
     return {"bw": float(np.quantile(ww, qb, method="higher")), "bc": float(np.quantile(wc, qb, method="higher")),
-            "h": max(H_MIN, float(np.quantile(hh, qh, method="higher"))), "B": B, "alpha": alpha}
+            "h": max(H_MIN, float(np.quantile(hh, qh, method="higher"))), "B": B, "alpha": alpha,
+            "hh": [round(float(v), 4) for v in np.sort(hh)]}  # sorted largest values of the sequential statistic in the B futures
 
 
 def _one(args):

@@ -1,0 +1,8 @@
+{
+  "src": "trim",
+  "floor": 0.05,
+  "w": 14,
+  "k": 0.5,
+  "c": 8.0,
+  "note": "Sequential trigger frozen on development data only (cs_dev, cs_fresh2, cs_fresh; offline comparison in evaluation/seq_dev.py and docs/patent_evaluation/PREREG_DECK_PROTOCOL.md). Daily summary = mean of the middle half of the 24 hourly residuals against the trusted snapshot; standardised with the calibration days' mean and sd (sd floor 0.05, clip +/-3); statistic = sqrt(n)*|mean of the last n<=14 standardised days|; trips when it exceeds the global constant c. k is unused by the window statistic."
+}

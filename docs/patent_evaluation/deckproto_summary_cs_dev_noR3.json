@@ -1,0 +1,1871 @@
+{
+ "dataset": "cs_dev",
+ "trigger": {
+  "src": "trim",
+  "floor": 0.05,
+  "w": 14,
+  "k": 0.5,
+  "c": 8.0,
+  "note": "Sequential trigger frozen on development data only (cs_dev, cs_fresh2, cs_fresh; offline comparison in evaluation/seq_dev.py and docs/patent_evaluation/PREREG_DECK_PROTOCOL.md). Daily summary = mean of the middle half of the 24 hourly residuals against the trusted snapshot; standardised with the calibration days' mean and sd (sd floor 0.05, clip +/-3); statistic = sqrt(n)*|mean of the last n<=14 standardised days|; trips when it exceeds the global constant c. k is unused by the window statistic."
+ },
+ "default_bound": [
+  0.5,
+  0.5
+ ],
+ "populations": {
+  "varying": {
+   "n_entities": 43,
+   "n_sources": 19,
+   "R1": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.16279069767441862,
+      "lo": 0.05551801801801802,
+      "hi": 0.2807017543859649,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 4.0,
+     "median_drift": 0.2913706891282877
+    },
+    "w2x": {
+     "detected": {
+      "rate": 0.05426356589147287,
+      "lo": 0.0,
+      "hi": 0.13071895424836602,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 9.0,
+     "median_drift": 0.15534478991597206
+    },
+    "slow5": {
+     "detected": {
+      "rate": 0.03875968992248062,
+      "lo": 0.0,
+      "hi": 0.09523809523809523,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.1524226172440544
+    },
+    "robust": {
+     "detected": {
+      "rate": 0.7906976744186046,
+      "lo": 0.6470490196078432,
+      "hi": 0.9166666666666666,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 15.0,
+     "median_drift": 0.2913706891282877
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.7286821705426356,
+      "lo": 0.5793546365914788,
+      "hi": 0.870391414141414,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 15.0,
+     "median_drift": 0.1524226172440544
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.07751937984496124,
+      "lo": 0.0,
+      "hi": 0.18190235690235645,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 25.0,
+     "median_drift": 0.2913706891282877
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.29457364341085274,
+      "lo": 0.18181818181818182,
+      "hi": 0.4097355769230768,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 20.0,
+     "median_drift": 0.24349537973829752
+    }
+   },
+   "R2": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.5038759689922481,
+      "lo": 0.35833333333333334,
+      "hi": 0.6333496732026143,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 4.0,
+     "median_drift": 1.5091759787877783
+    },
+    "w2x": {
+     "detected": {
+      "rate": 0.4573643410852713,
+      "lo": 0.3238095238095238,
+      "hi": 0.5869565217391305,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.46575970900622277
+    },
+    "slow5": {
+     "detected": {
+      "rate": 0.46511627906976744,
+      "lo": 0.3247685185185185,
+      "hi": 0.6014536938847649,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 2.5,
+     "median_drift": 0.4086597206976934
+    },
+    "robust": {
+     "detected": {
+      "rate": 0.9224806201550387,
+      "lo": 0.8288151788151787,
+      "hi": 1.0,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 8.0,
+     "median_drift": 1.5091759787877783
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.8527131782945736,
+      "lo": 0.7651515151515151,
+      "hi": 0.9302721987315008,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 8.0,
+     "median_drift": 0.4086597206976934
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.5038759689922481,
+      "lo": 0.3464052287581699,
+      "hi": 0.6504065040650406,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 24.0,
+     "median_drift": 0.48883989417466145
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.7906976744186046,
+      "lo": 0.695218253968254,
+      "hi": 0.8765499194847021,
+      "n": 129,
+      "sources": 19
+     },
+     "median_delay": 17.0,
+     "median_drift": 0.2853073764798905
+    }
+   },
+   "R1_by_total": {
+    "0.15": {
+     "adaptive": {
+      "rate": 0.15151515151515152,
+      "lo": 0.03330645161290323,
+      "hi": 0.27278409090909056,
+      "n": 33,
+      "sources": 17
+     },
+     "robust": {
+      "rate": 0.6666666666666666,
+      "lo": 0.4722222222222222,
+      "hi": 0.84375,
+      "n": 33,
+      "sources": 17
+     },
+     "slow5_robust": {
+      "rate": 0.6666666666666666,
+      "lo": 0.46875,
+      "hi": 0.8378378378378378,
+      "n": 33,
+      "sources": 17
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 33,
+      "sources": 17
+     },
+     "guard_trig": {
+      "rate": 0.030303030303030304,
+      "lo": 0.0,
+      "hi": 0.10714285714285714,
+      "n": 33,
+      "sources": 17
+     }
+    },
+    "0.3": {
+     "adaptive": {
+      "rate": 0.09090909090909091,
+      "lo": 0.0,
+      "hi": 0.16666666666666666,
+      "n": 33,
+      "sources": 18
+     },
+     "robust": {
+      "rate": 0.7878787878787878,
+      "lo": 0.6129032258064516,
+      "hi": 0.9411764705882353,
+      "n": 33,
+      "sources": 18
+     },
+     "slow5_robust": {
+      "rate": 0.6363636363636364,
+      "lo": 0.4375,
+      "hi": 0.8235661764705879,
+      "n": 33,
+      "sources": 18
+     },
+     "guard": {
+      "rate": 0.030303030303030304,
+      "lo": 0.0,
+      "hi": 0.09302325581395349,
+      "n": 33,
+      "sources": 18
+     },
+     "guard_trig": {
+      "rate": 0.21212121212121213,
+      "lo": 0.08571428571428572,
+      "hi": 0.35298861480075877,
+      "n": 33,
+      "sources": 18
+     }
+    },
+    "0.6": {
+     "adaptive": {
+      "rate": 0.1875,
+      "lo": 0.034482758620689655,
+      "hi": 0.3333333333333333,
+      "n": 32,
+      "sources": 17
+     },
+     "robust": {
+      "rate": 0.84375,
+      "lo": 0.68,
+      "hi": 0.96875,
+      "n": 32,
+      "sources": 17
+     },
+     "slow5_robust": {
+      "rate": 0.8125,
+      "lo": 0.6562230603448276,
+      "hi": 0.9428571428571428,
+      "n": 32,
+      "sources": 17
+     },
+     "guard": {
+      "rate": 0.15625,
+      "lo": 0.0,
+      "hi": 0.3870967741935484,
+      "n": 32,
+      "sources": 17
+     },
+     "guard_trig": {
+      "rate": 0.46875,
+      "lo": 0.2727272727272727,
+      "hi": 0.6666666666666666,
+      "n": 32,
+      "sources": 17
+     }
+    },
+    "0.9": {
+     "adaptive": {
+      "rate": 0.22580645161290322,
+      "lo": 0.0625,
+      "hi": 0.41935483870967744,
+      "n": 31,
+      "sources": 16
+     },
+     "robust": {
+      "rate": 0.8709677419354839,
+      "lo": 0.7142857142857143,
+      "hi": 1.0,
+      "n": 31,
+      "sources": 16
+     },
+     "slow5_robust": {
+      "rate": 0.8064516129032258,
+      "lo": 0.6451612903225806,
+      "hi": 0.9354838709677419,
+      "n": 31,
+      "sources": 16
+     },
+     "guard": {
+      "rate": 0.12903225806451613,
+      "lo": 0.0,
+      "hi": 0.30303030303030304,
+      "n": 31,
+      "sources": 16
+     },
+     "guard_trig": {
+      "rate": 0.4838709677419355,
+      "lo": 0.28,
+      "hi": 0.6668918918918906,
+      "n": 31,
+      "sources": 16
+     }
+    }
+   },
+   "control": {
+    "adaptive": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 43,
+     "sources": 19
+    },
+    "w2x": {
+     "rate": 0.023255813953488372,
+     "lo": 0.0,
+     "hi": 0.07142857142857142,
+     "n": 43,
+     "sources": 19
+    },
+    "slow5": {
+     "rate": 0.023255813953488372,
+     "lo": 0.0,
+     "hi": 0.07147212543553982,
+     "n": 43,
+     "sources": 19
+    },
+    "robust": {
+     "rate": 0.32558139534883723,
+     "lo": 0.17497282608695652,
+     "hi": 0.47619047619047616,
+     "n": 43,
+     "sources": 19
+    },
+    "slow5_robust": {
+     "rate": 0.32558139534883723,
+     "lo": 0.16279069767441862,
+     "hi": 0.4722222222222222,
+     "n": 43,
+     "sources": 19
+    },
+    "guard": {
+     "rate": 0.046511627906976744,
+     "lo": 0.0,
+     "hi": 0.11912020905923305,
+     "n": 43,
+     "sources": 19
+    },
+    "guard_trig": {
+     "rate": 0.046511627906976744,
+     "lo": 0.0,
+     "hi": 0.1111111111111111,
+     "n": 43,
+     "sources": 19
+    }
+   },
+   "benign": {
+    "adaptive": {
+     "rate": 0.32558139534883723,
+     "lo": 0.16216216216216217,
+     "hi": 0.4629742547425474,
+     "n": 43,
+     "sources": 19
+    },
+    "w2x": {
+     "rate": 0.16279069767441862,
+     "lo": 0.06818181818181818,
+     "hi": 0.27028434684684677,
+     "n": 43,
+     "sources": 19
+    },
+    "slow5": {
+     "rate": 0.16279069767441862,
+     "lo": 0.05878151260504202,
+     "hi": 0.26831613508442764,
+     "n": 43,
+     "sources": 19
+    },
+    "robust": {
+     "rate": 0.8604651162790697,
+     "lo": 0.7619047619047619,
+     "hi": 0.9512195121951219,
+     "n": 43,
+     "sources": 19
+    },
+    "slow5_robust": {
+     "rate": 0.813953488372093,
+     "lo": 0.6756587837837837,
+     "hi": 0.9210526315789473,
+     "n": 43,
+     "sources": 19
+    },
+    "guard": {
+     "rate": 0.7209302325581395,
+     "lo": 0.609729586426299,
+     "hi": 0.8334183673469383,
+     "n": 43,
+     "sources": 19
+    },
+    "guard_trig": {
+     "rate": 0.813953488372093,
+     "lo": 0.6923076923076923,
+     "hi": 0.9230769230769231,
+     "n": 43,
+     "sources": 19
+    }
+   },
+   "benign_by_size": {
+    "0.25": {
+     "adaptive": {
+      "rate": 0.14285714285714285,
+      "lo": 0.0,
+      "hi": 0.42857142857142855,
+      "n": 7,
+      "sources": 7
+     },
+     "guard": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.7142857142857143,
+      "n": 7,
+      "sources": 7
+     },
+     "guard_trig": {
+      "rate": 0.5714285714285714,
+      "lo": 0.2857142857142857,
+      "hi": 0.8571428571428571,
+      "n": 7,
+      "sources": 7
+     }
+    },
+    "0.5": {
+     "adaptive": {
+      "rate": 0.25,
+      "lo": 0.0,
+      "hi": 0.5,
+      "n": 12,
+      "sources": 12
+     },
+     "guard": {
+      "rate": 0.4166666666666667,
+      "lo": 0.16666666666666666,
+      "hi": 0.6666666666666666,
+      "n": 12,
+      "sources": 12
+     },
+     "guard_trig": {
+      "rate": 0.5833333333333334,
+      "lo": 0.3333333333333333,
+      "hi": 0.8333333333333334,
+      "n": 12,
+      "sources": 12
+     }
+    },
+    "1.0": {
+     "adaptive": {
+      "rate": 0.2857142857142857,
+      "lo": 0.0,
+      "hi": 0.5714285714285714,
+      "n": 7,
+      "sources": 7
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 7,
+      "sources": 7
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 7,
+      "sources": 7
+     }
+    },
+    "2.0": {
+     "adaptive": {
+      "rate": 0.2222222222222222,
+      "lo": 0.0,
+      "hi": 0.4444444444444444,
+      "n": 9,
+      "sources": 9
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 9,
+      "sources": 9
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 9,
+      "sources": 9
+     }
+    },
+    "3.0": {
+     "adaptive": {
+      "rate": 0.75,
+      "lo": 0.375,
+      "hi": 1.0,
+      "n": 8,
+      "sources": 8
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 8,
+      "sources": 8
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 8,
+      "sources": 8
+     }
+    }
+   },
+   "adaptive_attacker": {
+    "adaptive": {
+     "payload_detected": {
+      "rate": 0.7906976744186046,
+      "lo": 0.6666666666666666,
+      "hi": 0.9,
+      "n": 43,
+      "sources": 19
+     },
+     "median_max_drift": 1.6513133159448772
+    },
+    "guard": {
+     "payload_detected": {
+      "rate": 0.7209302325581395,
+      "lo": 0.5853658536585366,
+      "hi": 0.8536712398373982,
+      "n": 43,
+      "sources": 19
+     },
+     "median_max_drift": 0.4900372003533089
+    },
+    "guard_trig": {
+     "payload_detected": {
+      "rate": 0.7441860465116279,
+      "lo": 0.5952220077220077,
+      "hi": 0.8780487804878049,
+      "n": 43,
+      "sources": 19
+     },
+     "median_max_drift": 0.3005999323224987
+    }
+   },
+   "median_cumulative_bound": 0.5805238290577079,
+   "poisoned": {
+    "inflation_validated_median": 0.0,
+    "inflation_unvalidated_median": 2.6934302587862926,
+    "inflation_validated_mean": -0.09880306442867699,
+    "inflation_unvalidated_mean": 2.397343149904886,
+    "detected_after": {
+     "adaptive": {
+      "rate": 0.023255813953488372,
+      "lo": 0.0,
+      "hi": 0.06976744186046512,
+      "n": 43,
+      "sources": 19
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     },
+     "guard_unvalidated": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 43,
+      "sources": 19
+     }
+    }
+   },
+   "growth": {
+    "guard": {
+     "flagged": 31,
+     "promoted": 19,
+     "median_days_to_first_promotion": 15.0,
+     "median_flag_days": 0.0,
+     "median_incidents": 1.0,
+     "held_at_end": 15
+    },
+    "guard_trig": {
+     "flagged": 35,
+     "promoted": 32,
+     "median_days_to_first_promotion": 16.0,
+     "median_flag_days": 0.0,
+     "median_incidents": 1.0,
+     "held_at_end": 22
+    }
+   }
+  },
+  "all": {
+   "n_entities": 65,
+   "n_sources": 25,
+   "R1": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.4461538461538462,
+      "lo": 0.3502824858757062,
+      "hi": 0.5389143192488262,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.2834727272645141
+    },
+    "w2x": {
+     "detected": {
+      "rate": 0.37435897435897436,
+      "lo": 0.290038584603802,
+      "hi": 0.4787900128040973,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.027953420065442575
+    },
+    "slow5": {
+     "detected": {
+      "rate": 0.3641025641025641,
+      "lo": 0.2777777777777778,
+      "hi": 0.464485014075178,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.024008024376543258
+    },
+    "robust": {
+     "detected": {
+      "rate": 0.8615384615384616,
+      "lo": 0.7777777777777778,
+      "hi": 0.9464285714285714,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 22.0,
+     "median_drift": 0.2834727272645141
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.48205128205128206,
+      "lo": 0.34666013071895424,
+      "hi": 0.605151515151515,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 15.0,
+     "median_drift": 0.024008024376543258
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.05128205128205128,
+      "lo": 0.0,
+      "hi": 0.12259474685396521,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 25.0,
+     "median_drift": 0.2834727272645141
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.48205128205128206,
+      "lo": 0.40120370370370373,
+      "hi": 0.574468085106383,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 18.0,
+     "median_drift": 0.2799999999999999
+    }
+   },
+   "R2": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.6564102564102564,
+      "lo": 0.5291597222222222,
+      "hi": 0.7595628415300546,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 2.7888947937504946
+    },
+    "w2x": {
+     "detected": {
+      "rate": 0.6256410256410256,
+      "lo": 0.49725436622736524,
+      "hi": 0.735873882820258,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.10302842849505982
+    },
+    "slow5": {
+     "detected": {
+      "rate": 0.6307692307692307,
+      "lo": 0.49994444444444447,
+      "hi": 0.741976840363937,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.04912188163327384
+    },
+    "robust": {
+     "detected": {
+      "rate": 0.9333333333333333,
+      "lo": 0.8697916666666666,
+      "hi": 0.9850801141352062,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 15.0,
+     "median_drift": 2.7888947937504946
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.5641025641025641,
+      "lo": 0.4509558823529412,
+      "hi": 0.6710540935672514,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 8.0,
+     "median_drift": 0.04912188163327384
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.5948717948717949,
+      "lo": 0.46874622584541065,
+      "hi": 0.7,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 24.5,
+     "median_drift": 0.4311538761427689
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.8307692307692308,
+      "lo": 0.7484276729559748,
+      "hi": 0.8933484848484847,
+      "n": 195,
+      "sources": 25
+     },
+     "median_delay": 15.0,
+     "median_drift": 0.019843396211952382
+    }
+   },
+   "R1_by_total": {
+    "0.15": {
+     "adaptive": {
+      "rate": 0.4166666666666667,
+      "lo": 0.27906976744186046,
+      "hi": 0.5417119565217389,
+      "n": 48,
+      "sources": 23
+     },
+     "robust": {
+      "rate": 0.7708333333333334,
+      "lo": 0.6399574468085106,
+      "hi": 0.9024390243902439,
+      "n": 48,
+      "sources": 23
+     },
+     "slow5_robust": {
+      "rate": 0.4583333333333333,
+      "lo": 0.2926829268292683,
+      "hi": 0.5961538461538461,
+      "n": 48,
+      "sources": 23
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 48,
+      "sources": 23
+     },
+     "guard_trig": {
+      "rate": 0.125,
+      "lo": 0.037037037037037035,
+      "hi": 0.23255813953488372,
+      "n": 48,
+      "sources": 23
+     }
+    },
+    "0.3": {
+     "adaptive": {
+      "rate": 0.4117647058823529,
+      "lo": 0.2894736842105263,
+      "hi": 0.512306910569105,
+      "n": 51,
+      "sources": 23
+     },
+     "robust": {
+      "rate": 0.8627450980392157,
+      "lo": 0.75,
+      "hi": 0.9583333333333334,
+      "n": 51,
+      "sources": 23
+     },
+     "slow5_robust": {
+      "rate": 0.4117647058823529,
+      "lo": 0.25,
+      "hi": 0.5625,
+      "n": 51,
+      "sources": 23
+     },
+     "guard": {
+      "rate": 0.0196078431372549,
+      "lo": 0.0,
+      "hi": 0.06,
+      "n": 51,
+      "sources": 23
+     },
+     "guard_trig": {
+      "rate": 0.49019607843137253,
+      "lo": 0.3777672955974843,
+      "hi": 0.6122448979591837,
+      "n": 51,
+      "sources": 23
+     }
+    },
+    "0.6": {
+     "adaptive": {
+      "rate": 0.4583333333333333,
+      "lo": 0.3333333333333333,
+      "hi": 0.5689655172413793,
+      "n": 48,
+      "sources": 20
+     },
+     "robust": {
+      "rate": 0.8958333333333334,
+      "lo": 0.7968683792372881,
+      "hi": 0.9782608695652174,
+      "n": 48,
+      "sources": 20
+     },
+     "slow5_robust": {
+      "rate": 0.5416666666666666,
+      "lo": 0.39391233766233763,
+      "hi": 0.6938775510204082,
+      "n": 48,
+      "sources": 20
+     },
+     "guard": {
+      "rate": 0.10416666666666667,
+      "lo": 0.0,
+      "hi": 0.25491239048811004,
+      "n": 48,
+      "sources": 20
+     },
+     "guard_trig": {
+      "rate": 0.6458333333333334,
+      "lo": 0.5121951219512195,
+      "hi": 0.7759099616858235,
+      "n": 48,
+      "sources": 20
+     }
+    },
+    "0.9": {
+     "adaptive": {
+      "rate": 0.5,
+      "lo": 0.36,
+      "hi": 0.6458333333333334,
+      "n": 48,
+      "sources": 23
+     },
+     "robust": {
+      "rate": 0.9166666666666666,
+      "lo": 0.822202380952381,
+      "hi": 1.0,
+      "n": 48,
+      "sources": 23
+     },
+     "slow5_robust": {
+      "rate": 0.5208333333333334,
+      "lo": 0.3673096067695371,
+      "hi": 0.6567619220968327,
+      "n": 48,
+      "sources": 23
+     },
+     "guard": {
+      "rate": 0.08333333333333333,
+      "lo": 0.0,
+      "hi": 0.18604651162790697,
+      "n": 48,
+      "sources": 23
+     },
+     "guard_trig": {
+      "rate": 0.6666666666666666,
+      "lo": 0.5454545454545454,
+      "hi": 0.7954661410018552,
+      "n": 48,
+      "sources": 23
+     }
+    }
+   },
+   "control": {
+    "adaptive": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 65,
+     "sources": 25
+    },
+    "w2x": {
+     "rate": 0.015384615384615385,
+     "lo": 0.0,
+     "hi": 0.046171874999999904,
+     "n": 65,
+     "sources": 25
+    },
+    "slow5": {
+     "rate": 0.015384615384615385,
+     "lo": 0.0,
+     "hi": 0.046893601190476086,
+     "n": 65,
+     "sources": 25
+    },
+    "robust": {
+     "rate": 0.2153846153846154,
+     "lo": 0.10606060606060606,
+     "hi": 0.3287757933067452,
+     "n": 65,
+     "sources": 25
+    },
+    "slow5_robust": {
+     "rate": 0.2153846153846154,
+     "lo": 0.09722222222222222,
+     "hi": 0.32472170686456375,
+     "n": 65,
+     "sources": 25
+    },
+    "guard": {
+     "rate": 0.03076923076923077,
+     "lo": 0.0,
+     "hi": 0.07407407407407407,
+     "n": 65,
+     "sources": 25
+    },
+    "guard_trig": {
+     "rate": 0.03076923076923077,
+     "lo": 0.0,
+     "hi": 0.07352941176470588,
+     "n": 65,
+     "sources": 25
+    }
+   },
+   "benign": {
+    "adaptive": {
+     "rate": 0.5538461538461539,
+     "lo": 0.4561004784688995,
+     "hi": 0.6545454545454545,
+     "n": 65,
+     "sources": 25
+    },
+    "w2x": {
+     "rate": 0.4461538461538462,
+     "lo": 0.375,
+     "hi": 0.5349044850498337,
+     "n": 65,
+     "sources": 25
+    },
+    "slow5": {
+     "rate": 0.4461538461538462,
+     "lo": 0.375,
+     "hi": 0.5384999999999998,
+     "n": 65,
+     "sources": 25
+    },
+    "robust": {
+     "rate": 0.5692307692307692,
+     "lo": 0.4576271186440678,
+     "hi": 0.6666666666666666,
+     "n": 65,
+     "sources": 25
+    },
+    "slow5_robust": {
+     "rate": 0.5384615384615384,
+     "lo": 0.4074074074074074,
+     "hi": 0.6428571428571429,
+     "n": 65,
+     "sources": 25
+    },
+    "guard": {
+     "rate": 0.7076923076923077,
+     "lo": 0.6164120126448894,
+     "hi": 0.8,
+     "n": 65,
+     "sources": 25
+    },
+    "guard_trig": {
+     "rate": 0.8769230769230769,
+     "lo": 0.8,
+     "hi": 0.945211706102117,
+     "n": 65,
+     "sources": 25
+    }
+   },
+   "benign_by_size": {
+    "0.25": {
+     "adaptive": {
+      "rate": 0.5384615384615384,
+      "lo": 0.23076923076923078,
+      "hi": 0.7692307692307693,
+      "n": 13,
+      "sources": 13
+     },
+     "guard": {
+      "rate": 0.15384615384615385,
+      "lo": 0.0,
+      "hi": 0.38461538461538464,
+      "n": 13,
+      "sources": 13
+     },
+     "guard_trig": {
+      "rate": 0.7692307692307693,
+      "lo": 0.5384615384615384,
+      "hi": 1.0,
+      "n": 13,
+      "sources": 13
+     }
+    },
+    "0.5": {
+     "adaptive": {
+      "rate": 0.3076923076923077,
+      "lo": 0.07692307692307693,
+      "hi": 0.5384615384615384,
+      "n": 13,
+      "sources": 13
+     },
+     "guard": {
+      "rate": 0.38461538461538464,
+      "lo": 0.15384615384615385,
+      "hi": 0.6923076923076923,
+      "n": 13,
+      "sources": 13
+     },
+     "guard_trig": {
+      "rate": 0.6153846153846154,
+      "lo": 0.3076923076923077,
+      "hi": 0.8461538461538461,
+      "n": 13,
+      "sources": 13
+     }
+    },
+    "1.0": {
+     "adaptive": {
+      "rate": 0.5833333333333334,
+      "lo": 0.2727272727272727,
+      "hi": 0.8571428571428571,
+      "n": 12,
+      "sources": 11
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 11
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 11
+     }
+    },
+    "2.0": {
+     "adaptive": {
+      "rate": 0.5333333333333333,
+      "lo": 0.26666666666666666,
+      "hi": 0.8,
+      "n": 15,
+      "sources": 15
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 15,
+      "sources": 15
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 15,
+      "sources": 15
+     }
+    },
+    "3.0": {
+     "adaptive": {
+      "rate": 0.8333333333333334,
+      "lo": 0.5833333333333334,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 11
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 11
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 12,
+      "sources": 11
+     }
+    }
+   },
+   "adaptive_attacker": {
+    "adaptive": {
+     "payload_detected": {
+      "rate": 0.8615384615384616,
+      "lo": 0.7735634648370497,
+      "hi": 0.9411764705882353,
+      "n": 65,
+      "sources": 25
+     },
+     "median_max_drift": 0.5621613978224969
+    },
+    "guard": {
+     "payload_detected": {
+      "rate": 0.47692307692307695,
+      "lo": 0.38773864384463463,
+      "hi": 0.56,
+      "n": 65,
+      "sources": 25
+     },
+     "median_max_drift": 0.4393749999999995
+    },
+    "guard_trig": {
+     "payload_detected": {
+      "rate": 0.49230769230769234,
+      "lo": 0.3584905660377358,
+      "hi": 0.6027397260273972,
+      "n": 65,
+      "sources": 25
+     },
+     "median_max_drift": 0.14568852490054116
+    }
+   },
+   "median_cumulative_bound": 0.2619452451419415,
+   "poisoned": {
+    "inflation_validated_median": 0.0,
+    "inflation_unvalidated_median": 2.95999677493819,
+    "inflation_validated_mean": -0.06536202723743248,
+    "inflation_unvalidated_mean": 2.621008013707721,
+    "detected_after": {
+     "adaptive": {
+      "rate": 0.015384615384615385,
+      "lo": 0.0,
+      "hi": 0.04687959558823527,
+      "n": 65,
+      "sources": 25
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 65,
+      "sources": 25
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 65,
+      "sources": 25
+     },
+     "guard_unvalidated": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 65,
+      "sources": 25
+     }
+    }
+   },
+   "growth": {
+    "guard": {
+     "flagged": 46,
+     "promoted": 29,
+     "median_days_to_first_promotion": 15.0,
+     "median_flag_days": 1.0,
+     "median_incidents": 1.0,
+     "held_at_end": 24
+    },
+    "guard_trig": {
+     "flagged": 57,
+     "promoted": 54,
+     "median_days_to_first_promotion": 16.0,
+     "median_flag_days": 5.0,
+     "median_incidents": 1.0,
+     "held_at_end": 37
+    }
+   }
+  },
+  "flat": {
+   "n_entities": 22,
+   "n_sources": 18,
+   "R1": {
+    "adaptive": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.23155521944318025
+    },
+    "w2x": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.0
+    },
+    "slow5": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.0
+    },
+    "robust": {
+     "detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 24.0,
+     "median_drift": 0.23155521944318025
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": null,
+     "median_drift": 0.0
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": null,
+     "median_drift": 0.23155521944318025
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.8484848484848485,
+      "lo": 0.7575757575757576,
+      "hi": 0.9242424242424242,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 16.0,
+     "median_drift": 0.30948044127399044
+    }
+   },
+   "R2": {
+    "adaptive": {
+     "detected": {
+      "rate": 0.9545454545454546,
+      "lo": 0.85,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 30000000000.0
+    },
+    "w2x": {
+     "detected": {
+      "rate": 0.9545454545454546,
+      "lo": 0.85,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.0
+    },
+    "slow5": {
+     "detected": {
+      "rate": 0.9545454545454546,
+      "lo": 0.85,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 2.0,
+     "median_drift": 0.0
+    },
+    "robust": {
+     "detected": {
+      "rate": 0.9545454545454546,
+      "lo": 0.8571428571428571,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 24.0,
+     "median_drift": 30000000000.0
+    },
+    "slow5_robust": {
+     "detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": null,
+     "median_drift": 0.0
+    },
+    "guard": {
+     "detected": {
+      "rate": 0.7727272727272727,
+      "lo": 0.6666666666666666,
+      "hi": 0.8667391304347822,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 25.0,
+     "median_drift": 0.0
+    },
+    "guard_trig": {
+     "detected": {
+      "rate": 0.9090909090909091,
+      "lo": 0.7936507936507936,
+      "hi": 1.0,
+      "n": 66,
+      "sources": 18
+     },
+     "median_delay": 14.0,
+     "median_drift": 0.0
+    }
+   },
+   "R1_by_total": {
+    "0.15": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 15,
+      "sources": 13
+     },
+     "robust": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 15,
+      "sources": 13
+     },
+     "slow5_robust": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 15,
+      "sources": 13
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 15,
+      "sources": 13
+     },
+     "guard_trig": {
+      "rate": 0.3333333333333333,
+      "lo": 0.07142857142857142,
+      "hi": 0.6,
+      "n": 15,
+      "sources": 13
+     }
+    },
+    "0.3": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 18,
+      "sources": 14
+     },
+     "robust": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 18,
+      "sources": 14
+     },
+     "slow5_robust": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 18,
+      "sources": 14
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 18,
+      "sources": 14
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 18,
+      "sources": 14
+     }
+    },
+    "0.6": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 16,
+      "sources": 13
+     },
+     "robust": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 16,
+      "sources": 13
+     },
+     "slow5_robust": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 16,
+      "sources": 13
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 16,
+      "sources": 13
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 16,
+      "sources": 13
+     }
+    },
+    "0.9": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 17,
+      "sources": 14
+     },
+     "robust": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 17,
+      "sources": 14
+     },
+     "slow5_robust": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 17,
+      "sources": 14
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 17,
+      "sources": 14
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 17,
+      "sources": 14
+     }
+    }
+   },
+   "control": {
+    "adaptive": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "w2x": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "slow5": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "robust": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "slow5_robust": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "guard": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "guard_trig": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    }
+   },
+   "benign": {
+    "adaptive": {
+     "rate": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 22,
+     "sources": 18
+    },
+    "w2x": {
+     "rate": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 22,
+     "sources": 18
+    },
+    "slow5": {
+     "rate": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 22,
+     "sources": 18
+    },
+    "robust": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "slow5_robust": {
+     "rate": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 22,
+     "sources": 18
+    },
+    "guard": {
+     "rate": 0.6818181818181818,
+     "lo": 0.5,
+     "hi": 0.8571428571428571,
+     "n": 22,
+     "sources": 18
+    },
+    "guard_trig": {
+     "rate": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 22,
+     "sources": 18
+    }
+   },
+   "benign_by_size": {
+    "0.25": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 6,
+      "sources": 6
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 6,
+      "sources": 6
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 6,
+      "sources": 6
+     }
+    },
+    "0.5": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 1,
+      "sources": 1
+     },
+     "guard": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 1,
+      "sources": 1
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 1,
+      "sources": 1
+     }
+    },
+    "1.0": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 5,
+      "sources": 5
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 5,
+      "sources": 5
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 5,
+      "sources": 5
+     }
+    },
+    "2.0": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 6,
+      "sources": 6
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 6,
+      "sources": 6
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 6,
+      "sources": 6
+     }
+    },
+    "3.0": {
+     "adaptive": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 4,
+      "sources": 4
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 4,
+      "sources": 4
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 4,
+      "sources": 4
+     }
+    }
+   },
+   "adaptive_attacker": {
+    "adaptive": {
+     "payload_detected": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 22,
+      "sources": 18
+     },
+     "median_max_drift": 0.43937120608461555
+    },
+    "guard": {
+     "payload_detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 22,
+      "sources": 18
+     },
+     "median_max_drift": 0.43937120608461555
+    },
+    "guard_trig": {
+     "payload_detected": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 22,
+      "sources": 18
+     },
+     "median_max_drift": 0.0
+    }
+   },
+   "median_cumulative_bound": 0.0,
+   "poisoned": {
+    "inflation_validated_median": 0.0,
+    "inflation_unvalidated_median": 3.079993232153356,
+    "inflation_validated_mean": 0.0,
+    "inflation_unvalidated_mean": 3.0581711565950798,
+    "detected_after": {
+     "adaptive": {
+      "rate": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 22,
+      "sources": 18
+     },
+     "guard": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 22,
+      "sources": 18
+     },
+     "guard_trig": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 22,
+      "sources": 18
+     },
+     "guard_unvalidated": {
+      "rate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 22,
+      "sources": 18
+     }
+    }
+   },
+   "growth": {
+    "guard": {
+     "flagged": 15,
+     "promoted": 10,
+     "median_days_to_first_promotion": 15.0,
+     "median_flag_days": 8.0,
+     "median_incidents": 1.0,
+     "held_at_end": 9
+    },
+    "guard_trig": {
+     "flagged": 22,
+     "promoted": 22,
+     "median_days_to_first_promotion": 16.0,
+     "median_flag_days": 19.0,
+     "median_incidents": 1.0,
+     "held_at_end": 15
+    }
+   }
+  }
+ }
+}

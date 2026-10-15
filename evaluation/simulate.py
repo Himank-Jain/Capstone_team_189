@@ -87,6 +87,9 @@ class RunResult:
     ledger: list = field(default_factory=list)
     max_cusum: float = 0.0  # largest value of the sequential statistic after BOUNDS_DAY (null-calibration runs)
     goal_day: Optional[int] = None  # greedy attacker: first day the stored baseline had moved by the attacker's goal
+    xbar: Dict[int, float] = field(default_factory=dict)  # daily mean of the readings' residual against the trusted snapshot (gov strategies)
+    xmed: Dict[int, float] = field(default_factory=dict)  # daily median of the same residuals
+    xtrim: Dict[int, float] = field(default_factory=dict)  # daily mean of the middle half of the same residuals
 
     def first_alert_after(self, day: int) -> Optional[int]:
         later = [d for d in self.alert_days if d >= day]
@@ -111,11 +114,18 @@ def _drift_stats(store, snapshots) -> float:
     return abs(float(coherent_drift(ds))) if ds else 0.0
 
 
-def _make_worker(window: int, guard: Optional[DriftGuard]):
+# comparison baselines of the deck protocol (all other things equal: same 3-sigma threshold, same alert rule)
+WINDOWS = {"longwin": 90, "w2x": 60, "slow5": 150, "slow5_robust": 150}
+ROBUST = ("robust", "slow5_robust")
+PLAIN = ("adaptive", "longwin", "cusum", "cusum_r", "rollback", "w2x", "slow5", "robust", "slow5_robust")
+
+
+def _make_worker(window: int, guard: Optional[DriftGuard], robust: bool = False):
+    from phase0.constants import PHASE0_SCORING_METHOD_ROBUST_ZSCORE, PHASE0_SCORING_METHOD_ZSCORE
     store = InMemoryRollingBaselineStore(window_size=window)
     worker = AnomalyScoringWorker(
         _NoStream(), store, lambda r: None,
-        scorer=ZScoreScorer(min_samples=5),
+        scorer=ZScoreScorer(method=PHASE0_SCORING_METHOD_ROBUST_ZSCORE if robust else PHASE0_SCORING_METHOD_ZSCORE, min_samples=5),
         seasonality_classifier=SeasonalityClassifier(),
         guard=guard,
     )
@@ -140,6 +150,10 @@ def run(
     guard_config: Optional[GuardConfig] = None,
     corroborated: Optional[bool] = None,
     raw_bounds: Optional[Tuple[float, float]] = None,
+    trig_src: str = "mean",
+    trig_floor: float = 0.05,
+    trig_k: float = CUSUM_K,
+    trig_w: int = 0,
 ) -> RunResult:
     values = series if series is not None else apply_scenario(entity, scenario)
     res = RunResult()
@@ -151,11 +165,12 @@ def run(
     gov_ref: List[float] = []
     gov_mu = gov_sd = None
     gs_pos = gs_neg = 0.0
+    zbuf: List[float] = []  # trailing standardised daily summaries (moving-window trigger, trig_w > 0)
     probe = strategy in ("guard_probe", "guard_dualprobe")
     fixed_bound = float(strategy.split("guard_b")[1]) if strategy.startswith("guard_b") else None
-    window = 90 if strategy == "longwin" else 30
+    window = WINDOWS.get(strategy, 30)
     guard = DriftGuard(guard_config or GuardConfig()) if guard_mode else None
-    worker, store = _make_worker(window, guard)
+    worker, store = _make_worker(window, guard, robust=strategy in ROBUST)
     if guard is not None:
         guard.set_bounds(eid, 1e9, 1e9)  # inactive until bounds are set at BOUNDS_DAY
 
@@ -196,7 +211,7 @@ def run(
 
         for hour in range(24):
             v = float(values[day * 24 + hour])
-            ts = _timestamp(day, hour)
+            ts = _timestamp(day + getattr(entity, 'wk0', 0), hour)
             if greedy and day >= scenario.start and res.goal_day is None:
                 # the attacker adds load so that each reading sits just inside the acceptance region of the deployed
                 # detector (z just under the threshold), which is the greedy optimum against a centroid-style update
@@ -205,7 +220,7 @@ def run(
                     v = max(v, st_g.mean + scenario.magnitude * st_g.std)
             point = MetricPoint(entity.entity_id, METRIC, ts, v)
 
-            if strategy in ("adaptive", "longwin", "cusum", "cusum_r", "rollback") or guard_mode:
+            if strategy in PLAIN or guard_mode:
                 r = worker.process_point(point)
                 if r.guard_held:
                     res.hold_days.add(day)
@@ -262,7 +277,13 @@ def run(
 
         if gov and gov_x:
             xbar = float(np.mean(gov_x))
+            res.xbar[day] = xbar
+            _g = np.sort(np.asarray(gov_x))
+            res.xmed[day] = float(np.median(_g))
+            _lo, _hi = len(_g) // 4, len(_g) - len(_g) // 4
+            res.xtrim[day] = float(np.mean(_g[_lo:_hi])) if _hi > _lo else float(np.median(_g))
             gov_x = []
+            xbar = {"mean": xbar, "med": res.xmed[day], "trim": res.xtrim[day]}[trig_src]  # the trigger's daily summary
             if day < BOUNDS_DAY:
                 gov_ref.append(xbar)
             else:
@@ -273,19 +294,25 @@ def run(
                         # Anchor on the trusted snapshot (residual 0) and take the spread from first differences,
                         # which a slow poisoning ramp does not inflate.
                         gov_mu = 0.0
-                        gov_sd = max(float(np.std(np.diff(ref_))) / 1.4142, 0.05) if len(ref_) > 3 else 0.05
+                        gov_sd = max(float(np.std(np.diff(ref_))) / 1.4142, trig_floor) if len(ref_) > 3 else trig_floor
                         res.calib_checks["trigger_reference"] = "snapshot-anchored"
                     else:
                         gov_mu = float(np.mean(ref_))
-                        gov_sd = max(float(np.std(ref_)), 0.05)
+                        gov_sd = max(float(np.std(ref_)), trig_floor)
                 zd = (xbar - gov_mu) / gov_sd
                 if zclip:
                     zd = max(-zclip, min(zclip, zd))
-                gs_pos = max(0.0, gs_pos + zd - CUSUM_K)
-                gs_neg = max(0.0, gs_neg - zd - CUSUM_K)
+                if trig_w:  # moving-window trigger: sqrt(n) * |mean of the last n standardised days|, n <= trig_w
+                    zbuf.append(zd)
+                    seg = zbuf[-trig_w:]
+                    gs_pos, gs_neg = (len(seg) ** 0.5) * abs(sum(seg) / len(seg)), 0.0
+                else:
+                    gs_pos = max(0.0, gs_pos + zd - trig_k)
+                    gs_neg = max(0.0, gs_neg - zd - trig_k)
                 res.max_cusum = max(res.max_cusum, gs_pos, gs_neg)
                 if (gs_pos > cusum_h or gs_neg > cusum_h) and not guard.is_held(eid):
                     gs_pos = gs_neg = 0.0
+                    zbuf.clear()
                     new_inc = guard.trip(eid, day_epoch(day))
                     if new_inc is not None:
                         res.cusum_days.add(day)
@@ -315,6 +342,7 @@ def run(
                 res.promoted_buckets += n
                 res.promotion_days.append(day)
                 gs_pos = gs_neg = 0.0
+                zbuf.clear()
 
         if guard_mode and guard.is_held(eid):
             res.held_end_days.add(day)
