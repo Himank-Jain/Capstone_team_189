@@ -198,6 +198,31 @@ fresh2 had been used for the earlier tuned and self-calibrated results, not for 
   resolves growth (13% unresolved) and matches the unguarded baseline on operability. The design buys safety at the price of operability; which
   point is right is the allowance question below.
 
+## Allowance curve on fresh2 (run once, evidence-off sweep): flat
+
+Same sweep as on dev (`ablation_curve_ev0_cs_fresh2.json`, `allowance_curve_curve_ev0_cs_fresh2.json`, `allowance_curve_ev0_cs_fresh2.png`); 311 clean
+series, 264 with growth of at least 1σ, 49 where the greedy attacker succeeds against the adaptive baseline. Horizon 30 days after the event.
+
+| Allowance per step | 3σ attack absorbed | Fast 4σ absorbed | Flagged growth resolved | Real shifts resolved | Greedy reaches goal |
+|---|---|---|---|---|---|
+| hold only | 0% (0-1) | 0% (0-1) | 0% (0-0) | 0% (0-0) | 0% (0-0) |
+| 0.5 bounds | 0% (0-1) | 0% (0-1) | 1% (0-3) | 20% (0-40) | 0% (0-0) |
+| **1 bound (default)** | 0% (0-1) | 0% (0-1) | 1% (0-3) | 20% (0-40) | 0% (0-0) |
+| 2 bounds | 0% (0-1) | 1% (0-3) | 1% (0-3) | 13% (0-33) | 0% (0-0) |
+| 4 bounds | 0% (0-1) | 1% (0-3) | 1% (0-3) | 7% (0-21) | 0% (0-0) |
+| 8 bounds | 0% (0-1) | 1% (0-3) | 1% (0-3) | 13% (0-33) | 1% (0-4) |
+| 16 bounds | 0% (0-1) | 1% (0-3) | 1% (0-3) | 13% (0-33) | 2% (0-4) |
+| no cap | 0% (0-1) | 1% (0-3) | 1% (0-3) | 13% (0-33) | 2% (0-4) |
+
+* **The curve does not replicate the dev shape, and cannot.** Growth resolved is 0-1% at every setting, absorption is 0% at every setting, and the
+  only visible movement is the greedy attacker at the large allowances (2% at no cap). The shadow needs about 28 days after a hold, the first
+  promotion falls at about day 88 of 90, and at most one step fits; with the bound at the 0.5σ floor for 98% of series the linked and fixed
+  allowances coincide. This is the horizon, not evidence that the allowance does nothing: the dev curve (40 days) is the only place where the
+  dial can be seen on real data, and it stays a development observation.
+* So the proposed range (0.5 to 1 validated bound, default 1) is **not confirmed on fresh data**. What fresh2 does show is that nothing in the range hurts: at 0.5 or 1
+  bound the design is indistinguishable from hold-only on every column.
+* The pre-declared rule (at most 5% absorbed and at least 50% of flagged growth resolved) is not met by any setting here either (condition (b) fails everywhere).
+
 ---
 
 # Earlier component ablation (tuned design, from the frozen-design runs, no new runs)
