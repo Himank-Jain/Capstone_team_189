@@ -1,0 +1,18 @@
+{
+ "dataset": "nab_dev",
+ "runs": 472,
+ "promotion_steps": 585,
+ "step_over_allowance_max": 1.0,
+ "step_violations": 0,
+ "gap_pairs": 142,
+ "min_gap_days": 23.0,
+ "gap_violations": 0,
+ "by_evidence_max_ratio": {
+  "stable_shadow": 1.0,
+  "stable_shadow+change_event": 1.0
+ },
+ "by_evidence_n": {
+  "stable_shadow": 528,
+  "stable_shadow+change_event": 57
+ }
+}

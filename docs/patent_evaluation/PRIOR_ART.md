@@ -84,3 +84,49 @@ new parts.**
    record, restore), with the statistics in dependent claims.
 5. Disclose and describe the failure modes honestly in the specification (slow absorption of a stable shifted level) rather than
    claim that attacks are never absorbed.
+
+## 5. Search log (second pass, 15 October 2026)
+
+All searches were run through a general web search engine that returns Google Patents, Justia, USPTO PPUBS and arXiv pages. No
+patent-office classification search tool was available. **No classification-based or full-text claim search was possible, so this
+is still not a formal search.**
+
+| # | Search string (abridged) | Result |
+|---|---|---|
+| 1 | patent anomaly detection baseline "shadow" baseline hold update promote ledger rollback restore point poisoning | Only blockchain-ledger and microservice patents; none on baseline governance. |
+| 2 | patent behavioral baseline update frozen while anomaly detected, trusted snapshot, gradual drift poisoning adaptive baseline | US9544321B2 (Securonix); Slips HTTPS adaptive-baseline blog; none with snapshot or hold. |
+| 3 | calibration period validation poisoning anomaly detector threshold bound cohort fallback online learning defense | Kloft & Laskov, Rubinstein et al. (already known); two 2026 arXiv items on self-poisoning in adaptive OOD detection and memory poisoning (titles only, not read). |
+| 4 | US patent "baseline" "snapshot" anomaly detection "update" suspended "shadow model" candidate promoted only after validation | US8887286B2 (opened, see below); US20170063905A1 and about eight other result titles were not opened. None of those opened describes a shadow baseline. |
+| 5 | "data poisoning" anomaly detection "gradual" "baseline" patent claims "limiting the rate" of baseline change | US12405930B2, US12423280B2 (Dell): poisoned-data curation; Berkeley "stealthy poisoning" reports. |
+| 6 | arXiv 2609.04388 (direct fetch and search) | **Not readable.** The abstract page returns an empty PDF placeholder; the API host disallows the fetch. Still unread. |
+
+Classes that a formal search should cover: G06N 20/00, G06N 3/08 (training, poisoning), G06F 21/55 (detecting local intrusion
+or anomalies), G06F 21/56, H04L 63/1425 (traffic anomaly), H04L 41/16 and G06F 11/34 (monitoring, AIOps).
+
+### New references read in this pass (description pages only, claims not fully read)
+
+| Reference | What it shows | Differs from the proposal |
+|---|---|---|
+| US9544321B2 Securonix, "Anomaly detection using adaptive behavioral profiles" (priority 2015-01-30) | Profile adapted by exponential decay (14-day half-life). Dependent claims: only observations with low anomaly probability update the profile; outliers go to threat analysis. | **Outlier-gated updating is known**; a slow attacker stays inside the gate (this is the frog-boiling attack). No snapshot, bound on displacement, shadow, capped promotion, ledger or restore point. |
+| US8887286B2 Allied Security Trust / Adobe, continuous anomaly detection | Continuously maintained behavioural model; persisted history of model versions and decisions, audit trail. | A record of model versions is known in general. No hold of the baseline, validated bound, shadow or capped step. An examiner may cite it against the ledger element on its own. |
+| US12423280B2 and US12405930B2, Dell, poisoned-data identification during data curation | Anomaly detection and optimisation to find poisoned data before storage; remedial actions. | Acts on incoming data sets, not on a stored per-entity baseline; no hold, shadow, cap or revertible record. |
+
+### Differs-from rows for every reference found
+
+| Reference | Validated bound + hold (claim 1) | Shadow + capped promotion + ledger (claim 2) |
+|---|---|---|
+| Page 1954 (CUSUM) | trigger only; no stored baseline | n/a |
+| Kloft & Laskov 2012 | analyses bounded influence; no calibration validation, no hold | no |
+| Rubinstein 2009, Chan-Tin 2009/2011 | robust estimation; no hold | no |
+| Kravchik et al. | attack analysis | no |
+| US9516053 Splunk/Cisco | hold-until-judged-legitimate, no bound or calibration validation | binary, operator-driven; no shadow, cap or restore |
+| US9544321 Securonix | outlier-gated update; no bound or validation | no |
+| US10270788 Netskope; US12223046 Darktrace | adaptive baselines; no governance | no |
+| WO2017201107 PurePredictive | training-data range checks | A/B trial by accuracy; no cap, ledger |
+| US8887286 Allied/Adobe | none | persisted model history; no cap or restore point |
+| US12423280 / US12405930 Dell | data-curation screening, not baseline state | no |
+| arXiv 2609.04388 | **not read** | **not read** |
+
+**Statement for the file.** In the searches above nothing closer than US9516053 (hold-until-legitimate) and Kloft & Laskov
+(bounded influence) was found, but the search was not formal and one candidate reference could not be read; this is not a finding
+that nothing closer exists.
