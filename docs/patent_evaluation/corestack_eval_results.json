@@ -186,6 +186,26 @@
      21,
      21
     ]
+   },
+   "guard_cgov": {
+    "control_alert": 15,
+    "control_incident": 15,
+    "detect_t2.0": [
+     59,
+     63
+    ],
+    "detect_t3.0": [
+     60,
+     63
+    ],
+    "detect_t4.0": [
+     63,
+     63
+    ],
+    "poisoned_detect": [
+     18,
+     21
+    ]
    }
   },
   "calibration_validation": {
@@ -396,6 +416,26 @@
     ],
     "poisoned_detect": [
      39,
+     39
+    ]
+   },
+   "guard_cgov": {
+    "control_alert": 39,
+    "control_incident": 31,
+    "detect_t2.0": [
+     97,
+     117
+    ],
+    "detect_t3.0": [
+     111,
+     117
+    ],
+    "detect_t4.0": [
+     115,
+     117
+    ],
+    "poisoned_detect": [
+     32,
      39
     ]
    }

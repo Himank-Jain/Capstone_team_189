@@ -44,6 +44,8 @@ class Entity:
 
 
 def _group_of(stem: str) -> str:
+    if "__" in stem:
+        return stem.split("__", 1)[0]
     if stem.startswith("ec2_cpu"):
         return "ec2_cpu"
     if stem.startswith("rds_cpu"):
@@ -65,7 +67,11 @@ def _labelled_windows(path: Path) -> List[tuple]:
     import json
 
     labels = json.loads(label_file.read_text())
-    wins = labels.get(f"realAWSCloudwatch/{path.name}", [])
+    name = path.name
+    cat = "realAWSCloudwatch"
+    if "__" in name:  # fresh files are stored as <category>__<file>.csv
+        cat, name = name.split("__", 1)
+    wins = labels.get(f"{cat}/{name}", [])
     fmt = "%Y-%m-%d %H:%M:%S.%f"
     return [(datetime.strptime(a, fmt), datetime.strptime(b, fmt)) for a, b in wins]
 

@@ -121,3 +121,85 @@ def test_tripped_entity_is_promoted_through_the_ledger_like_any_other_hold():
 def test_trip_without_a_snapshot_is_ignored():
     g = DriftGuard(GuardConfig(promotion_mode="ledger"))
     assert g.trip("nobody", 1.0) is None
+
+
+def test_promotion_step_is_revertible_and_rescorable():
+    """A promotion step can be undone and its effect on later readings shown."""
+    import random
+    from datetime import datetime, timedelta, timezone
+    import pytest
+    from phase0.baseline.in_memory_store import InMemoryRollingBaselineStore
+    from phase0.bucketing.bucket_key_resolver import BucketKeyResolver
+    from phase0.scoring.zscore_scorer import ZScoreScorer
+    from phase0.seasonality.seasonality_classifier import SeasonalityClassifier
+    from phase0.types import MetricPoint
+    from phase0.workers.anomaly_scoring_worker import AnomalyScoringWorker
+    from tests.unit.phase0.test_drift_guard import _Stub
+
+    rng = random.Random(3)
+    t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    store = InMemoryRollingBaselineStore(window_size=30)
+    guard = DriftGuard(GuardConfig(promotion_mode="ledger"))
+    w = AnomalyScoringWorker(_Stub(), store, lambda r: None, scorer=ZScoreScorer(min_samples=5),
+                             seasonality_classifier=SeasonalityClassifier(non_seasonal_metrics=["cpu"]), guard=guard)
+    key = BucketKeyResolver.resolve_global("vm", "cpu")
+    day_of = lambda d: (t0 + timedelta(days=d)).timestamp() / 86400.0
+    pts = []
+    promoted_day = None
+    for day in range(130):
+        level = 50.0 if day < 30 else 56.0
+        if day == 30:
+            w.freeze_snapshots(day_of(day))
+        p = MetricPoint("vm", "cpu", t0 + timedelta(days=day), level + rng.gauss(0, 1))
+        pts.append(p)
+        w.process_point(p)
+        if day == 30:
+            guard.set_bounds("vm:cpu", 2.0, 2.0)
+        if day >= 45 and promoted_day is None and w.promote_held(day_of(day), 0.0):
+            promoted_day = day
+    assert promoted_day is not None
+    step = next(r for r in guard.ledger if "restore_id" in r)
+    before = store.get_bucket_state(key).mean
+    assert w.revert_promotion("vm:cpu", step["restore_id"], day_of(promoted_day + 1))
+    after = store.get_bucket_state(key).mean
+    assert after < before                       # the baseline moved back toward the trusted level
+    assert guard.ledger[-1] == {"entity": "vm:cpu", "day": day_of(promoted_day + 1), "reverted": step["restore_id"]}
+    # a reading at the shifted level is anomalous against the pre-step baseline
+    # (the restore point is dropped by the revert, so re-score before reverting in real use; here it is gone)
+    assert w.rescore("vm:cpu", step["restore_id"], pts[-3:]) == []
+
+
+def test_rescoring_before_revert_flags_what_the_step_made_normal():
+    import random
+    from datetime import datetime, timedelta, timezone
+    from phase0.baseline.in_memory_store import InMemoryRollingBaselineStore
+    from phase0.scoring.zscore_scorer import ZScoreScorer
+    from phase0.seasonality.seasonality_classifier import SeasonalityClassifier
+    from phase0.types import MetricPoint
+    from phase0.workers.anomaly_scoring_worker import AnomalyScoringWorker
+    from tests.unit.phase0.test_drift_guard import _Stub
+
+    rng = random.Random(4)
+    t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    store = InMemoryRollingBaselineStore(window_size=30)
+    guard = DriftGuard(GuardConfig(promotion_mode="ledger"))
+    w = AnomalyScoringWorker(_Stub(), store, lambda r: None, scorer=ZScoreScorer(min_samples=5),
+                             seasonality_classifier=SeasonalityClassifier(non_seasonal_metrics=["cpu"]), guard=guard)
+    day_of = lambda d: (t0 + timedelta(days=d)).timestamp() / 86400.0
+    for day in range(130):
+        if day == 30:
+            w.freeze_snapshots(day_of(day))
+            guard.set_bounds("vm:cpu", 2.0, 2.0)
+        w.process_point(MetricPoint("vm", "cpu", t0 + timedelta(days=day), (50.0 if day < 30 else 56.0) + rng.gauss(0, 1)))
+        if day >= 45:
+            w.promote_held(day_of(day), 0.0)
+    step = next(r for r in guard.ledger if "restore_id" in r)
+    shifted = [MetricPoint("vm", "cpu", t0 + timedelta(days=131 + i), 56.0 + rng.gauss(0, 0.5)) for i in range(5)]
+    scored = w.rescore("vm:cpu", step["restore_id"], shifted)
+    assert len(scored) == 5
+    # against the baseline before the step the readings are further from normal than against the baseline after it
+    from phase0.bucketing.bucket_key_resolver import BucketKeyResolver
+    key = BucketKeyResolver.resolve_global("vm", "cpu")
+    now = [w._scorer.score("vm", "cpu", key, p.value, store.get_bucket_state(key)) for p in shifted]
+    assert sum(r.z_score for r in scored) > sum(r.z_score for r in now) + 1.0
+    assert all(r.baseline_mean < n.baseline_mean for r, n in zip(scored, now))

@@ -67,6 +67,11 @@ class AnomalyScoringWorker:
         self._running = False
         self._guard = guard
         self._seen_buckets: set = set()
+        # restore points taken just before each promotion step (entity -> list of {id, day, states}); they make
+        # every step revertible and let readings be re-scored against the baseline as it stood before the step.
+        self._restore_points: dict = {}
+        self._restore_seq = 0
+        self.max_restore_points = 8
 
         self.points_processed_total: int = 0
         self.anomalies_flagged_total: int = 0
@@ -140,6 +145,9 @@ class AnomalyScoringWorker:
             if plan is None:
                 continue
             buckets = [k for k in self._seen_buckets if f"{k.vm_id}:{k.metric_name}" == entity]
+            rid = self._checkpoint(entity, buckets, day)
+            if self._guard.ledger and self._guard.ledger[-1].get("entity") == entity and self._guard.ledger[-1].get("day") == day:
+                self._guard.ledger[-1]["restore_id"] = rid
             for key in buckets:
                 if key in plan.bucket_values:
                     values = plan.bucket_values[key]
@@ -154,6 +162,52 @@ class AnomalyScoringWorker:
             self.freeze_snapshots(day, only_entity=entity)
             promoted += 1
         return promoted
+
+    def _checkpoint(self, entity: str, buckets, day: float) -> int:
+        from phase0.types import BucketState
+        states = {}
+        for key in buckets:
+            st = self._baseline_store.get_bucket_state(key)
+            if st is not None:
+                states[key] = BucketState(st.count, st.mean, st.m2, type(st.window)(st.window))
+        self._restore_seq += 1
+        pts = self._restore_points.setdefault(entity, [])
+        pts.append({"id": self._restore_seq, "day": day, "states": states})
+        del pts[: -self.max_restore_points]
+        return self._restore_seq
+
+    def revert_promotion(self, entity: str, restore_id: int, day: float) -> bool:
+        """Undo one promotion step: put the entity's buckets back as they stood before it and re-take the
+        trusted snapshot from them. Later steps for the same entity are discarded with it. The revert is
+        itself recorded in the guard's ledger. Returns False if the restore point is no longer held."""
+        pts = self._restore_points.get(entity, [])
+        point = next((p for p in pts if p["id"] == restore_id), None)
+        if point is None or self._guard is None:
+            return False
+        for key, st in point["states"].items():
+            self._baseline_store.reseed_bucket(key, list(st.window))
+        self._restore_points[entity] = [p for p in pts if p["id"] < restore_id]
+        self.freeze_snapshots(day, only_entity=entity)
+        self._guard.ledger.append({"entity": entity, "day": day, "reverted": restore_id})
+        return True
+
+    def rescore(self, entity: str, restore_id: int, points: List[MetricPoint]) -> List[ScoreResult]:
+        """Score readings against the baseline as it stood before a promotion step (retroactive
+        re-scoring): shows which readings the step caused to be treated as normal."""
+        pts = self._restore_points.get(entity, [])
+        point = next((p for p in pts if p["id"] == restore_id), None)
+        if point is None:
+            return []
+        out = []
+        for pt in points:
+            if self._seasonality_classifier.is_seasonal(pt.vm_id, pt.metric_name):
+                key = self._bucket_resolver.resolve(pt.vm_id, pt.metric_name, pt.timestamp)
+            else:
+                key = BucketKeyResolver.resolve_global(pt.vm_id, pt.metric_name)
+            from phase0.types import BucketState
+            st = point["states"].get(key) or BucketState()
+            out.append(self._scorer.score(pt.vm_id, pt.metric_name, key, pt.value, st))
+        return out
 
     def freeze_snapshots(self, day: float, only_entity: Optional[str] = None) -> int:
         """Take the guard's trusted snapshot of every bucket seen so far

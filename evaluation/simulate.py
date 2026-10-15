@@ -132,6 +132,8 @@ def run(
     default_bounds: Optional[Tuple[float, float]] = None,
     margin: float = 1.25,
     cusum_h: float = CUSUM_H,
+    zclip: Optional[float] = None,
+    floor: Optional[float] = None,
     guard_config: Optional[GuardConfig] = None,
     corroborated: Optional[bool] = None,
 ) -> RunResult:
@@ -140,7 +142,7 @@ def run(
     eid = f"{entity.entity_id}:{METRIC}"
 
     guard_mode = strategy.startswith("guard")
-    gov = strategy in ("guard_gov", "guard_cgov")  # calibrated bounds + CUSUM trigger on the residual vs the trusted snapshot
+    gov = strategy in ("guard_gov", "guard_cgov", "guard_full", "guard_dual")  # calibrated bounds + CUSUM trigger on the residual vs the trusted snapshot
     gov_x: List[float] = []
     gov_ref: List[float] = []
     gov_mu = gov_sd = None
@@ -177,10 +179,11 @@ def run(
                 guard.set_bounds(eid, fixed_bound / 2.0, fixed_bound)
                 res.bounds, res.bound_source = (fixed_bound / 2.0, fixed_bound), "fixed"
             else:
-                _install_bounds(guard, eid, strategy, traces, res, validate_calibration, cohort_stats, default_bounds, margin)
-                if strategy == "guard_cgov":  # the sequential detector is the only trigger; bounds only size the ledger step
+                _install_bounds(guard, eid, strategy, traces, res, validate_calibration, cohort_stats, default_bounds, margin, floor)
+                if strategy in ("guard_cgov", "guard_full", "guard_dual"):  # the sequential detector is the only trigger; bounds only size the ledger step
                     guard.set_ledger_unit(eid, res.bounds[1])
-                    guard.set_bounds(eid, 1e9, 1e9)
+                    if strategy != "guard_dual":  # dual keeps the calibrated bounds as a second trigger
+                        guard.set_bounds(eid, 1e9, 1e9)
 
         if strategy == "rollback" and day % 7 == 0:
             checkpoints.append((day, store.copy_states()))
@@ -191,7 +194,7 @@ def run(
             ts = _timestamp(day, hour)
             point = MetricPoint(entity.entity_id, METRIC, ts, v)
 
-            if strategy in ("adaptive", "longwin", "cusum", "rollback") or guard_mode:
+            if strategy in ("adaptive", "longwin", "cusum", "cusum_r", "rollback") or guard_mode:
                 r = worker.process_point(point)
                 if r.guard_held:
                     res.hold_days.add(day)
@@ -220,7 +223,7 @@ def run(
             else:
                 raise ValueError(strategy)
 
-            if strategy == "cusum" and day >= SNAPSHOT_DAY:
+            if strategy in ("cusum", "cusum_r") and day >= SNAPSHOT_DAY:
                 key = BucketKeyResolver().resolve(point.vm_id, point.metric_name, ts)
                 snap = snapshots.get(key)
                 if snap is not None:
@@ -229,7 +232,7 @@ def run(
             if r.is_anomaly and not r.cold_start:
                 flags_today += 1
 
-        if strategy == "cusum" and cusum_day_x:
+        if strategy in ("cusum", "cusum_r") and cusum_day_x:
             xbar = float(np.mean(cusum_day_x))
             cusum_day_x = []
             if day < BOUNDS_DAY:
@@ -237,6 +240,8 @@ def run(
             else:
                 mu0, sd0 = float(np.mean(cusum_ref)), float(np.std(cusum_ref)) + 1e-9
                 zd = (xbar - mu0) / sd0
+                if strategy == "cusum_r" and zclip:
+                    zd = max(-zclip, min(zclip, zd))
                 s_pos = max(0.0, s_pos + zd - CUSUM_K)
                 s_neg = max(0.0, s_neg - zd - CUSUM_K)
                 if s_pos > cusum_h or s_neg > cusum_h:
@@ -252,9 +257,19 @@ def run(
             else:
                 if gov_mu is None:  # reference from the calibration window (same estimators as the CUSUM comparator)
                     ref_ = np.asarray(gov_ref)
-                    gov_mu = float(np.mean(ref_))
-                    gov_sd = max(float(np.std(ref_)), 0.05)
+                    if strategy in ("guard_full", "guard_dual") and res.calib_checks.get("result") not in ("ok", None):
+                        # calibration failed validation (trend or contamination): do not trust its level or spread.
+                        # Anchor on the trusted snapshot (residual 0) and take the spread from first differences,
+                        # which a slow poisoning ramp does not inflate.
+                        gov_mu = 0.0
+                        gov_sd = max(float(np.std(np.diff(ref_))) / 1.4142, 0.05) if len(ref_) > 3 else 0.05
+                        res.calib_checks["trigger_reference"] = "snapshot-anchored"
+                    else:
+                        gov_mu = float(np.mean(ref_))
+                        gov_sd = max(float(np.std(ref_)), 0.05)
                 zd = (xbar - gov_mu) / gov_sd
+                if zclip:
+                    zd = max(-zclip, min(zclip, zd))
                 gs_pos = max(0.0, gs_pos + zd - CUSUM_K)
                 gs_neg = max(0.0, gs_neg - zd - CUSUM_K)
                 if (gs_pos > cusum_h or gs_neg > cusum_h) and not guard.is_held(eid):
@@ -291,7 +306,7 @@ def run(
 
         if guard_mode and guard.is_held(eid):
             res.held_end_days.add(day)
-        if guard_mode and day >= SNAPSHOT_DAY:
+        if day >= SNAPSHOT_DAY:
             res.drift_daily.append(_drift_stats(store, snapshots))
 
         if res.first_alert_drift is None and day >= scenario.start and day in res.alert_days:
@@ -313,7 +328,7 @@ def day_epoch(day: int) -> float:
     return _timestamp(day, 0).timestamp() / 86400.0
 
 
-def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, default_bounds, margin):
+def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, default_bounds, margin, floor=None):
     dflt = default_bounds or (1.0, 2.0)
     if strategy == "guard_default":
         guard.set_bounds(eid, *dflt)
@@ -339,6 +354,7 @@ def _install_bounds(guard, eid, strategy, traces, res, validate, cohort_stats, d
         cohort_median_bound=(cohort_stats or {}).get("median_bound"),
         default=dflt,
         margin=margin,
+        **({"floor": floor} if floor is not None else {}),
     )
     guard.set_bounds(eid, cal.windowed, cal.cumulative)
     res.bounds, res.bound_source, res.calib_checks = (cal.windowed, cal.cumulative), cal.source, cal.checks

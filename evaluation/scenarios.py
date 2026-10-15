@@ -28,6 +28,10 @@ if os.environ.get("EVAL_PROFILE") == "corestack":
     # Real CoreStack series are at most 100 contiguous days: compressed timeline.
     SNAPSHOT_DAY, BOUNDS_DAY, EVENT_DAY, END_DAY = 30, 60, 60, 100
     DRIFT_DAYS, RAMPS = 10, (10, 20, 30)
+if os.environ.get("EVAL_PROFILE") == "corestack90":
+    # Resources only present in the 90-day CoreStack extract (never used during development).
+    SNAPSHOT_DAY, BOUNDS_DAY, EVENT_DAY, END_DAY = 30, 60, 60, 90
+    DRIFT_DAYS, RAMPS = 10, (10, 20)
 PROFILES = ("linear", "stepped", "noise_masked")
 TARGETS = (4.0, 6.0, 8.0)  # final level above original, in scale units
 

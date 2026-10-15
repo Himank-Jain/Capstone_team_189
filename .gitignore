@@ -48,3 +48,4 @@ frontend/test-results/
 dist/
 build/data/external/
 data/external/corestack/
+data/external/nab_fresh/
