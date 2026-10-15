@@ -1,0 +1,92 @@
+== cs_fresh3a [pk24, without Microsoft.Network resources]: probes [70, 85, 89]; resources 79; metrics per resource [5, 6, 7, 8]
+stealth2  day  70 n=408 | snapshot top1 0.54 [0.43,0.64] top2 0.70 dist 0.42 | adaptive top1 0.20 [0.13,0.29] top2 0.54 dist 0.33 | diff +0.34 [+0.22,+0.46]
+stealth2  day  85 n=408 | snapshot top1 0.47 [0.42,0.52] top2 0.50 dist 1.25 | adaptive top1 0.95 [0.89,1.00] top2 0.96 dist 0.15 | diff -0.48 [-0.54,-0.42]
+stealth2  day  89 n=408 | snapshot top1 0.45 [0.41,0.50] top2 0.46 dist 1.35 | adaptive top1 0.82 [0.74,0.89] top2 0.85 dist 0.21 | diff -0.37 [-0.45,-0.29]
+stealth3  day  70 n=408 | snapshot top1 0.66 [0.55,0.76] top2 0.79 dist 0.42 | adaptive top1 0.41 [0.31,0.51] top2 0.69 dist 0.33 | diff +0.25 [+0.14,+0.35]
+stealth3  day  85 n=408 | snapshot top1 0.53 [0.47,0.59] top2 0.56 dist 1.25 | adaptive top1 0.95 [0.88,1.00] top2 0.96 dist 0.15 | diff -0.42 [-0.48,-0.35]
+stealth3  day  89 n=408 | snapshot top1 0.50 [0.45,0.56] top2 0.52 dist 1.35 | adaptive top1 0.80 [0.72,0.88] top2 0.85 dist 0.21 | diff -0.30 [-0.39,-0.21]
+fast4     day  70 n=408 | snapshot top1 0.92 [0.87,0.97] top2 0.95 dist 0.42 | adaptive top1 0.91 [0.87,0.95] top2 1.00 dist 0.33 | diff +0.01 [-0.04,+0.07]
+fast4     day  85 n=408 | snapshot top1 0.62 [0.55,0.69] top2 0.65 dist 1.25 | adaptive top1 0.93 [0.87,0.98] top2 0.95 dist 0.15 | diff -0.31 [-0.39,-0.24]
+fast4     day  89 n=408 | snapshot top1 0.56 [0.50,0.63] top2 0.57 dist 1.35 | adaptive top1 0.57 [0.50,0.65] top2 0.60 dist 0.21 | diff -0.01 [-0.09,+0.07]
+control   day  70 n=408 | distractors per case snapshot 0.42 (any 0.25) adaptive 0.33 (any 0.21)
+control   day  85 n=408 | distractors per case snapshot 1.25 (any 0.76) adaptive 0.15 (any 0.04)
+control   day  89 n=408 | distractors per case snapshot 1.35 (any 0.81) adaptive 0.21 (any 0.09)
+top-3 where metrics>=5 stealth2@70: n=408 snapshot 0.98 adaptive 1.00
+top-3 where metrics>=5 stealth2@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 stealth2@89: n=408 snapshot 0.98 adaptive 0.97
+top-3 where metrics>=5 stealth3@70: n=408 snapshot 0.99 adaptive 1.00
+top-3 where metrics>=5 stealth3@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 stealth3@89: n=408 snapshot 0.98 adaptive 0.97
+top-3 where metrics>=5 fast4@70: n=408 snapshot 1.00 adaptive 1.00
+top-3 where metrics>=5 fast4@85: n=408 snapshot 0.99 adaptive 0.95
+top-3 where metrics>=5 fast4@89: n=408 snapshot 0.98 adaptive 0.96
+
+== cs_fresh3a [pk24]: probes [70, 85, 89]; resources 79; metrics per resource [5, 6, 7, 8]
+stealth2  day  70 n=408 | snapshot top1 0.54 [0.43,0.64] top2 0.70 dist 0.42 | adaptive top1 0.20 [0.13,0.29] top2 0.54 dist 0.33 | diff +0.34 [+0.22,+0.46]
+stealth2  day  85 n=408 | snapshot top1 0.47 [0.42,0.52] top2 0.50 dist 1.25 | adaptive top1 0.95 [0.89,1.00] top2 0.96 dist 0.15 | diff -0.48 [-0.54,-0.42]
+stealth2  day  89 n=408 | snapshot top1 0.45 [0.41,0.50] top2 0.46 dist 1.35 | adaptive top1 0.82 [0.74,0.89] top2 0.85 dist 0.21 | diff -0.37 [-0.45,-0.29]
+stealth3  day  70 n=408 | snapshot top1 0.66 [0.55,0.76] top2 0.79 dist 0.42 | adaptive top1 0.41 [0.31,0.51] top2 0.69 dist 0.33 | diff +0.25 [+0.14,+0.35]
+stealth3  day  85 n=408 | snapshot top1 0.53 [0.47,0.59] top2 0.56 dist 1.25 | adaptive top1 0.95 [0.88,1.00] top2 0.96 dist 0.15 | diff -0.42 [-0.48,-0.35]
+stealth3  day  89 n=408 | snapshot top1 0.50 [0.45,0.56] top2 0.52 dist 1.35 | adaptive top1 0.80 [0.72,0.88] top2 0.85 dist 0.21 | diff -0.30 [-0.39,-0.21]
+fast4     day  70 n=408 | snapshot top1 0.92 [0.87,0.97] top2 0.95 dist 0.42 | adaptive top1 0.91 [0.87,0.95] top2 1.00 dist 0.33 | diff +0.01 [-0.04,+0.07]
+fast4     day  85 n=408 | snapshot top1 0.62 [0.55,0.69] top2 0.65 dist 1.25 | adaptive top1 0.93 [0.87,0.98] top2 0.95 dist 0.15 | diff -0.31 [-0.39,-0.24]
+fast4     day  89 n=408 | snapshot top1 0.56 [0.50,0.63] top2 0.57 dist 1.35 | adaptive top1 0.57 [0.50,0.65] top2 0.60 dist 0.21 | diff -0.01 [-0.09,+0.07]
+control   day  70 n=408 | distractors per case snapshot 0.42 (any 0.25) adaptive 0.33 (any 0.21)
+control   day  85 n=408 | distractors per case snapshot 1.25 (any 0.76) adaptive 0.15 (any 0.04)
+control   day  89 n=408 | distractors per case snapshot 1.35 (any 0.81) adaptive 0.21 (any 0.09)
+top-3 where metrics>=5 stealth2@70: n=408 snapshot 0.98 adaptive 1.00
+top-3 where metrics>=5 stealth2@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 stealth2@89: n=408 snapshot 0.98 adaptive 0.97
+top-3 where metrics>=5 stealth3@70: n=408 snapshot 0.99 adaptive 1.00
+top-3 where metrics>=5 stealth3@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 stealth3@89: n=408 snapshot 0.98 adaptive 0.97
+top-3 where metrics>=5 fast4@70: n=408 snapshot 1.00 adaptive 1.00
+top-3 where metrics>=5 fast4@85: n=408 snapshot 0.99 adaptive 0.95
+top-3 where metrics>=5 fast4@89: n=408 snapshot 0.98 adaptive 0.96
+
+== cs_fresh3a [pk3, without Microsoft.Network resources]: probes [70, 85, 89]; resources 79; metrics per resource [5, 6, 7, 8]
+stealth2  day  70 n=408 | snapshot top1 0.37 [0.32,0.43] top2 0.44 dist 0.86 | adaptive top1 0.40 [0.33,0.47] top2 0.51 dist 0.36 | diff -0.02 [-0.09,+0.03]
+stealth2  day  85 n=408 | snapshot top1 0.45 [0.40,0.49] top2 0.46 dist 1.33 | adaptive top1 0.84 [0.77,0.91] top2 0.88 dist 0.25 | diff -0.40 [-0.47,-0.32]
+stealth2  day  89 n=408 | snapshot top1 0.44 [0.40,0.48] top2 0.45 dist 1.51 | adaptive top1 0.32 [0.26,0.38] top2 0.44 dist 0.48 | diff +0.12 [+0.07,+0.17]
+stealth3  day  70 n=408 | snapshot top1 0.42 [0.37,0.48] top2 0.46 dist 0.86 | adaptive top1 0.57 [0.47,0.66] top2 0.69 dist 0.36 | diff -0.15 [-0.24,-0.07]
+stealth3  day  85 n=408 | snapshot top1 0.51 [0.46,0.57] top2 0.53 dist 1.33 | adaptive top1 0.91 [0.83,0.97] top2 0.94 dist 0.25 | diff -0.39 [-0.47,-0.31]
+stealth3  day  89 n=408 | snapshot top1 0.47 [0.42,0.53] top2 0.49 dist 1.51 | adaptive top1 0.32 [0.25,0.38] top2 0.44 dist 0.48 | diff +0.16 [+0.10,+0.22]
+fast4     day  70 n=408 | snapshot top1 0.87 [0.81,0.93] top2 0.88 dist 0.86 | adaptive top1 0.99 [0.97,1.00] top2 0.99 dist 0.36 | diff -0.12 [-0.18,-0.06]
+fast4     day  85 n=408 | snapshot top1 0.60 [0.53,0.67] top2 0.62 dist 1.33 | adaptive top1 0.80 [0.72,0.89] top2 0.91 dist 0.25 | diff -0.20 [-0.30,-0.10]
+fast4     day  89 n=408 | snapshot top1 0.53 [0.47,0.59] top2 0.54 dist 1.51 | adaptive top1 0.25 [0.19,0.32] top2 0.42 dist 0.48 | diff +0.28 [+0.21,+0.36]
+control   day  70 n=408 | distractors per case snapshot 0.86 (any 0.48) adaptive 0.36 (any 0.22)
+control   day  85 n=408 | distractors per case snapshot 1.33 (any 0.79) adaptive 0.25 (any 0.07)
+control   day  89 n=408 | distractors per case snapshot 1.51 (any 0.86) adaptive 0.48 (any 0.23)
+top-3 where metrics>=5 stealth2@70: n=408 snapshot 0.97 adaptive 0.99
+top-3 where metrics>=5 stealth2@85: n=408 snapshot 0.99 adaptive 0.97
+top-3 where metrics>=5 stealth2@89: n=408 snapshot 0.98 adaptive 0.96
+top-3 where metrics>=5 stealth3@70: n=408 snapshot 0.97 adaptive 0.99
+top-3 where metrics>=5 stealth3@85: n=408 snapshot 0.99 adaptive 0.97
+top-3 where metrics>=5 stealth3@89: n=408 snapshot 0.98 adaptive 0.96
+top-3 where metrics>=5 fast4@70: n=408 snapshot 0.99 adaptive 1.00
+top-3 where metrics>=5 fast4@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 fast4@89: n=408 snapshot 0.98 adaptive 0.94
+
+== cs_fresh3a [pk3]: probes [70, 85, 89]; resources 79; metrics per resource [5, 6, 7, 8]
+stealth2  day  70 n=408 | snapshot top1 0.37 [0.32,0.43] top2 0.44 dist 0.86 | adaptive top1 0.40 [0.33,0.47] top2 0.51 dist 0.36 | diff -0.02 [-0.09,+0.03]
+stealth2  day  85 n=408 | snapshot top1 0.45 [0.40,0.49] top2 0.46 dist 1.33 | adaptive top1 0.84 [0.77,0.91] top2 0.88 dist 0.25 | diff -0.40 [-0.47,-0.32]
+stealth2  day  89 n=408 | snapshot top1 0.44 [0.40,0.48] top2 0.45 dist 1.51 | adaptive top1 0.32 [0.26,0.38] top2 0.44 dist 0.48 | diff +0.12 [+0.07,+0.17]
+stealth3  day  70 n=408 | snapshot top1 0.42 [0.37,0.48] top2 0.46 dist 0.86 | adaptive top1 0.57 [0.47,0.66] top2 0.69 dist 0.36 | diff -0.15 [-0.24,-0.07]
+stealth3  day  85 n=408 | snapshot top1 0.51 [0.46,0.57] top2 0.53 dist 1.33 | adaptive top1 0.91 [0.83,0.97] top2 0.94 dist 0.25 | diff -0.39 [-0.47,-0.31]
+stealth3  day  89 n=408 | snapshot top1 0.47 [0.42,0.53] top2 0.49 dist 1.51 | adaptive top1 0.32 [0.25,0.38] top2 0.44 dist 0.48 | diff +0.16 [+0.10,+0.22]
+fast4     day  70 n=408 | snapshot top1 0.87 [0.81,0.93] top2 0.88 dist 0.86 | adaptive top1 0.99 [0.97,1.00] top2 0.99 dist 0.36 | diff -0.12 [-0.18,-0.06]
+fast4     day  85 n=408 | snapshot top1 0.60 [0.53,0.67] top2 0.62 dist 1.33 | adaptive top1 0.80 [0.72,0.89] top2 0.91 dist 0.25 | diff -0.20 [-0.30,-0.10]
+fast4     day  89 n=408 | snapshot top1 0.53 [0.47,0.59] top2 0.54 dist 1.51 | adaptive top1 0.25 [0.19,0.32] top2 0.42 dist 0.48 | diff +0.28 [+0.21,+0.36]
+control   day  70 n=408 | distractors per case snapshot 0.86 (any 0.48) adaptive 0.36 (any 0.22)
+control   day  85 n=408 | distractors per case snapshot 1.33 (any 0.79) adaptive 0.25 (any 0.07)
+control   day  89 n=408 | distractors per case snapshot 1.51 (any 0.86) adaptive 0.48 (any 0.23)
+top-3 where metrics>=5 stealth2@70: n=408 snapshot 0.97 adaptive 0.99
+top-3 where metrics>=5 stealth2@85: n=408 snapshot 0.99 adaptive 0.97
+top-3 where metrics>=5 stealth2@89: n=408 snapshot 0.98 adaptive 0.96
+top-3 where metrics>=5 stealth3@70: n=408 snapshot 0.97 adaptive 0.99
+top-3 where metrics>=5 stealth3@85: n=408 snapshot 0.99 adaptive 0.97
+top-3 where metrics>=5 stealth3@89: n=408 snapshot 0.98 adaptive 0.96
+top-3 where metrics>=5 fast4@70: n=408 snapshot 0.99 adaptive 1.00
+top-3 where metrics>=5 fast4@85: n=408 snapshot 0.99 adaptive 0.96
+top-3 where metrics>=5 fast4@89: n=408 snapshot 0.98 adaptive 0.94
+

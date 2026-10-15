@@ -1,0 +1,270 @@
+
+######## population: varying  (43 series, 19 resources)
+
+-- R1: 129 injected 30-day drifts (3 profiles x 43 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                    16.3% (6-28) n=129           16.3% (5-28) n=129           4 d         0.29s
+Longer window (2x)                                                5.4% (0-14) n=129            5.6% (0-14) n=126           9 d         0.16s
+Slower rate (5x lower; 150-reading window)                         3.9% (0-9) n=129            4.0% (0-10) n=126           2 d         0.15s
+Robust median and MAD                                           79.1% (64-91) n=129           79.3% (64-95) n=87          15 d         0.29s
+Slower rate plus robust median                                  72.9% (56-86) n=129           62.1% (44-81) n=87          15 d         0.15s
+Guard, bound trigger only                                         7.8% (0-18) n=129            8.1% (0-19) n=123          25 d         0.29s
+Guard, bound trigger plus robust sequential trigger             29.5% (19-41) n=129          30.9% (19-43) n=123          20 d         0.24s
+   R1 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 0.15  adaptive:15.2%  robust:66.7%  guard:0.0%  guard_trig:3.1%
+      total 0.3   adaptive:9.1%  robust:77.3%  guard:3.1%  guard_trig:21.9%
+      total 0.6   adaptive:18.8%  robust:87.0%  guard:16.7%  guard_trig:50.0%
+      total 0.9   adaptive:22.6%  robust:85.7%  guard:13.8%  guard_trig:51.7%
+   R1 median detection delay (days from the event) by 30-day total, among detected:
+      total 0.15  adaptive:4 d(n=5)  robust:12 d(n=22)  guard:-(n=0)  guard_trig:28 d(n=1)
+      total 0.3   adaptive:4 d(n=3)  robust:15 d(n=26)  guard:27 d(n=1)  guard_trig:20 d(n=7)
+      total 0.6   adaptive:5 d(n=6)  robust:15 d(n=27)  guard:25 d(n=5)  guard_trig:23 d(n=15)
+      total 0.9   adaptive:4 d(n=7)  robust:13 d(n=27)  guard:22 d(n=4)  guard_trig:19 d(n=15)
+
+-- R2: 129 injected 30-day drifts (3 profiles x 43 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   50.4% (34-64) n=129          50.4% (34-64) n=129           4 d         1.51s
+Longer window (2x)                                              45.7% (32-59) n=129          46.8% (32-60) n=126           2 d         0.47s
+Slower rate (5x lower; 150-reading window)                      46.5% (32-60) n=129          47.6% (33-61) n=126           2 d         0.41s
+Robust median and MAD                                          92.2% (82-100) n=129          93.1% (85-100) n=87           8 d         1.51s
+Slower rate plus robust median                                  85.3% (76-93) n=129           78.2% (67-89) n=87           8 d         0.41s
+Guard, bound trigger only                                       50.4% (34-65) n=129          50.4% (33-65) n=123          24 d         0.49s
+Guard, bound trigger plus robust sequential trigger             79.1% (69-88) n=129          78.9% (68-87) n=123          17 d         0.29s
+
+-- R3: 129 injected 30-day drifts (3 profiles x 43 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   32.6% (19-45) n=129          32.6% (19-45) n=129           7 d         1.58s
+Longer window (2x)                                              21.7% (12-31) n=129          22.2% (12-32) n=126          15 d         0.47s
+Slower rate (5x lower; 150-reading window)                      20.9% (11-31) n=129          21.4% (11-31) n=126          15 d         0.39s
+Robust median and MAD                                           90.7% (81-98) n=129           92.0% (85-99) n=87          11 d         1.58s
+Slower rate plus robust median                                  86.8% (76-95) n=129           80.5% (65-92) n=87          14 d         0.39s
+Guard, bound trigger only                                       61.2% (49-73) n=129          62.6% (50-76) n=123          24 d         0.49s
+Guard, bound trigger plus robust sequential trigger             89.1% (83-94) n=129          89.4% (82-95) n=123          16 d         0.28s
+   R3 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 1.0   adaptive:21.9%  robust:87.0%  guard:20.0%  guard_trig:70.0%
+      total 2.0   adaptive:29.0%  robust:85.7%  guard:58.6%  guard_trig:93.1%
+      total 3.0   adaptive:33.3%  robust:95.2%  guard:81.2%  guard_trig:93.8%
+      total 4.0   adaptive:45.5%  robust:100.0%  guard:87.5%  guard_trig:100.0%
+   R3 median detection delay (days from the event) by 30-day total, among detected:
+      total 1.0   adaptive:5 d(n=7)  robust:15 d(n=27)  guard:22 d(n=6)  guard_trig:20 d(n=22)
+      total 2.0   adaptive:5 d(n=9)  robust:12 d(n=27)  guard:25 d(n=17)  guard_trig:18 d(n=29)
+      total 3.0   adaptive:15 d(n=11)  robust:11 d(n=31)  guard:21 d(n=27)  guard_trig:15 d(n=31)
+      total 4.0   adaptive:15 d(n=15)  robust:10 d(n=32)  guard:21 d(n=29)  guard_trig:14 d(n=33)
+
+-- false flags (flagged = alert for a baseline, incident/hold for the guard)
+Adaptive baseline (reference)                            control            0.0% (0-0) n=43   benign shifts         32.6% (16-47) n=43
+Longer window (2x)                                       control            2.3% (0-7) n=43   benign shifts          16.3% (7-27) n=43
+Slower rate (5x lower; 150-reading window)               control            2.3% (0-7) n=43   benign shifts          16.3% (6-27) n=43
+Robust median and MAD                                    control         32.6% (17-48) n=43   benign shifts         86.0% (76-94) n=43
+Slower rate plus robust median                           control         32.6% (16-47) n=43   benign shifts         81.4% (68-92) n=43
+Guard, bound trigger only                                control           4.7% (0-11) n=43   benign shifts         72.1% (61-83) n=43
+Guard, bound trigger plus robust sequential trigger      control           4.7% (0-11) n=43   benign shifts         81.4% (69-92) n=43
+   permanent shift of half the entity's own calibrated cumulative bound (inside what the guard tolerates):  adaptive:20.9%   robust:83.7%   guard:27.9%   guard_trig:44.2%
+   benign shifts by size (adaptive / guard / guard_trig):
+      0.25  adaptive:14.3%  guard:28.6%  guard_trig:57.1%
+      0.5   adaptive:25.0%  guard:41.7%  guard_trig:58.3%
+      1.0   adaptive:28.6%  guard:100.0%  guard_trig:100.0%
+      2.0   adaptive:22.2%  guard:100.0%  guard_trig:100.0%
+      3.0   adaptive:75.0%  guard:100.0%  guard_trig:100.0%
+
+-- adaptive attacker (ramps to 95% of the cumulative bound over 20 days, then a payload for the rest of the run)
+payload 3 units  Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)         79.1% (66-90) n=43  median max displacement 1.65
+payload 3 units  Robust median and MAD                                    payload detected (alert, incident, or held at the end)        97.7% (92-100) n=43  median max displacement 1.65
+payload 3 units  Guard, bound trigger only                                payload detected (alert, incident, or held at the end)         74.4% (60-89) n=43  median max displacement 0.49
+payload 3 units  Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)      100.0% (100-100) n=43  median max displacement 0.30
+payload 1 unit   Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)           9.3% (0-19) n=43  median max displacement 0.72
+payload 1 unit   Robust median and MAD                                    payload detected (alert, incident, or held at the end)         79.1% (65-91) n=43  median max displacement 0.72
+payload 1 unit   Guard, bound trigger only                                payload detected (alert, incident, or held at the end)         51.2% (32-70) n=43  median max displacement 0.46
+payload 1 unit   Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)         83.7% (69-96) n=43  median max displacement 0.50
+   median calibrated cumulative bound of these entities: 0.58
+
+-- attacker present during calibration (from day 35)
+   cumulative-bound inflation vs the clean calibration (n=43): with validation median +0% (mean -10%), without +269% (mean +240%)
+   detected after: adaptive             2.3% (0-7) n=43
+   detected after: guard              100.0% (100-100) n=43
+   detected after: guard_trig         100.0% (100-100) n=43
+   detected after: guard_unvalidated  100.0% (100-100) n=43
+
+-- permanent benign shifts (growth / migration): what the hold does next
+   guard: flagged 31 of 43; at least one promotion step 19; released (not held) by the end 16; median days to first promotion 15.0; median flag-days 0.0, median incidents 1.0
+   guard_trig: flagged 35 of 43; at least one promotion step 32; released (not held) by the end 13; median days to first promotion 16.0; median flag-days 0.0, median incidents 1.0
+
+######## population: all  (65 series, 25 resources)
+
+-- R1: 195 injected 30-day drifts (3 profiles x 65 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   44.6% (35-54) n=195          44.6% (35-55) n=195           2 d         0.28s
+Longer window (2x)                                              37.4% (29-47) n=195          38.0% (29-48) n=192           2 d         0.03s
+Slower rate (5x lower; 150-reading window)                      36.4% (28-47) n=195          37.0% (28-47) n=192           2 d         0.02s
+Robust median and MAD                                           86.2% (77-95) n=195          88.2% (80-98) n=153          22 d         0.28s
+Slower rate plus robust median                                  48.2% (34-61) n=195          35.3% (24-47) n=153          15 d         0.02s
+Guard, bound trigger only                                         5.1% (0-12) n=195            5.3% (0-12) n=189          25 d         0.28s
+Guard, bound trigger plus robust sequential trigger             48.2% (40-57) n=195          49.7% (41-58) n=189          18 d         0.28s
+   R1 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 0.15  adaptive:41.7%  robust:80.6%  guard:0.0%  guard_trig:12.8%
+      total 0.3   adaptive:41.2%  robust:87.5%  guard:2.0%  guard_trig:50.0%
+      total 0.6   adaptive:45.8%  robust:92.3%  guard:10.9%  guard_trig:67.4%
+      total 0.9   adaptive:50.0%  robust:92.1%  guard:8.7%  guard_trig:69.6%
+   R1 median detection delay (days from the event) by 30-day total, among detected:
+      total 0.15  adaptive:3 d(n=20)  robust:19 d(n=37)  guard:-(n=0)  guard_trig:28 d(n=6)
+      total 0.3   adaptive:2 d(n=21)  robust:24 d(n=44)  guard:27 d(n=1)  guard_trig:19 d(n=25)
+      total 0.6   adaptive:4 d(n=22)  robust:18 d(n=43)  guard:25 d(n=5)  guard_trig:16 d(n=31)
+      total 0.9   adaptive:2 d(n=24)  robust:22 d(n=44)  guard:22 d(n=4)  guard_trig:14 d(n=32)
+
+-- R2: 195 injected 30-day drifts (3 profiles x 65 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   65.6% (54-76) n=195          65.6% (53-76) n=195           2 d         2.79s
+Longer window (2x)                                              62.6% (50-73) n=195          63.5% (51-74) n=192           2 d         0.10s
+Slower rate (5x lower; 150-reading window)                      63.1% (51-75) n=195          64.1% (51-75) n=192           2 d         0.05s
+Robust median and MAD                                           93.3% (87-99) n=195         94.1% (88-100) n=153          15 d         2.79s
+Slower rate plus robust median                                  56.4% (44-66) n=195          44.4% (34-54) n=153           8 d         0.05s
+Guard, bound trigger only                                       59.5% (48-70) n=195          59.8% (48-71) n=189          24 d         0.43s
+Guard, bound trigger plus robust sequential trigger             83.1% (75-89) n=195          83.1% (75-90) n=189          15 d         0.02s
+
+-- R3: 195 injected 30-day drifts (3 profiles x 65 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   55.4% (48-64) n=195          55.4% (47-64) n=195           4 d         1.50s
+Longer window (2x)                                              48.2% (41-57) n=195          49.0% (42-57) n=192           4 d         0.07s
+Slower rate (5x lower; 150-reading window)                      47.7% (40-57) n=195          48.4% (41-57) n=192           2 d         0.08s
+Robust median and MAD                                           93.8% (88-98) n=195          95.4% (92-99) n=153          15 d         1.50s
+Slower rate plus robust median                                  57.4% (46-67) n=195          45.8% (34-56) n=153          14 d         0.08s
+Guard, bound trigger only                                       63.6% (55-71) n=195          64.6% (56-73) n=189          25 d         0.49s
+Guard, bound trigger plus robust sequential trigger             92.8% (89-96) n=195          93.1% (89-97) n=189          14 d         0.06s
+   R3 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 1.0   adaptive:47.9%  robust:92.3%  guard:13.0%  guard_trig:80.4%
+      total 2.0   adaptive:54.2%  robust:92.1%  guard:63.0%  guard_trig:95.7%
+      total 3.0   adaptive:54.2%  robust:97.2%  guard:87.2%  guard_trig:95.7%
+      total 4.0   adaptive:64.7%  robust:100.0%  guard:92.0%  guard_trig:100.0%
+   R3 median detection delay (days from the event) by 30-day total, among detected:
+      total 1.0   adaptive:4 d(n=23)  robust:19 d(n=43)  guard:22 d(n=6)  guard_trig:14 d(n=38)
+      total 2.0   adaptive:2 d(n=26)  robust:20 d(n=44)  guard:27 d(n=29)  guard_trig:14 d(n=46)
+      total 3.0   adaptive:6 d(n=26)  robust:15 d(n=46)  guard:26 d(n=42)  guard_trig:14 d(n=46)
+      total 4.0   adaptive:5 d(n=33)  robust:16 d(n=50)  guard:25 d(n=47)  guard_trig:14 d(n=51)
+
+-- false flags (flagged = alert for a baseline, incident/hold for the guard)
+Adaptive baseline (reference)                            control            0.0% (0-0) n=65   benign shifts         55.4% (45-66) n=65
+Longer window (2x)                                       control            1.5% (0-5) n=65   benign shifts         44.6% (37-53) n=65
+Slower rate (5x lower; 150-reading window)               control            1.5% (0-5) n=65   benign shifts         44.6% (38-54) n=65
+Robust median and MAD                                    control         21.5% (11-33) n=65   benign shifts         56.9% (45-66) n=65
+Slower rate plus robust median                           control         21.5% (10-33) n=65   benign shifts         53.8% (42-64) n=65
+Guard, bound trigger only                                control            3.1% (0-7) n=65   benign shifts         70.8% (62-80) n=65
+Guard, bound trigger plus robust sequential trigger      control            3.1% (0-7) n=65   benign shifts         87.7% (80-95) n=65
+   permanent shift of half the entity's own calibrated cumulative bound (inside what the guard tolerates):  adaptive:47.7%   robust:55.4%   guard:18.5%   guard_trig:63.1%
+   benign shifts by size (adaptive / guard / guard_trig):
+      0.25  adaptive:53.8%  guard:15.4%  guard_trig:76.9%
+      0.5   adaptive:30.8%  guard:38.5%  guard_trig:61.5%
+      1.0   adaptive:58.3%  guard:100.0%  guard_trig:100.0%
+      2.0   adaptive:53.3%  guard:100.0%  guard_trig:100.0%
+      3.0   adaptive:83.3%  guard:100.0%  guard_trig:100.0%
+
+-- adaptive attacker (ramps to 95% of the cumulative bound over 20 days, then a payload for the rest of the run)
+payload 3 units  Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)         86.2% (77-94) n=65  median max displacement 0.56
+payload 3 units  Robust median and MAD                                    payload detected (alert, incident, or held at the end)        98.5% (95-100) n=65  median max displacement 0.56
+payload 3 units  Guard, bound trigger only                                payload detected (alert, incident, or held at the end)         49.2% (39-58) n=65  median max displacement 0.44
+payload 3 units  Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)      100.0% (100-100) n=65  median max displacement 0.15
+payload 1 unit   Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)         40.0% (31-49) n=65  median max displacement 0.44
+payload 1 unit   Robust median and MAD                                    payload detected (alert, incident, or held at the end)         86.2% (76-94) n=65  median max displacement 0.44
+payload 1 unit   Guard, bound trigger only                                payload detected (alert, incident, or held at the end)         33.8% (21-47) n=65  median max displacement 0.44
+payload 1 unit   Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)         89.2% (80-97) n=65  median max displacement 0.17
+   median calibrated cumulative bound of these entities: 0.26
+
+-- attacker present during calibration (from day 35)
+   cumulative-bound inflation vs the clean calibration (n=65): with validation median +0% (mean -7%), without +296% (mean +262%)
+   detected after: adaptive             1.5% (0-5) n=65
+   detected after: guard              100.0% (100-100) n=65
+   detected after: guard_trig         100.0% (100-100) n=65
+   detected after: guard_unvalidated  100.0% (100-100) n=65
+
+-- permanent benign shifts (growth / migration): what the hold does next
+   guard: flagged 46 of 65; at least one promotion step 29; released (not held) by the end 22; median days to first promotion 15.0; median flag-days 1.0, median incidents 1.0
+   guard_trig: flagged 57 of 65; at least one promotion step 54; released (not held) by the end 20; median days to first promotion 16.0; median flag-days 5.0, median incidents 1.0
+
+######## population: flat  (22 series, 18 resources)
+
+-- R1: 66 injected 30-day drifts (3 profiles x 22 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                 100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         0.23s
+Longer window (2x)                                            100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         0.00s
+Slower rate (5x lower; 150-reading window)                    100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         0.00s
+Robust median and MAD                                         100.0% (100-100) n=66        100.0% (100-100) n=66          24 d         0.23s
+Slower rate plus robust median                                      0.0% (0-0) n=66              0.0% (0-0) n=66             -         0.00s
+Guard, bound trigger only                                           0.0% (0-0) n=66              0.0% (0-0) n=66             -         0.23s
+Guard, bound trigger plus robust sequential trigger              84.8% (76-92) n=66           84.8% (77-92) n=66          16 d         0.31s
+   R1 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 0.15  adaptive:100.0%  robust:100.0%  guard:0.0%  guard_trig:33.3%
+      total 0.3   adaptive:100.0%  robust:100.0%  guard:0.0%  guard_trig:100.0%
+      total 0.6   adaptive:100.0%  robust:100.0%  guard:0.0%  guard_trig:100.0%
+      total 0.9   adaptive:100.0%  robust:100.0%  guard:0.0%  guard_trig:100.0%
+   R1 median detection delay (days from the event) by 30-day total, among detected:
+      total 0.15  adaptive:2 d(n=15)  robust:24 d(n=15)  guard:-(n=0)  guard_trig:28 d(n=5)
+      total 0.3   adaptive:2 d(n=18)  robust:24 d(n=18)  guard:-(n=0)  guard_trig:18 d(n=18)
+      total 0.6   adaptive:2 d(n=16)  robust:24 d(n=16)  guard:-(n=0)  guard_trig:16 d(n=16)
+      total 0.9   adaptive:2 d(n=17)  robust:24 d(n=17)  guard:-(n=0)  guard_trig:13 d(n=17)
+
+-- R2: 66 injected 30-day drifts (3 profiles x 22 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                   95.5% (85-100) n=66          95.5% (85-100) n=66           2 d        99.00s
+Longer window (2x)                                              95.5% (85-100) n=66          95.5% (85-100) n=66           2 d         0.00s
+Slower rate (5x lower; 150-reading window)                      95.5% (85-100) n=66          95.5% (84-100) n=66           2 d         0.00s
+Robust median and MAD                                           95.5% (85-100) n=66          95.5% (85-100) n=66          24 d        99.00s
+Slower rate plus robust median                                      0.0% (0-0) n=66              0.0% (0-0) n=66             -         0.00s
+Guard, bound trigger only                                        77.3% (67-87) n=66           77.3% (67-86) n=66          25 d         0.00s
+Guard, bound trigger plus robust sequential trigger             90.9% (79-100) n=66          90.9% (79-100) n=66          14 d         0.00s
+
+-- R3: 66 injected 30-day drifts (3 profiles x 22 series)
+strategy                                                                   detected     detected | control quiet  median delay  drift at end
+Adaptive baseline (reference)                                 100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         1.39s
+Longer window (2x)                                            100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         0.00s
+Slower rate (5x lower; 150-reading window)                    100.0% (100-100) n=66        100.0% (100-100) n=66           2 d         0.00s
+Robust median and MAD                                         100.0% (100-100) n=66        100.0% (100-100) n=66          24 d         1.39s
+Slower rate plus robust median                                      0.0% (0-0) n=66              0.0% (0-0) n=66             -         0.00s
+Guard, bound trigger only                                        68.2% (58-79) n=66           68.2% (58-79) n=66          26 d         0.50s
+Guard, bound trigger plus robust sequential trigger           100.0% (100-100) n=66        100.0% (100-100) n=66          11 d         0.00s
+   R3 by 30-day total (units of the entity's hour scale), pooled over profiles, detected | control quiet:
+      total 1.0   adaptive:100.0%  robust:100.0%  guard:0.0%  guard_trig:100.0%
+      total 2.0   adaptive:100.0%  robust:100.0%  guard:70.6%  guard_trig:100.0%
+      total 3.0   adaptive:100.0%  robust:100.0%  guard:100.0%  guard_trig:100.0%
+      total 4.0   adaptive:100.0%  robust:100.0%  guard:100.0%  guard_trig:100.0%
+   R3 median detection delay (days from the event) by 30-day total, among detected:
+      total 1.0   adaptive:2 d(n=16)  robust:24 d(n=16)  guard:-(n=0)  guard_trig:14 d(n=16)
+      total 2.0   adaptive:2 d(n=17)  robust:24 d(n=17)  guard:28 d(n=12)  guard_trig:10 d(n=17)
+      total 3.0   adaptive:2 d(n=15)  robust:24 d(n=15)  guard:27 d(n=15)  guard_trig:10 d(n=15)
+      total 4.0   adaptive:2 d(n=18)  robust:24 d(n=18)  guard:25 d(n=18)  guard_trig:9 d(n=18)
+
+-- false flags (flagged = alert for a baseline, incident/hold for the guard)
+Adaptive baseline (reference)                            control            0.0% (0-0) n=22   benign shifts      100.0% (100-100) n=22
+Longer window (2x)                                       control            0.0% (0-0) n=22   benign shifts      100.0% (100-100) n=22
+Slower rate (5x lower; 150-reading window)               control            0.0% (0-0) n=22   benign shifts      100.0% (100-100) n=22
+Robust median and MAD                                    control            0.0% (0-0) n=22   benign shifts            0.0% (0-0) n=22
+Slower rate plus robust median                           control            0.0% (0-0) n=22   benign shifts            0.0% (0-0) n=22
+Guard, bound trigger only                                control            0.0% (0-0) n=22   benign shifts         68.2% (52-86) n=22
+Guard, bound trigger plus robust sequential trigger      control            0.0% (0-0) n=22   benign shifts      100.0% (100-100) n=22
+   permanent shift of half the entity's own calibrated cumulative bound (inside what the guard tolerates):  adaptive:100.0%   robust:0.0%   guard:0.0%   guard_trig:100.0%
+   benign shifts by size (adaptive / guard / guard_trig):
+      0.25  adaptive:100.0%  guard:0.0%  guard_trig:100.0%
+      0.5   adaptive:100.0%  guard:0.0%  guard_trig:100.0%
+      1.0   adaptive:100.0%  guard:100.0%  guard_trig:100.0%
+      2.0   adaptive:100.0%  guard:100.0%  guard_trig:100.0%
+      3.0   adaptive:100.0%  guard:100.0%  guard_trig:100.0%
+
+-- adaptive attacker (ramps to 95% of the cumulative bound over 20 days, then a payload for the rest of the run)
+payload 3 units  Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.44
+payload 3 units  Robust median and MAD                                    payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.44
+payload 3 units  Guard, bound trigger only                                payload detected (alert, incident, or held at the end)            0.0% (0-0) n=22  median max displacement 0.44
+payload 3 units  Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.00
+payload 1 unit   Adaptive baseline (reference)                            payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.44
+payload 1 unit   Robust median and MAD                                    payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.44
+payload 1 unit   Guard, bound trigger only                                payload detected (alert, incident, or held at the end)            0.0% (0-0) n=22  median max displacement 0.44
+payload 1 unit   Guard, bound trigger plus robust sequential trigger      payload detected (alert, incident, or held at the end)      100.0% (100-100) n=22  median max displacement 0.00
+   median calibrated cumulative bound of these entities: 0.00
+
+-- attacker present during calibration (from day 35)
+   cumulative-bound inflation vs the clean calibration (n=22): with validation median +0% (mean +0%), without +308% (mean +306%)
+   detected after: adaptive             0.0% (0-0) n=22
+   detected after: guard              100.0% (100-100) n=22
+   detected after: guard_trig         100.0% (100-100) n=22
+   detected after: guard_unvalidated  100.0% (100-100) n=22
+
+-- permanent benign shifts (growth / migration): what the hold does next
+   guard: flagged 15 of 22; at least one promotion step 10; released (not held) by the end 6; median days to first promotion 15.0; median flag-days 8.0, median incidents 1.0
+   guard_trig: flagged 22 of 22; at least one promotion step 22; released (not held) by the end 7; median days to first promotion 16.0; median flag-days 19.0, median incidents 1.0
