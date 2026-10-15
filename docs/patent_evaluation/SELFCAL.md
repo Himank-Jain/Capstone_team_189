@@ -43,9 +43,9 @@ resources).
 * The self-calibrated bound alone meets the false-alert target on real telemetry without any tuning and detects the
   stealth attacks far more often than the tuned design, which had been pushed to the top of its threshold grid.
 * The cohort cap from the tuned design must **not** be combined with it: it pulled bounds down to the floor and false alerts
-  rose to 15%. The cohort cross-check and cap (dependent claims 4 and 5) therefore apply to the tuned form only.
+  rose to 15%. The cohort cross-check and cap (dependent feature D2b in `CLAIMS.md`) therefore apply to the tuned form only.
 * A sequential-trigger threshold calibrated the same way is too permissive (14%): real telemetry is more autocorrelated than
-  resampled days. It stays a tuned, optional dependent (claim 15); its threshold is **not** portable by this method.
+  resampled days. It stays a tuned, optional dependent (D5 in `CLAIMS.md`); its threshold is **not** portable by this method.
 * Early coverage check (95th percentile, 40 futures, with the floor, no cohort): the real future displacement exceeded the
   bound for 4.2% of 72 stable CoreStack entities, against a nominal 5%.
 
