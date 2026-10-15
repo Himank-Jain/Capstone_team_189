@@ -5,7 +5,7 @@ n is reported in independent series (sources) as well as entities; every rate ca
 resamples whole sources (clusters), so dependent replicas of one series cannot inflate certainty.
 """
 from __future__ import annotations
-import json, sys
+import json, os, sys
 from pathlib import Path
 import numpy as np
 
@@ -17,7 +17,8 @@ EV = 60 if FAMILY == "cs" else 90
 LONG_RAMP = 20 if FAMILY == "cs" else 60
 OUT = Path(__file__).resolve().parents[1] / "docs/patent_evaluation"
 D = json.load(open(OUT / f"final_{DATASET}_{TARGET}.json"))
-ROWS = D["rows"]
+EXCLUDE = [p for p in os.environ.get("EXCLUDE_CATEGORY", "").split(",") if p]  # e.g. Public_IP_Address (category = text before the colon in the group)
+ROWS = [r for r in D["rows"] if not any(r["group"].startswith(p + ":") for p in EXCLUDE)]
 LABELS = list(ROWS[0]["res"])
 rng = np.random.default_rng(0)
 
@@ -93,7 +94,7 @@ def summarise():
 
 if __name__ == "__main__":
     R = summarise()
-    (OUT / f"final_results_{DATASET}_{TARGET}.json").write_text(json.dumps(R, indent=1))
+    (OUT / f"final_results_{DATASET}_{TARGET}{'_no_' + '_'.join(EXCLUDE) if EXCLUDE else ''}.json").write_text(json.dumps(R, indent=1))
     print(f"== {DATASET} target FPR {TARGET}  entities {R['n_entities']} sources {R['n_sources']} | clean {R['n_clean_entities']} ({R['n_clean_sources']} sources) | shifted {R['n_shifted_entities']} ({R['n_shifted_sources']} sources)")
     print("thresholds", R["thresholds"])
     hdr = f"{'strategy':<15}{'FPR':<19}{'1σ':<19}{'2σ':<19}{'3σ':<19}{'fast4σ':<19}{'local4σ':<19}{'poisoned':<19}"

@@ -77,4 +77,9 @@ These are **not** third-party attack data; they are other people's attack strate
 
 ## Deviations
 
-(none yet)
+1. **Process interruption, 15 October 2026.** The first background job (tuned design A, then self-calibrated B, then the
+   literature attacks) was stopped by the session's 30-minute limit while stage B was running. Stage A (tuned design) had finished
+   and was kept. Stage B and the literature-attack stage were restarted from the beginning with a 2-hour limit and the same code,
+   data, seeds and settings. No output of stage B had been written or read before the restart, so this changes no choice.
+2. **Reporting addition.** `final_report.py` gained an `EXCLUDE_CATEGORY` option so the same tables can be produced without
+   Public IP series, as section 1 announced. No design or metric was changed.
