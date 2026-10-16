@@ -7,11 +7,52 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from shared.types import AlertPayload, Severity
+
 
 class Role(str, Enum):
     OWNER = "OWNER"
     OPERATOR = "OPERATOR"
     VIEWER = "VIEWER"
+
+
+class IncidentStatus(str, Enum):
+    OPEN = "OPEN"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    RESOLVED = "RESOLVED"
+
+
+class ResolutionType(str, Enum):
+    FIXED = "FIXED"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    EXPECTED_CHANGE = "EXPECTED_CHANGE"
+    AUTO_RECOVERED = "AUTO_RECOVERED"
+
+
+@dataclass
+class ResolvedAlertPayload(AlertPayload):
+    lifecycle_status: str = "RESOLVED"
+
+
+@dataclass(frozen=True)
+class IncidentResolution:
+    resolution_type: ResolutionType
+    resolution_note: str
+    resolved_by: str
+    resolved_at: datetime
+
+
+@dataclass(frozen=True)
+class IncidentLifecycleState:
+    incident_id: str
+    tenant_id: str
+    entity_id: str
+    status: IncidentStatus
+    acknowledged_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    resolution: Optional[IncidentResolution] = None
+    regression_of: Optional[str] = None
+    recovering: bool = False
 
 
 @dataclass(frozen=True)

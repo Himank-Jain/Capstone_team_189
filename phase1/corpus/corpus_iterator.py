@@ -77,7 +77,6 @@ class CorpusIterator:
             raise ValueError(f"Unsupported file type: {path}")
 
     def _iter_parquet_records(self, path: Path) -> Iterator[Dict[str, Any]]:
-        chunk_size = self.chunk_size or 100_000
         dataframe = pd.read_parquet(path, engine="pyarrow", columns=None)
         for _, row in dataframe.iterrows():
             row_dict = row.to_dict()

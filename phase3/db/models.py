@@ -8,7 +8,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     ForeignKey,
     Integer,
@@ -207,7 +206,15 @@ class IncidentRow(Base):
     )
     entity_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     severity: Mapped[str] = mapped_column(String(50), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="OPEN", server_default="OPEN"
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resolution_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    regression_of: Mapped[str | None] = mapped_column(String(64), nullable=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     details: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)

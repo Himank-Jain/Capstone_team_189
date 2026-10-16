@@ -145,6 +145,10 @@ class AsyncDriftWorker:
             )
             return None
 
+    def invalidate_cached_drift(self, entity_id: str) -> None:
+        """Remove the cached drift score after a lifecycle resolution."""
+        self._redis.delete(drift_key(entity_id))
+
     # ── Sync convenience path (tests / CLI / cache warm-up scripts) ────────
 
     def compute_and_cache_sync(self, entity_id: str) -> DriftScore:

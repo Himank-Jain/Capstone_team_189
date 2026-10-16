@@ -74,10 +74,11 @@ The frontend hook connects to this stream and receives periodic stage heartbeat 
 
 ## Local Run Instructions
 
-1. From the `Capstone_final` project root, start the backend demo API. Its relative escalation-rule path requires this working directory:
+1. From the repository root, start the backend demo API. Its relative
+   escalation-rule path requires this working directory:
 
 ```bash
-python -m uvicorn backend.api_demo_ext.app:app --host 127.0.0.1 --port 8001
+python -m uvicorn phase3.api.app:app --host 127.0.0.1 --port 8001
 ```
 
 2. In `frontend`, copy `.env.example` to `.env` and start the app:

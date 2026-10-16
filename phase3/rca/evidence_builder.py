@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Iterable
+from typing import Iterable
 
 from phase3.rca.types import CandidateCause, RCACase
 from shared.types import AlertPayload

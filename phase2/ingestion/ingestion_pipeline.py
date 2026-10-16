@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Callable, Optional
+from typing import Callable
 
 from phase2.ingestion.base_ingestor import BaseIngestor
 from phase2.ingestion.batch_accumulator import BatchAccumulator

@@ -62,7 +62,7 @@ import logging
 import random
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from shared.constants import DEDUP_FEATURE_BUCKET_SIZE, DEDUP_WINDOW_SEC
@@ -220,3 +220,16 @@ class AlertDeduplicator:
             f"[AlertDeduplicator] Failed to check {redis_key} after "
             f"{MAX_WATCH_RETRIES} WATCH retries — unexpectedly high contention"
         )
+
+    def reset_entity(self, entity_id: str) -> None:
+        """Clear the existing dedup window keys for an entity without changing key names."""
+        prefix = f"dedup:{entity_id}:"
+        if hasattr(self._redis, "delete_by_prefix"):
+            self._redis.delete_by_prefix(prefix)
+            return
+        if hasattr(self._redis, "scan_iter"):
+            keys = list(self._redis.scan_iter(match=f"{prefix}*"))
+            if keys:
+                self._redis.delete(*keys)
+            return
+        raise TypeError("dedup store must implement delete_by_prefix or scan_iter")

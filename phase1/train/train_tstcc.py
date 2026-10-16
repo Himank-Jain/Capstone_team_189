@@ -31,18 +31,20 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root on path
 
-from phase1.data.streaming_aug_pairs_dataset import (
+# Keep the repository-root bootstrap above imports for direct script execution.
+from phase1.data.streaming_aug_pairs_dataset import (  # noqa: E402
     StreamingAugPairsDataset,
     StreamingDatasetConfigData,
     compute_metric_value_stats,
     compute_vocab_sizes,
     contrastive_collate_fn,
 )
-from phase1.losses.ntxent_loss import NTXentLossComputer, NTXentLossConfigData
-from phase1.models.tstcc_encoder import (
+from phase1.losses.ntxent_loss import NTXentLossComputer, NTXentLossConfigData  # noqa: E402
+from phase1.models.tstcc_encoder import (  # noqa: E402
     ENC_CHECKPOINT_FREQ,
     build_tstcc_encoder_for_aug_pairs,
 )
+from shared.constants import TRAIN_LR, TRAIN_TEMPERATURE  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,9 +69,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--stride", type=int, default=16, help="Window stride (default: 16, 50%% overlap)"
     )
-    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate (default: 3e-4)")
     parser.add_argument(
-        "--temperature", type=float, default=0.1, help="NT-Xent temperature (default: 0.1)"
+        "--lr", type=float, default=TRAIN_LR, help=f"Learning rate (default: {TRAIN_LR:g})"
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=TRAIN_TEMPERATURE,
+        help=f"NT-Xent temperature (default: {TRAIN_TEMPERATURE:g})",
     )
     parser.add_argument(
         "--num-workers", type=int, default=2, help="DataLoader worker processes (default: 2)"

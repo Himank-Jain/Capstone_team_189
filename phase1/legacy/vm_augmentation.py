@@ -382,7 +382,7 @@ if __name__ == "__main__":
     # ── 3. Inspect one pair ────────────────────────────────────────────────
     v1, v2 = dataset[0]
 
-    print(f"\n── Pair at index 0 ──────────────────────────────────────")
+    print("\n── Pair at index 0 ──────────────────────────────────────")
     print(f"  view_1 shape : {v1.shape}   dtype: {v1.dtype}")
     print(f"  view_2 shape : {v2.shape}   dtype: {v2.dtype}")
     print(f"\n  view_1 values (first 12 dims):\n    {v1[:12].numpy().round(4)}")
@@ -391,7 +391,7 @@ if __name__ == "__main__":
     # ── 4. Verify stochasticity — same index, different values each call ───
     v1b, v2b = dataset[0]
     are_same = torch.allclose(v1, v1b)
-    print(f"\n  Stochasticity check (same idx, second call):")
+    print("\n  Stochasticity check (same idx, second call):")
     print(f"    view_1 == view_1_second_call? {are_same}  ← should be False")
 
     # ── 5. Verify pair count and tensor dim ───────────────────────────────
@@ -409,7 +409,7 @@ if __name__ == "__main__":
 
     loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=0)
     batch_v1, batch_v2 = next(iter(loader))
-    print(f"\n  DataLoader batch shapes:")
+    print("\n  DataLoader batch shapes:")
     print(f"    batch_v1 : {batch_v1.shape}   ← (batch_size, feature_dim)")
     print(f"    batch_v2 : {batch_v2.shape}")
     print("\n✓ All checks passed. Ready for NT-Xent training.\n")

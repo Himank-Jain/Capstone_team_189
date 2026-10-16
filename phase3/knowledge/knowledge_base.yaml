@@ -1,4 +1,4 @@
-kb_version: "2026.10.09.1"
+kb_version: "2.1.0"
 causes:
   - cause_category: "CREDENTIAL_THEFT"
     title: "Possible credential misuse"
@@ -139,3 +139,551 @@ confidence_levels:
   HIGH: "Strong evidence across multiple independent signals; the classification is stable."
   MEDIUM: "One signal is strong or several are weakly aligned, but there is still some uncertainty."
   LOW: "Evidence is sparse, conflicting, or insufficient for a confident conclusion."
+threats:
+  credential_theft:
+    public_id: cloud_credential_misuse
+    title: "Possible cloud credential misuse"
+    definition: "The current pattern may be consistent with use of a cloud account outside its established access pattern; it does not establish credential theft."
+    how_it_shows_up: "For ${entity_id}, ${top_changed_feature} changed in a ${cloud_provider} ${region} window with severity ${severity}; deviation=${deviation_score}, drift=${drift_score}."
+    typical_stages: ["An identity or credential is exposed or misused.", "A session accesses cloud APIs from an unusual context.", "The actor may enumerate or access resources."]
+    mitre_attack:
+      - {id: "T1078.004", name: "Cloud Accounts", url: "https://attack.mitre.org/techniques/T1078/004/"}
+    indicators_in_this_case: [changed_features, cloud_provider, region, component_scores, observed_window]
+    investigative_checks:
+      - {check: "Compare the identity, source context, and session in the cloud identity audit record.", why: "A sign-in location or API change needs identity-level corroboration.", expected_result: "Your team can attribute the session to an approved user or document an unexplained session for review.", risk: "LOW"}
+      - {check: "Review recent access-key, token, and role changes for the affected identity.", why: "Recent credential changes can distinguish rotation from unauthorized persistence.", expected_result: "The changes map to an approved request or remain unverified.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your cloud team can consider revoking the affected session and disabling a credential only after confirming the identity and operational impact."
+          aws: "Your team can review IAM access-key last-used data and deactivate a confirmed compromised key."
+          azure: "Your team can review Entra ID sign-in logs and revoke the confirmed session."
+          gcp: "Your team can review Cloud Audit Logs and disable a confirmed exposed service-account key."
+          oci: "Your team can review IAM sign-in and Audit records and rotate a confirmed exposed API key."
+      short_term:
+        - generic: "Your team can review least-privilege access, MFA, and recent role or token changes for this identity."
+          aws: "Consider IAM Access Analyzer and CloudTrail history for the principal."
+          azure: "Consider Entra ID Identity Protection and Activity Log review."
+          gcp: "Consider IAM recommender findings and Cloud Audit Logs."
+          oci: "Consider IAM policy review and OCI Audit history."
+      hardening:
+        - generic: "Your team can reduce standing credentials, enforce strong authentication, and alert on unusual identity context."
+          aws: "Consider IAM roles, short-lived credentials, and GuardDuty."
+          azure: "Consider Conditional Access and Defender for Cloud Apps."
+          gcp: "Consider workload identity federation and Security Command Center."
+          oci: "Consider short-lived credentials, MFA, and Cloud Guard."
+    false_positive_notes: "Approved travel, VPN egress, service-account rotation, CI/CD activity, or a new workload can resemble this pattern. Validate the principal and change record before treating it as misuse."
+    resolution_criteria: ["The identity and session are attributed.", "Any credential or policy change is authorized or contained by the customer's team.", "Follow-up telemetry no longer shows the unexplained access pattern."]
+    limitations: "The case may not contain source IP, principal, session, or authentication outcome data. A signature match is a hypothesis, not attribution."
+    further_reading:
+      - {title: "MITRE ATT&CK Cloud Accounts", url: "https://attack.mitre.org/techniques/T1078/004/"}
+
+  insider_threat:
+    public_id: privilege_policy_misuse
+    title: "Possible privilege or policy misuse"
+    definition: "Privileged API or data-access changes may be consistent with expanded access beyond an established workload pattern; actor intent is unknown."
+    how_it_shows_up: "The case for ${entity_id} has ${top_changed_feature} changing with final score ${final_score}; verify the actual role and policy audit events."
+    typical_stages: ["A permission or role changes.", "The changed access is exercised.", "Additional resources or data may be accessed."]
+    mitre_attack:
+      - {id: "T1098", name: "Account Manipulation", url: "https://attack.mitre.org/techniques/T1098/"}
+    indicators_in_this_case: [changed_features, component_scores, similar_episodes, related_incidents]
+    investigative_checks:
+      - {check: "Review role assignments, policy edits, and role assumptions in the alert window.", why: "The feature pattern alone does not identify which permission changed.", expected_result: "The change is tied to an approved change request or documented as unexplained.", risk: "LOW"}
+      - {check: "Compare privileged API activity with the principal's normal task and approved deployment history.", why: "Expected automation can produce the same increase.", expected_result: "The activity has an owner and approved purpose, or is escalated for customer review.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your cloud team can consider limiting a verified over-broad role after checking dependent workloads and incident-response requirements."
+          aws: "Consider reviewing IAM policy versions and role trust policies."
+          azure: "Consider reviewing Entra ID role assignments and privileged identity activations."
+          gcp: "Consider reviewing IAM policy bindings and service-account impersonation grants."
+          oci: "Consider reviewing IAM policy statements and dynamic-group membership."
+      short_term:
+        - generic: "Your team can compare the effective permissions with the approved access request and preserve relevant audit records."
+      hardening:
+        - generic: "Your team can use just-in-time elevation, separation of duties, and alerts for privileged policy changes."
+          aws: "Consider IAM Access Analyzer and CloudTrail alerts."
+          azure: "Consider Privileged Identity Management and Activity Log alerts."
+          gcp: "Consider IAM Recommender and Security Command Center."
+          oci: "Consider Cloud Guard detector recipes and IAM policy governance."
+    false_positive_notes: "Role maintenance, break-glass access, scheduled automation, and approved releases can resemble privilege misuse. Confirm ownership and change approval."
+    resolution_criteria: ["The permission delta and actor are understood.", "Unapproved access is removed or explicitly accepted by the customer.", "Audit coverage remains available for the review period."]
+    limitations: "Current evidence may not contain policy documents, actor identity, or effective-permission evaluation."
+    further_reading:
+      - {title: "MITRE ATT&CK Account Manipulation", url: "https://attack.mitre.org/techniques/T1098/"}
+
+  network_scan:
+    public_id: cloud_resource_reconnaissance
+    title: "Possible cloud resource reconnaissance"
+    definition: "A request and connection pattern may be consistent with broad resource discovery, but it does not demonstrate exploitation or successful access."
+    how_it_shows_up: "Requests and east-west activity for ${entity_id} should be checked against approved scanners and expected service discovery."
+    typical_stages: ["A source queries services or resource metadata.", "The source expands its target set.", "The activity may precede an access attempt."]
+    mitre_attack:
+      - {id: "T1580", name: "Cloud Infrastructure Discovery", url: "https://attack.mitre.org/techniques/T1580/"}
+    indicators_in_this_case: [changed_features, cloud_provider, entity_id, component_scores]
+    investigative_checks:
+      - {check: "Review flow and firewall records for source, destination, ports, rate, and time.", why: "These details separate broad discovery from normal service traffic.", expected_result: "The activity matches an approved scanner or is documented for analyst review.", risk: "LOW"}
+      - {check: "Compare the source and target scope with scanner inventories and recent changes.", why: "Inventory jobs and health checks can generate similar traffic.", expected_result: "The source is authorized or remains unexplained.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider a scoped network control for a verified source after checking service dependencies; this platform does not change cloud controls."
+          aws: "Consider reviewing VPC Flow Logs and narrowly scoped security-group rules."
+          azure: "Consider reviewing NSG flow logs and narrowly scoped NSG rules."
+          gcp: "Consider reviewing VPC Flow Logs and firewall rules."
+          oci: "Consider reviewing VCN Flow Logs and NSG rules."
+      short_term:
+        - generic: "Your team can validate exposed services and retain the source and target evidence for incident review."
+      hardening:
+        - generic: "Your team can maintain an approved scanner inventory and alert on unusual east-west connection fan-out."
+          aws: "Consider GuardDuty findings and centralized CloudTrail."
+          azure: "Consider Defender for Cloud and Azure Monitor network insights."
+          gcp: "Consider Security Command Center and VPC firewall logging."
+          oci: "Consider Cloud Guard and VCN flow logging."
+    false_positive_notes: "Vulnerability scanners, asset inventory, service meshes, and deployment health checks may cause broad but approved connection patterns."
+    resolution_criteria: ["The source and target scope are attributed.", "Any policy change is authorized.", "Follow-up flow records do not show unexplained discovery."]
+    limitations: "The case may have no source address, port, or destination inventory; this hypothesis cannot establish actor intent."
+    further_reading:
+      - {title: "MITRE ATT&CK Cloud Infrastructure Discovery", url: "https://attack.mitre.org/techniques/T1580/"}
+
+  malware_execution:
+    public_id: compute_resource_abuse
+    title: "Possible compute resource hijacking"
+    definition: "Sustained compute use with unusual egress may be consistent with unauthorized workload execution, including resource hijacking; no process-level evidence is implied."
+    how_it_shows_up: "CPU and egress signals for ${entity_id} changed during the observed window; verify workload ownership and process telemetry."
+    typical_stages: ["A compute resource is accessed or provisioned.", "A sustained workload consumes compute.", "The workload may communicate externally."]
+    mitre_attack:
+      - {id: "T1496", name: "Resource Hijacking", url: "https://attack.mitre.org/techniques/T1496/"}
+    indicators_in_this_case: [changed_features, component_scores, cloud_provider, region]
+    investigative_checks:
+      - {check: "Compare the instance or workload inventory and deployment record with the observed time.", why: "New or scheduled workloads can explain a utilization shift.", expected_result: "A known owner and approved workload are identified, or the change remains unexplained.", risk: "LOW"}
+      - {check: "Have your team review host or container process telemetry and outbound destinations.", why: "Aggregate CPU and egress metrics do not identify a process.", expected_result: "The executing workload and any unexpected network destination are documented.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider isolating a confirmed unauthorized workload using existing incident procedures after preserving evidence."
+          aws: "Consider reviewing EC2 instance metadata, GuardDuty findings, and security-group controls."
+          azure: "Consider reviewing VM process data, Defender for Cloud findings, and NSG controls."
+          gcp: "Consider reviewing VM telemetry, Security Command Center findings, and VPC firewall controls."
+          oci: "Consider reviewing Compute instance telemetry, Cloud Guard findings, and NSG controls."
+      short_term:
+        - generic: "Your team can review workload identity, image provenance, startup configuration, and unexpected egress destinations."
+      hardening:
+        - generic: "Your team can use trusted images, least-privilege workload identities, and CPU/egress alerting."
+          aws: "Consider GuardDuty Runtime Monitoring and AWS Config."
+          azure: "Consider Defender for Servers and Azure Policy."
+          gcp: "Consider Security Command Center and Organization Policy."
+          oci: "Consider Cloud Guard and OCI Vulnerability Scanning."
+    false_positive_notes: "Batch processing, compilation, autoscaling, model training, and maintenance windows can cause sustained CPU or egress changes."
+    resolution_criteria: ["The workload and owner are identified.", "Unauthorized execution is contained by the customer's team if confirmed.", "Resource utilization and egress return to an explained operating range."]
+    limitations: "Metric-level evidence does not identify executable code, process lineage, or malicious intent."
+    further_reading:
+      - {title: "MITRE ATT&CK Resource Hijacking", url: "https://attack.mitre.org/techniques/T1496/"}
+
+  ransomware:
+    public_id: destructive_storage_activity
+    title: "Possible destructive storage activity"
+    definition: "A sharp increase in storage writes or deletes may be consistent with destructive or encrypting activity, but the current metrics do not establish malicious encryption."
+    how_it_shows_up: "Storage activity for ${entity_id} changed; your team should verify object-level audit records and recovery points."
+    typical_stages: ["An identity gains write or delete access.", "Objects may be overwritten, deleted, or encrypted.", "Recovery or availability may be affected."]
+    mitre_attack:
+      - {id: "T1485", name: "Data Destruction", url: "https://attack.mitre.org/techniques/T1485/"}
+      - {id: "T1486", name: "Data Encrypted for Impact", url: "https://attack.mitre.org/techniques/T1486/"}
+    indicators_in_this_case: [changed_features, component_scores, entity_id, observed_window]
+    investigative_checks:
+      - {check: "Review object-level audit events for principal, operation, object count, and version history.", why: "Aggregate write volume cannot distinguish normal batch work from destructive actions.", expected_result: "The principal and operation sequence are attributable and recovery status is known.", risk: "LOW"}
+      - {check: "Check backup, retention, and versioning status using read-only inventory.", why: "Recovery options should be established before any response change.", expected_result: "A recent recoverable copy and retention state are confirmed or gaps are reported.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider limiting a confirmed destructive principal and preserving evidence under the customer's incident process."
+          aws: "Consider reviewing S3 object-level CloudTrail data events, versioning, and S3 Object Lock."
+          azure: "Consider reviewing Storage diagnostic logs, blob soft delete, and immutable blob policies."
+          gcp: "Consider reviewing Cloud Audit Logs, object versioning, and retention policies."
+          oci: "Consider reviewing Object Storage Audit events, versioning, and retention rules."
+      short_term:
+        - generic: "Your team can validate recoverable backups and test a controlled restore in an isolated environment."
+      hardening:
+        - generic: "Your team can separate backup administration, enable immutable retention where suitable, and alert on bulk changes."
+          aws: "Consider S3 Object Lock and separate backup-account controls."
+          azure: "Consider immutable Blob Storage and separate backup permissions."
+          gcp: "Consider Bucket Lock and separate backup-project permissions."
+          oci: "Consider retention rules and isolated backup compartments."
+    false_positive_notes: "Lifecycle jobs, migrations, retention cleanup, compaction, and application rewrites can produce write/delete bursts. Confirm expected job ownership and scope."
+    resolution_criteria: ["The affected principal and object scope are known.", "Recovery points are validated.", "Unexplained bulk writes/deletes have stopped or are contained."]
+    limitations: "No object names, encryption state, ransom note, or principal identity is implied by the aggregate metrics."
+    further_reading:
+      - {title: "MITRE ATT&CK Data Destruction", url: "https://attack.mitre.org/techniques/T1485/"}
+      - {title: "MITRE ATT&CK Data Encrypted for Impact", url: "https://attack.mitre.org/techniques/T1486/"}
+
+  data_exfiltration:
+    public_id: unusual_data_transfer
+    title: "Possible cloud data collection or transfer"
+    definition: "Concurrent storage reads and outbound traffic may be consistent with bulk data access or transfer; bytes alone do not establish data content or destination ownership."
+    how_it_shows_up: "The case has storage and egress changes for ${entity_id}; ${group_size} similar episodes and related incidents were available."
+    typical_stages: ["An identity obtains access to stored data.", "Data is read or staged.", "Data may be transferred outside its expected destination."]
+    mitre_attack:
+      - {id: "T1530", name: "Data from Cloud Storage", url: "https://attack.mitre.org/techniques/T1530/"}
+      - {id: "T1537", name: "Transfer Data to Cloud Account", url: "https://attack.mitre.org/techniques/T1537/"}
+      - {id: "T1567", name: "Exfiltration Over Web Service", url: "https://attack.mitre.org/techniques/T1567/"}
+    indicators_in_this_case: [changed_features, component_scores, similar_episodes, related_incidents]
+    investigative_checks:
+      - {check: "Correlate storage read and network-flow records by principal, object scope, and time window.", why: "Separate aggregate signals may not describe the same actor or transfer.", expected_result: "Your team can confirm a shared identity/session or document why the signals are unrelated.", risk: "LOW"}
+      - {check: "Review destination, sharing, and access-policy audit events for the affected data store.", why: "Cloud-to-cloud sharing may not appear as ordinary network egress.", expected_result: "The destination and sharing mechanism are approved or remain unexplained.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider limiting a verified unauthorized data-sharing path after preserving audit evidence and checking business impact."
+          aws: "Consider reviewing S3 Block Public Access, bucket policies, and CloudTrail data events."
+          azure: "Consider reviewing Storage account public access, SAS issuance, and Activity Logs."
+          gcp: "Consider reviewing Cloud Storage IAM, public access prevention, and Cloud Audit Logs."
+          oci: "Consider reviewing Object Storage pre-authenticated requests, IAM policies, and Audit."
+      short_term:
+        - generic: "Your team can identify affected data classes, principals, destinations, and any applicable notification obligations."
+      hardening:
+        - generic: "Your team can apply least-privilege data access, monitor bulk reads, and review external sharing controls."
+          aws: "Consider GuardDuty S3 Protection and Macie."
+          azure: "Consider Defender for Storage and Microsoft Purview controls."
+          gcp: "Consider Security Command Center and Cloud Storage insights."
+          oci: "Consider Cloud Guard and Object Storage access monitoring."
+    false_positive_notes: "Backups, analytics exports, replication, migration, and approved data processing can create large reads and transfers."
+    resolution_criteria: ["Principal, data scope, and destination are documented.", "Any unapproved sharing path is contained by the customer's team.", "Expected data movement is distinguished from unexplained movement."]
+    limitations: "The case does not identify data sensitivity, recipient, or whether a transfer completed."
+    further_reading:
+      - {title: "MITRE ATT&CK Data from Cloud Storage", url: "https://attack.mitre.org/techniques/T1530/"}
+      - {title: "MITRE ATT&CK Transfer Data to Cloud Account", url: "https://attack.mitre.org/techniques/T1537/"}
+      - {title: "MITRE ATT&CK Exfiltration Over Web Service", url: "https://attack.mitre.org/techniques/T1567/"}
+
+  ddos_volumetric:
+    public_id: volumetric_service_disruption
+    title: "Possible volumetric service disruption"
+    definition: "A request and ingress surge with latency changes may be consistent with a service flood; these signals do not establish malicious origin."
+    how_it_shows_up: "Request, ingress, and latency features for ${entity_id} should be compared with provider health and expected traffic."
+    typical_stages: ["Traffic volume rises sharply.", "Network or service capacity may be stressed.", "Latency or availability may change."]
+    mitre_attack:
+      - {id: "T1498", name: "Network Denial of Service", url: "https://attack.mitre.org/techniques/T1498/"}
+    indicators_in_this_case: [changed_features, component_scores, cloud_provider, region]
+    investigative_checks:
+      - {check: "Compare request, ingress, latency, and error time series with provider service health.", why: "A provider event or legitimate demand increase can resemble a flood.", expected_result: "Your team can separate tenant-origin traffic, provider degradation, and unexplained traffic.", risk: "LOW"}
+      - {check: "Review available edge, load-balancer, and network summaries for source distribution.", why: "Aggregate scores alone do not distinguish distributed traffic from a single hot client.", expected_result: "Traffic distribution and service impact are documented.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider existing traffic-management controls if service impact is confirmed; this platform does not apply them."
+          aws: "Consider AWS Shield, AWS WAF, and CloudFront rate controls."
+          azure: "Consider Azure DDoS Protection, Azure Front Door, and WAF policies."
+          gcp: "Consider Cloud Armor and load-balancer rate controls."
+          oci: "Consider OCI Web Application Firewall and DDoS protection services."
+      short_term:
+        - generic: "Your team can preserve edge logs and validate capacity, health checks, and customer impact."
+      hardening:
+        - generic: "Your team can define traffic thresholds, caching, rate limiting, and tested escalation procedures."
+          aws: "Consider Shield Advanced protections and CloudWatch alarms."
+          azure: "Consider DDoS Protection plans and Azure Monitor alerts."
+          gcp: "Consider Cloud Armor policies and Cloud Monitoring alerts."
+          oci: "Consider WAF policies and OCI Monitoring alarms."
+    false_positive_notes: "Flash crowds, marketing events, retries, load tests, and provider network incidents can create similar spikes."
+    resolution_criteria: ["Service impact and traffic source pattern are documented.", "Traffic returns to an explained range or approved controls are owned by the customer's team.", "Provider status and tenant-side events have been checked."]
+    limitations: "The platform does not inspect packet contents or identify an attacker; DDoS attribution requires additional provider telemetry."
+    further_reading:
+      - {title: "MITRE ATT&CK Network Denial of Service", url: "https://attack.mitre.org/techniques/T1498/"}
+
+  public_exposure:
+    public_id: resource_exposure_change
+    title: "Possible unintended public data or service exposure"
+    definition: "Unusual access to a storage or service resource may be consistent with public exposure, but the case does not itself prove an access policy is public."
+    how_it_shows_up: "Review the access policy for ${entity_id} in ${cloud_provider} ${region}; telemetry may not include configuration or anonymous-access events."
+    typical_stages: ["A policy or network boundary changes.", "An external principal may reach the resource.", "Access logs may show requests to the resource."]
+    mitre_attack:
+      - {id: "T1530", name: "Data from Cloud Storage", url: "https://attack.mitre.org/techniques/T1530/"}
+    indicators_in_this_case: [changed_features, cloud_provider, region, observed_window]
+    investigative_checks:
+      - {check: "Read the current and historical resource access policy and public-access settings.", why: "Request volume cannot establish the configured exposure.", expected_result: "Your team can identify whether external access was possible and during which interval.", risk: "LOW"}
+      - {check: "Review access logs for anonymous or unexpected principals and affected objects.", why: "This distinguishes a public configuration from actual observed access.", expected_result: "Access scope and identity are documented or the absence of sufficient logs is noted.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider restricting verified unintended public access after checking customer-facing dependencies."
+          aws: "Consider S3 Block Public Access and bucket-policy review."
+          azure: "Consider disabling anonymous Blob access and reviewing Storage network rules."
+          gcp: "Consider Public Access Prevention and bucket IAM review."
+          oci: "Consider reviewing Object Storage pre-authenticated requests and IAM policies."
+      short_term:
+        - generic: "Your team can inspect access logs, determine data scope, and preserve the relevant configuration history."
+      hardening:
+        - generic: "Your team can use policy guardrails and continuous checks for public resource exposure."
+          aws: "Consider AWS Config rules and Security Hub controls."
+          azure: "Consider Azure Policy and Defender for Cloud recommendations."
+          gcp: "Consider Organization Policy and Security Command Center findings."
+          oci: "Consider Cloud Guard detector recipes and compartment policy review."
+    false_positive_notes: "Public websites, intentionally shared datasets, signed URLs, CDN origins, and service-to-service access may be expected."
+    resolution_criteria: ["The resource's intended audience and effective access path are documented.", "Any unintended access path is restricted by the customer's team.", "Access evidence has been reviewed for the exposure interval."]
+    limitations: "The current trained metric vocabulary lacks direct public-access configuration metrics; no configuration state is inferred by this match."
+    further_reading:
+      - {title: "MITRE ATT&CK Data from Cloud Storage", url: "https://attack.mitre.org/techniques/T1530/"}
+
+  brute_force_login:
+    public_id: repeated_authentication_failures
+    title: "Possible repeated credential guessing"
+    definition: "A burst of authentication failures may be consistent with repeated credential guessing, but failed requests can also result from ordinary user or application errors."
+    how_it_shows_up: "Authentication-failure features for ${entity_id} changed during the observed time window; verify identity-provider outcomes."
+    typical_stages: ["Repeated authentication attempts occur.", "One or more credentials may be accepted.", "A session may then use cloud APIs."]
+    mitre_attack:
+      - {id: "T1110", name: "Brute Force", url: "https://attack.mitre.org/techniques/T1110/"}
+    indicators_in_this_case: [changed_features, component_scores, observed_window, similar_episodes]
+    investigative_checks:
+      - {check: "Review identity-provider sign-in results, source context, principal, and MFA outcomes.", why: "Aggregate failure metrics do not reveal whether any attempt succeeded.", expected_result: "Your team can determine whether attempts were user error, approved testing, or unexplained.", risk: "LOW"}
+      - {check: "Check for successful sessions and subsequent API activity tied to the same identity.", why: "A successful session changes the investigation priority.", expected_result: "Session linkage is confirmed or the available audit gap is documented.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider account-specific protective controls after confirming affected identities and preserving sign-in evidence."
+          aws: "Consider IAM credential review and GuardDuty findings."
+          azure: "Consider Entra ID risk detections and Conditional Access."
+          gcp: "Consider Cloud Identity sign-in events and Security Command Center."
+          oci: "Consider IAM sign-in controls and Cloud Guard findings."
+      short_term:
+        - generic: "Your team can review password, MFA, lockout, and source-network policies for affected accounts."
+      hardening:
+        - generic: "Your team can monitor failure-to-success sequences and protect privileged accounts with strong authentication."
+          aws: "Consider centralized CloudTrail and IAM Identity Center controls."
+          azure: "Consider Entra ID Identity Protection and risk-based Conditional Access."
+          gcp: "Consider context-aware access and Cloud Audit Logs."
+          oci: "Consider MFA policies, IAM federation, and Audit monitoring."
+    false_positive_notes: "Expired passwords, application retry loops, misconfigured service principals, and authorized security testing can cause repeated failures."
+    resolution_criteria: ["Affected identities and any successful sessions are identified.", "Customer-owned protective changes are verified where needed.", "Failure rates return to an explained level."]
+    limitations: "The case may omit principal, source, MFA result, and authentication-success linkage."
+    further_reading:
+      - {title: "MITRE ATT&CK Brute Force", url: "https://attack.mitre.org/techniques/T1110/"}
+
+  lateral_movement:
+    public_id: cross_resource_access
+    title: "Possible cross-resource access pattern"
+    definition: "Increased east-west connections may be consistent with movement between resources, but network activity alone does not establish a compromised source or lateral movement."
+    how_it_shows_up: "Connection changes for ${entity_id} should be correlated with principal, source, destination, and network-policy audit data."
+    typical_stages: ["A principal or workload accesses a resource.", "Connections expand to additional peers.", "Network permissions may change."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, entity_id, observed_window]
+    investigative_checks:
+      - {check: "Review flow records for source/destination pairs and map both sides to owned resources.", why: "The entity-level count does not identify peer systems.", expected_result: "Your team can attribute connections to an approved workload or record unexplained peers.", risk: "LOW"}
+      - {check: "Check network security rule changes and the identity that made them.", why: "A rule change may be unrelated to the increased connections.", expected_result: "Rule changes are tied to approved work or escalated for review.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider narrowing a verified network path after checking dependencies and preserving flow evidence."
+          aws: "Consider reviewing security groups, VPC Flow Logs, and AWS Network Firewall logs."
+          azure: "Consider reviewing NSGs, NSG flow logs, and Azure Firewall logs."
+          gcp: "Consider reviewing VPC firewall rules, VPC Flow Logs, and Cloud IDS."
+          oci: "Consider reviewing NSGs, security lists, and VCN Flow Logs."
+      short_term:
+        - generic: "Your team can document the source principal, destination owners, and business purpose for cross-resource flows."
+      hardening:
+        - generic: "Your team can segment workloads and alert on new peer relationships or broad network-rule changes."
+    false_positive_notes: "Service discovery, autoscaling, deployment orchestration, and newly enabled service dependencies can increase east-west traffic."
+    resolution_criteria: ["Source and destination resources are attributed.", "Any new network path is authorized or restricted by the customer's team.", "Unexpected peer activity no longer appears."]
+    limitations: "No network graph or identity attribution is guaranteed to be present in the case."
+    further_reading:
+      - {title: "AWS VPC Flow Logs", url: "https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html"}
+      - {title: "Azure NSG flow logs", url: "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview"}
+
+  log_tampering:
+    public_id: audit_visibility_reduction
+    title: "Possible audit telemetry interruption"
+    definition: "A reduction in audit events may indicate collection gaps, configuration changes, or logging interruption; it does not prove intentional tampering."
+    how_it_shows_up: "The trained metric vocabulary has no direct audit-volume feature for this case; verify provider logging status independently."
+    typical_stages: ["Logging configuration or delivery changes.", "Expected events may stop arriving.", "Detection and investigation coverage may be reduced."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, cloud_provider, observed_window]
+    investigative_checks:
+      - {check: "Check provider control-plane audit settings, delivery destinations, and last successful event time.", why: "This project bundle does not directly measure audit-log volume.", expected_result: "Your team can distinguish collection failure from an intentional or approved logging change.", risk: "LOW"}
+      - {check: "Compare the collection pipeline's health and configuration history with the time window.", why: "Forwarder, permissions, or retention issues can look like a source-side change.", expected_result: "The logging gap has an identified owner and recovery plan.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider restoring approved audit collection and preserving available control-plane records; no logging control is changed by this platform."
+          aws: "Consider verifying CloudTrail trail status, destinations, and CloudWatch integration."
+          azure: "Consider verifying Activity Log diagnostic settings and destination health."
+          gcp: "Consider verifying Cloud Audit Logs routing sinks and exclusion filters."
+          oci: "Consider verifying OCI Audit service status and Logging service configuration."
+      short_term:
+        - generic: "Your team can determine the exact start/end of the gap and identify events not collected during it."
+      hardening:
+        - generic: "Your team can alert on missing audit heartbeats and protect logging configuration with change review."
+    false_positive_notes: "Maintenance, retention changes, log filters, billing limits, pipeline outages, and provider-specific event-volume variation can reduce observed logs."
+    resolution_criteria: ["The logging gap's interval and cause are known.", "Expected audit sources are delivering and queryable.", "The customer has documented any irrecoverable evidence gap."]
+    limitations: "The trained vocabulary cannot score audit-volume reduction. No signature match should be treated as evidence that logs were disabled."
+    further_reading:
+      - {title: "AWS CloudTrail User Guide", url: "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"}
+      - {title: "Azure Activity Log", url: "https://learn.microsoft.com/en-us/azure/azure-monitor/platform/activity-log"}
+      - {title: "Google Cloud audit logs", url: "https://cloud.google.com/logging/docs/audit"}
+      - {title: "OCI Audit", url: "https://docs.oracle.com/en-us/iaas/Content/Audit/Concepts/auditoverview.htm"}
+
+  rogue_resources:
+    public_id: unexpected_resource_creation
+    title: "Possible unexpected resource creation"
+    definition: "An unexpected resource or region may be consistent with unauthorized provisioning, but resource ownership and deployment intent need verification."
+    how_it_shows_up: "The case references ${cloud_provider} ${region}; resource creation and region metrics are not directly represented in the trained vocabulary."
+    typical_stages: ["A principal requests a new resource.", "The resource may receive permissions or networking.", "The resource may be used or incur cost."]
+    mitre_attack:
+      - {id: "T1578", name: "Modify Cloud Compute Infrastructure", url: "https://attack.mitre.org/techniques/T1578/"}
+    indicators_in_this_case: [cloud_provider, region, entity_id, component_scores]
+    investigative_checks:
+      - {check: "Compare the resource inventory and creation time with approved deployment and infrastructure-as-code records.", why: "The current metrics do not directly identify resource creation.", expected_result: "The resource has an approved owner or is documented as unexplained.", risk: "LOW"}
+      - {check: "Review the creator principal, region, tags, permissions, and network exposure.", why: "Metadata helps determine whether the resource follows organizational policy.", expected_result: "The resource's owner and intended purpose are established.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider restricting or decommissioning a verified unauthorized resource only after checking dependencies and preserving evidence."
+          aws: "Consider reviewing CloudTrail Create* events, AWS Config, and GuardDuty."
+          azure: "Consider reviewing Activity Log, Azure Resource Graph, and Defender for Cloud."
+          gcp: "Consider reviewing Cloud Audit Logs, Cloud Asset Inventory, and Security Command Center."
+          oci: "Consider reviewing OCI Audit, Cloud Guard, and compartment inventory."
+      short_term:
+        - generic: "Your team can identify resource creator, workload identity, region, network path, and cost owner."
+      hardening:
+        - generic: "Your team can restrict resource creation by role and region and require ownership tags or policy-as-code checks."
+          aws: "Consider AWS Organizations SCPs and AWS Config rules."
+          azure: "Consider Azure Policy and management-group restrictions."
+          gcp: "Consider Organization Policy and deployment guardrails."
+          oci: "Consider IAM policy boundaries and Cloud Guard responder recipes configured by your team."
+    false_positive_notes: "Autoscaling, ephemeral test environments, disaster recovery, managed services, and approved regional expansion may create unfamiliar resources."
+    resolution_criteria: ["The resource and creator are attributed.", "The resource is approved or handled by the customer's team.", "Ownership, region, and cost records are current."]
+    limitations: "The current trained vocabulary lacks a direct resource-create counter; confirm inventory through provider audit APIs."
+    further_reading:
+      - {title: "MITRE ATT&CK Modify Cloud Compute Infrastructure", url: "https://attack.mitre.org/techniques/T1578/"}
+
+  function_abuse:
+    public_id: serverless_usage_anomaly
+    title: "Possible serverless workload abuse"
+    definition: "An invocation and duration increase may be consistent with unexpected function use or cost pressure; invocation metrics alone do not establish abuse."
+    how_it_shows_up: "Serverless-related evidence for ${entity_id} changed with ${severity} severity; verify the function owner, trigger, and request source."
+    typical_stages: ["A function trigger or invocation rate changes.", "Execution time or concurrency may rise.", "Service capacity or cost may be affected."]
+    mitre_attack:
+      - {id: "T1496", name: "Resource Hijacking", url: "https://attack.mitre.org/techniques/T1496/"}
+    indicators_in_this_case: [changed_features, component_scores, cloud_provider, region]
+    investigative_checks:
+      - {check: "Review invocation counts, trigger configuration, duration, concurrency, and function deployment history.", why: "A planned release or event can explain a surge.", expected_result: "The trigger and deployment have a known owner or remain unexplained.", risk: "LOW"}
+      - {check: "Compare request source and execution role with expected callers.", why: "Invocation volume alone does not identify who called the function.", expected_result: "The caller and role are expected or documented for review.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can consider a scoped trigger or concurrency limit for confirmed unexpected activity after assessing customer impact."
+          aws: "Consider Lambda reserved concurrency, event-source mapping, and CloudTrail."
+          azure: "Consider Function App scale limits, trigger configuration, and Activity Log."
+          gcp: "Consider Cloud Functions/Cloud Run scaling limits and Cloud Audit Logs."
+          oci: "Consider Functions application configuration, IAM, and OCI Audit."
+      short_term:
+        - generic: "Your team can review function code provenance, trigger permissions, execution identity, and cost telemetry."
+      hardening:
+        - generic: "Your team can use least-privilege execution roles, invocation budgets, and alerts for unusual duration or concurrency."
+          aws: "Consider Lambda monitoring with CloudWatch alarms and GuardDuty."
+          azure: "Consider Application Insights and Defender for Cloud."
+          gcp: "Consider Cloud Monitoring and Security Command Center."
+          oci: "Consider OCI Monitoring alarms and Cloud Guard."
+    false_positive_notes: "Scheduled jobs, retries, deployment tests, seasonal demand, and legitimate event bursts can raise invocation or duration metrics."
+    resolution_criteria: ["Trigger, caller, and deployment are attributed.", "Unexpected invocation is stopped or explained by the customer's team.", "Concurrency, duration, and cost return to an accepted range."]
+    limitations: "No function source code, request body, or caller identity is inferred from aggregate metrics."
+    further_reading:
+      - {title: "MITRE ATT&CK Resource Hijacking", url: "https://attack.mitre.org/techniques/T1496/"}
+
+  benign_baseline:
+    public_id: stable_baseline_activity
+    title: "Possible stable baseline activity"
+    definition: "The low-amplitude pattern may be consistent with routine operation near an established baseline; this is not a guarantee of system health."
+    how_it_shows_up: "For ${entity_id}, scores are deviation=${deviation_score} and drift=${drift_score}; compare the window with the entity's normal operating range."
+    typical_stages: ["Routine workloads emit expected activity.", "Small variations appear within normal operating limits.", "Periodic review confirms baseline quality."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, observed_window]
+    investigative_checks:
+      - {check: "Compare current CPU, request, and storage metrics with the entity's recent baseline.", why: "A stable-looking score can still mask an important metric-specific change.", expected_result: "The observed range fits an approved operating envelope.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "No remediation is implied; your team can review the dashboard and investigate any operational concern."
+      short_term:
+        - generic: "Your team can confirm the baseline window includes representative workload periods."
+      hardening:
+        - generic: "Your team can keep baseline and telemetry coverage reviews on a regular schedule."
+    false_positive_notes: "A newly degraded or low-frequency signal can appear normal if the baseline is stale or telemetry is missing."
+    resolution_criteria: ["The activity is within an approved baseline.", "There is no unresolved operational impact or telemetry gap."]
+    limitations: "An unsupervised detector cannot prove benign intent or absence of an attack."
+    further_reading:
+      - {title: "Google Cloud audit logs overview", url: "https://cloud.google.com/logging/docs/audit"}
+
+  planned_deployment:
+    public_id: deployment_related_change
+    title: "Possible planned deployment activity"
+    definition: "A bounded CPU and write change may be consistent with an approved deployment; the case does not know whether a change was planned."
+    how_it_shows_up: "CPU or write activity changed for ${entity_id}; verify the deployment window, release owner, and expected capacity."
+    typical_stages: ["A deployment or migration begins.", "Resource use changes during rollout.", "Metrics settle after the release."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, observed_window, related_incidents]
+    investigative_checks:
+      - {check: "Compare the window with the release calendar, change ticket, and deployment telemetry.", why: "A matching timestamp alone does not establish approval.", expected_result: "The change has an owner and an expected resource profile.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "No security action is implied; your team can verify release health and follow the normal rollback decision process."
+      short_term:
+        - generic: "Your team can compare observed resource use with the deployment's expected post-release envelope."
+      hardening:
+        - generic: "Your team can annotate approved releases in operational telemetry to improve future context."
+    false_positive_notes: "Unapproved changes, autoscaling, or a coincident independent event can overlap a deployment window."
+    resolution_criteria: ["The release and owner are verified.", "Service health is acceptable after rollout.", "Any unexplained activity is tracked separately."]
+    limitations: "The platform does not read change tickets and cannot confirm deployment approval."
+    further_reading:
+      - {title: "AWS CloudTrail User Guide", url: "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"}
+
+  organic_growth:
+    public_id: gradual_workload_growth
+    title: "Possible gradual workload growth"
+    definition: "Gradual request or storage changes may be consistent with organic demand growth, but the pattern should be checked against business and capacity context."
+    how_it_shows_up: "The case has ${top_changed_feature} changing with drift=${drift_score}; compare with demand and release trends."
+    typical_stages: ["Demand grows over time.", "Requests and storage use rise gradually.", "Capacity planning may need adjustment."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, observed_window]
+    investigative_checks:
+      - {check: "Compare request and storage trends with customer demand, known launches, and seasonal behavior.", why: "Trend context distinguishes expected growth from an unexplained burst.", expected_result: "The change follows a known demand or product trend.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "No incident response is implied; your team can check service capacity and customer impact."
+      short_term:
+        - generic: "Your team can update capacity forecasts if growth is sustained and expected."
+      hardening:
+        - generic: "Your team can review thresholds to distinguish gradual growth from abrupt behavior changes."
+    false_positive_notes: "Traffic shaping, telemetry sampling changes, and scheduled backfills can resemble gradual growth."
+    resolution_criteria: ["The trend is explained by demand or a known workload change.", "Capacity remains adequate or has an owner-approved plan."]
+    limitations: "The case does not contain business demand, revenue, or product-launch context."
+    further_reading:
+      - {title: "Azure Activity Log overview", url: "https://learn.microsoft.com/en-us/azure/azure-monitor/platform/activity-log"}
+
+  provider_regional_event:
+    public_id: provider_regional_service_event
+    title: "Possible provider or regional service event"
+    definition: "Correlated latency or error changes may be consistent with a regional service issue; the platform cannot independently confirm provider status."
+    how_it_shows_up: "The ${cloud_provider} ${region} case shows latency or error changes during the observed time window; compare with provider health notices."
+    typical_stages: ["A provider or regional dependency degrades.", "Affected workloads show latency or errors.", "Service metrics recover as the dependency stabilizes."]
+    mitre_attack: []
+    indicators_in_this_case: [cloud_provider, region, changed_features, component_scores]
+    investigative_checks:
+      - {check: "Compare the exact services and region with the provider health dashboard and service advisories.", why: "A broad regional label may include unaffected services.", expected_result: "A matching provider event is confirmed or ruled out for the affected services.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "Your team can follow its provider incident and continuity process; this platform does not change routing or infrastructure."
+      short_term:
+        - generic: "Your team can correlate customer impact and dependency-level telemetry with provider updates."
+      hardening:
+        - generic: "Your team can review resilience, retry behavior, and tested failover for critical dependencies."
+    false_positive_notes: "Tenant-specific releases, quota limits, network configuration, and client retries can mimic regional degradation."
+    resolution_criteria: ["Affected provider services and customer impact are documented.", "Recovery is confirmed through telemetry and provider status.", "Any tenant-side contributing change has an owner."]
+    limitations: "No provider status API is called; this category is a hypothesis based on the case evidence."
+    further_reading:
+      - {title: "AWS Health User Guide", url: "https://docs.aws.amazon.com/health/latest/ug/what-is-aws-health.html"}
+
+  ambiguous_change:
+    public_id: unclassified_behavior_change
+    title: "Unclassified or ambiguous behavior change"
+    definition: "The current signal may represent a new workload pattern, transient variation, or incomplete telemetry; evidence is insufficient for a specific threat hypothesis."
+    how_it_shows_up: "The case has ${top_changed_feature} with severity ${severity}, but no single explanation should be preferred without corroboration."
+    typical_stages: ["A low-volume change appears.", "Additional evidence may or may not arrive.", "An analyst compares it with workload and change context."]
+    mitre_attack: []
+    indicators_in_this_case: [changed_features, component_scores, unknowns, observed_window]
+    investigative_checks:
+      - {check: "Compare changed metrics with the entity baseline and recent operational changes.", why: "A weak isolated signal should not be interpreted as an attack label.", expected_result: "Your team can document whether the change is transient, expected, or still unexplained.", risk: "LOW"}
+    mitigation:
+      immediate:
+        - generic: "No remediation is implied; your team can preserve context and monitor for corroborating evidence."
+      short_term:
+        - generic: "Your team can check telemetry completeness and review adjacent time windows before assigning a cause."
+      hardening:
+        - generic: "Your team can add a reviewed signature only after collecting representative labeled evidence outside this synthetic demo."
+    false_positive_notes: "Sparse data, first-seen workloads, sampling changes, and expected low-volume updates commonly create ambiguity."
+    resolution_criteria: ["The uncertainty is documented.", "The case is linked to an owner or remains in an explicit monitoring state.", "No unsupported threat claim is recorded."]
+    limitations: "A low match is not evidence that an attack occurred or did not occur."
+    further_reading:
+      - {title: "NIST Computer Security Incident Handling Guide", url: "https://csrc.nist.gov/pubs/sp/800/61/r2/final"}

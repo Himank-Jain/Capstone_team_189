@@ -1,0 +1,246 @@
+providers: &providers [AWS, Azure, GCP, OCI]
+entity_types: &compute_entities [Instances, VM_Instances, Virtual_Machines]
+storage_entities: &storage_entities [Buckets, Storage_Accounts, Volumes]
+intensity_presets: &intensities
+  low: 0.5
+  medium: 1.0
+  high: 1.5
+
+scenarios:
+  - scenario_id: credential_theft
+    display_name: Credential compromise
+    description: Unusual API and authentication-failure activity, potentially from a new region.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31001
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: api_calls, direction: increase, magnitude: 3.0, shape: step, duration_minutes: 32}
+      - {metric_family: auth_failures, direction: increase, magnitude: 5.0, shape: spike, duration_minutes: 32}
+      - {metric_family: region_activity, direction: increase, magnitude: 2.0, shape: step, duration_minutes: 32}
+
+  - scenario_id: insider_threat
+    display_name: Policy and privilege misuse
+    description: A change in privileged activity and access patterns on a familiar resource.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31002
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: policy_changes, direction: increase, magnitude: 4.0, shape: step, duration_minutes: 24}
+      - {metric_family: privileged_api_calls, direction: increase, magnitude: 4.0, shape: ramp, duration_minutes: 32}
+      - {metric_family: storage_reads, direction: increase, magnitude: 2.0, shape: ramp, duration_minutes: 32}
+
+  - scenario_id: network_scan
+    display_name: Network reconnaissance
+    description: Repeated requests and east-west connection activity across resources.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31003
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: application_requests, direction: increase, magnitude: 5.0, shape: spike, duration_minutes: 20}
+      - {metric_family: east_west_connections, direction: increase, magnitude: 4.0, shape: step, duration_minutes: 24}
+
+  - scenario_id: malware_execution
+    display_name: Compute resource abuse
+    description: Sustained high CPU and unusual egress consistent with unauthorized compute use.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31004
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: cpu_utilization, direction: increase, magnitude: 5.0, shape: ramp, duration_minutes: 32}
+      - {metric_family: unusual_egress, direction: increase, magnitude: 3.0, shape: step, duration_minutes: 32}
+
+  - scenario_id: ransomware
+    display_name: Mass storage overwrite and deletion
+    description: A sharp rise in storage writes alongside a decrease in available storage indicators.
+    category: malicious
+    providers: *providers
+    entity_types: *storage_entities
+    intensity_presets: *intensities
+    seed: 31005
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: storage_write_ops, direction: increase, magnitude: 6.0, shape: spike, duration_minutes: 16}
+      - {metric_family: storage_delete_ops, direction: increase, magnitude: 7.0, shape: spike, duration_minutes: 16}
+      - {metric_family: object_count, direction: decrease, magnitude: 3.0, shape: ramp, duration_minutes: 32}
+
+  - scenario_id: data_exfiltration
+    display_name: Bulk data access and egress
+    description: Large storage reads and outbound network activity above the resource baseline.
+    category: malicious
+    providers: *providers
+    entity_types: *storage_entities
+    intensity_presets: *intensities
+    seed: 31006
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: storage_reads, direction: increase, magnitude: 7.0, shape: ramp, duration_minutes: 32}
+      - {metric_family: network_egress_bytes, direction: increase, magnitude: 8.0, shape: step, duration_minutes: 32}
+
+  - scenario_id: ddos_volumetric
+    display_name: Volumetric request flood
+    description: A short request and ingress spike with elevated response latency.
+    category: malicious
+    providers: *providers
+    entity_types: [Web_Apps, Instances, VM_Instances]
+    intensity_presets: *intensities
+    seed: 31007
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: request_count, direction: increase, magnitude: 9.0, shape: spike, duration_minutes: 12}
+      - {metric_family: ingress_bytes, direction: increase, magnitude: 8.0, shape: spike, duration_minutes: 12}
+      - {metric_family: latency, direction: increase, magnitude: 4.0, shape: step, duration_minutes: 24}
+      - {metric_family: http_5xx, direction: increase, magnitude: 6.0, shape: spike, duration_minutes: 12}
+
+  - scenario_id: public_exposure
+    display_name: Publicly reachable storage or service
+    description: A configuration exposure is followed by unusual request activity.
+    category: malicious
+    providers: *providers
+    entity_types: *storage_entities
+    intensity_presets: *intensities
+    seed: 31008
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: configuration_changes, direction: increase, magnitude: 3.0, shape: step, duration_minutes: 8}
+      - {metric_family: anonymous_requests, direction: increase, magnitude: 5.0, shape: ramp, duration_minutes: 32}
+
+  - scenario_id: brute_force_login
+    display_name: Repeated authentication failures
+    description: A burst of failed authentication indicators is followed by successful requests.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31009
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: failed_logins, direction: increase, magnitude: 10.0, shape: spike, duration_minutes: 16}
+      - {metric_family: successful_logins, direction: increase, magnitude: 2.0, shape: step, duration_minutes: 8}
+
+  - scenario_id: lateral_movement
+    display_name: East-west probing
+    description: A rise in internal connection activity follows a network policy change.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31010
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: east_west_connections, direction: increase, magnitude: 7.0, shape: ramp, duration_minutes: 32}
+      - {metric_family: security_group_changes, direction: increase, magnitude: 3.0, shape: step, duration_minutes: 8}
+
+  - scenario_id: log_tampering
+    display_name: Audit telemetry reduction
+    description: An attempted reduction in audit-event volume; this trained vocabulary has no audit-volume metric.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31011
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: audit_log_volume, direction: decrease, magnitude: 10.0, shape: step, duration_minutes: 32}
+
+  - scenario_id: rogue_resources
+    display_name: Resource creation outside normal regions
+    description: Resource-count activity rises alongside region activity not represented in the metric vocabulary.
+    category: malicious
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31012
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: resource_create_count, direction: increase, magnitude: 5.0, shape: step, duration_minutes: 16}
+      - {metric_family: region_activity, direction: increase, magnitude: 2.0, shape: step, duration_minutes: 16}
+
+  - scenario_id: function_abuse
+    display_name: Serverless invocation surge
+    description: A sharp increase in serverless invocation and execution-duration indicators.
+    category: malicious
+    providers: *providers
+    entity_types: [Functions, Web_Apps]
+    intensity_presets: *intensities
+    seed: 31013
+    minimum_severity: MEDIUM
+    signature:
+      - {metric_family: serverless_invocations, direction: increase, magnitude: 8.0, shape: spike, duration_minutes: 16}
+      - {metric_family: function_duration, direction: increase, magnitude: 4.0, shape: ramp, duration_minutes: 32}
+      - {metric_family: estimated_cost, direction: increase, magnitude: 5.0, shape: ramp, duration_minutes: 32}
+
+  - scenario_id: benign_baseline
+    display_name: Stable baseline
+    description: Low-amplitude resource activity near the established baseline.
+    category: benign
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31014
+    minimum_severity: LOW
+    signature:
+      - {metric_family: normal_cpu, direction: increase, magnitude: 1.08, shape: ramp, duration_minutes: 32}
+      - {metric_family: normal_requests, direction: increase, magnitude: 1.05, shape: step, duration_minutes: 32}
+
+  - scenario_id: planned_deployment
+    display_name: Planned deployment
+    description: A bounded CPU and write-activity increase during an approved deployment window.
+    category: benign
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31015
+    minimum_severity: LOW
+    signature:
+      - {metric_family: cpu_utilization, direction: increase, magnitude: 1.35, shape: step, duration_minutes: 24}
+      - {metric_family: disk_write_ops, direction: increase, magnitude: 1.25, shape: ramp, duration_minutes: 24}
+
+  - scenario_id: organic_growth
+    display_name: Organic workload growth
+    description: Gradual, sustained request and storage growth consistent with normal adoption.
+    category: benign
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31016
+    minimum_severity: LOW
+    signature:
+      - {metric_family: normal_requests, direction: increase, magnitude: 1.45, shape: ramp, duration_minutes: 32}
+      - {metric_family: storage_write_ops, direction: increase, magnitude: 1.25, shape: ramp, duration_minutes: 32}
+
+  - scenario_id: provider_regional_event
+    display_name: Provider regional service event
+    description: A temporary regional degradation pattern without an asserted tenant attack cause.
+    category: benign
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31017
+    minimum_severity: LOW
+    signature:
+      - {metric_family: regional_error_rate, direction: increase, magnitude: 1.8, shape: spike, duration_minutes: 16}
+      - {metric_family: latency, direction: increase, magnitude: 1.6, shape: step, duration_minutes: 16}
+
+  - scenario_id: ambiguous_change
+    display_name: Ambiguous isolated metric change
+    description: A single memory metric shifts without corroborating evidence for a specific hypothesis.
+    category: ambiguous
+    providers: *providers
+    entity_types: *compute_entities
+    intensity_presets: *intensities
+    seed: 31018
+    minimum_severity: LOW
+    signature:
+      - {metric_family: memory_utilization, direction: increase, magnitude: 4.0, shape: spike, duration_minutes: 4}

@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "eslint src && node scripts/check-ui-tokens.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "build": "tsc -b && vite build"
   },
   "dependencies": {
@@ -13,10 +17,23 @@
     "react-router-dom": "^6.21.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10",
-    "@vitejs/plugin-react": "^5.2.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^17.13.0",
+    "jsdom": "^25.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }

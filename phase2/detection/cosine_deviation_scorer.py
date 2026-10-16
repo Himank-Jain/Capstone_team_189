@@ -14,9 +14,8 @@ DeviationResult.
 
 Import constraint
 ------------------
-Per the Directory Structure Addendum's LLM primer for this module: "Do
-not import from phase2/ -- only from shared/types.py and
-shared/constants.py." This class never touches Redis, EntityStoreReader,
+Do not import from phase2/ -- only from shared/types.py and
+shared/constants.py. This class never touches Redis, EntityStoreReader,
 or any other phase2 module. Fetching CurrentEmbedding/EntityProfile out
 of the store is the CALLER's job (an inference-loop orchestrator, e.g.
 scripts/run_inference.py) -- this keeps CosineDeviationScorer trivially

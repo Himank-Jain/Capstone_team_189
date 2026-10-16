@@ -288,7 +288,8 @@ class FaissIndexer:
 
         if query_array.shape[1] != ENC_EMBED_DIM:
             raise ValueError(
-                f"[FaissIndexer.search_topk] Expected width {ENC_EMBED_DIM}, got {query_array.shape[1]}"
+                f"[FaissIndexer.search_topk] Expected width {ENC_EMBED_DIM}, "
+                f"got {query_array.shape[1]}"
             )
 
         self._apply_nprobe()  # in case nprobe_int was changed after load()/init

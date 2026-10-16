@@ -40,7 +40,6 @@ profile it is about to overwrite.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Optional
 
 import numpy as np
@@ -50,6 +49,7 @@ from phase2.store.base_entity_store import (
     BaseEntityStoreWriter,
     centroid_key,
     current_key,
+    deserialize_emb_f16,
     history_key,
     serialize_emb_f16,
     stats_key,
@@ -150,3 +150,112 @@ class EntityStoreWriter(BaseEntityStoreWriter):
             pipe.lpush(history_key(entity_id), serialize_emb_f16(new_emb))
             pipe.ltrim(history_key(entity_id), 0, self._history_len_int - 1)
             pipe.execute()
+
+    @staticmethod
+    def _lifecycle_key(tenant_id: Optional[str], entity_id: str, name: str) -> str:
+        if not tenant_id:
+            raise ValueError("tenant_id is required for lifecycle baseline keys")
+        return f"tenant:{tenant_id}:entity:{entity_id}:baseline:{name}"
+
+    def is_baseline_frozen(self, entity_id: str, tenant_id: Optional[str] = None) -> bool:
+        if not tenant_id:
+            return False
+        return self._redis.get(self._lifecycle_key(tenant_id, entity_id, "frozen")) in (b"1", "1")
+
+    def set_baseline_frozen(
+        self, entity_id: str, frozen: bool, tenant_id: Optional[str] = None
+    ) -> None:
+        key = self._lifecycle_key(tenant_id, entity_id, "frozen")
+        if frozen:
+            self._redis.set(key, b"1")
+        else:
+            self._redis.delete(key)
+
+    def record_frozen_embeddings(
+        self,
+        entity_id: str,
+        embeddings: list[np.ndarray],
+        tenant_id: Optional[str] = None,
+    ) -> None:
+        if not embeddings:
+            return
+        key = self._lifecycle_key(tenant_id, entity_id, "frozen_history")
+        with self._redis.pipeline(transaction=True) as pipe:
+            for embedding in embeddings:
+                pipe.lpush(key, serialize_emb_f16(embedding))
+            pipe.ltrim(key, 0, self._history_len_int - 1)
+            pipe.execute()
+
+    def resolve_frozen_baseline(
+        self,
+        entity_id: str,
+        resolution_type: str,
+        adaptation_alpha: float,
+        adaptation_window: int,
+        adaptation_batches: int,
+        tenant_id: Optional[str] = None,
+    ) -> None:
+        profile = self.fetch_entity_profile(entity_id)
+        frozen_key = self._lifecycle_key(tenant_id, entity_id, "frozen_history")
+        adaptation_key = self._lifecycle_key(tenant_id, entity_id, "adaptation")
+        raw_embeddings = self._redis.lrange(frozen_key, 0, -1)
+        embeddings = [
+            deserialize_emb_f16(item) for item in reversed(raw_embeddings)
+        ]
+        resolution_type = resolution_type.upper()
+        if (
+            profile is not None
+            and resolution_type in {"FALSE_POSITIVE", "EXPECTED_CHANGE"}
+            and embeddings
+        ):
+            embeddings = embeddings[-adaptation_window:]
+            centroid = profile.centroid_emb.copy()
+            for embedding in embeddings:
+                centroid = (
+                    adaptation_alpha * embedding + (1.0 - adaptation_alpha) * centroid
+                )
+                norm = float(np.linalg.norm(centroid))
+                if norm:
+                    centroid /= norm
+            history = (profile.history_embs + embeddings)[-self._history_len_int :]
+            history_array = np.stack(history)
+            history_centroid = np.mean(history_array, axis=0)
+            variance = float(np.mean(np.sum((history_array - history_centroid) ** 2, axis=1)))
+            self.write_entity_profile(
+                EntityProfile(
+                    entity_id=profile.entity_id,
+                    centroid_emb=centroid.astype(np.float32),
+                    history_embs=history,
+                    emb_variance=variance,
+                    n_records=len(history),
+                    last_update_ts=profile.last_update_ts,
+                    cold_start_flag=profile.cold_start_flag,
+                )
+            )
+            self._redis.hset(
+                adaptation_key,
+                mapping={
+                    "alpha": repr(adaptation_alpha),
+                    "batches_remaining": str(max(0, adaptation_batches)),
+                },
+            )
+        else:
+            self._redis.delete(adaptation_key)
+        self._redis.delete(frozen_key)
+        self.set_baseline_frozen(entity_id, False, tenant_id)
+
+    def next_baseline_alpha(
+        self, entity_id: str, default_alpha: float, tenant_id: Optional[str] = None
+    ) -> float:
+        if not tenant_id:
+            return default_alpha
+        key = self._lifecycle_key(tenant_id, entity_id, "adaptation")
+        state = self._redis.hgetall(key)
+        remaining = int(state.get(b"batches_remaining", b"0"))
+        if remaining <= 0:
+            if state:
+                self._redis.delete(key)
+            return default_alpha
+        alpha = float(state[b"alpha"])
+        self._redis.hset(key, "batches_remaining", str(remaining - 1))
+        return alpha

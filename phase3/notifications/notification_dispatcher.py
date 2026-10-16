@@ -76,6 +76,9 @@ class InMemoryNotificationDeliveryRecorder(NotificationDeliveryRecorder):
     def results(self) -> List[NotificationDeliveryResult]:
         return list(self._results)
 
+    def clear_for_tenant(self, tenant_id: str) -> None:
+        self._results = [result for result in self._results if result.tenant_id != tenant_id]
+
 
 class IdempotencyStore(ABC):
     @abstractmethod
@@ -136,7 +139,7 @@ class NotificationDispatcher:
             "vol-msft": "microsoft",
             "vol-amzn": "amazon",
             "vol-orcl": "oracle",
-            "vol-open": "openai",
+            "vol-acme": "acme",
         }
         return mapping.get(entity_id.lower(), PLATFORM_DEFAULT_TENANT_ID)
 
@@ -218,6 +221,7 @@ class NotificationDispatcher:
         payload: AlertPayload,
         policy: NotificationPolicy,
         timeout_seconds: Optional[float] = None,
+        idempotency_suffix: Optional[str] = None,
     ) -> List[NotificationDeliveryResult]:
         if policy is None:
             policy = NotificationPolicy(tenant_id=PLATFORM_DEFAULT_TENANT_ID)
@@ -235,6 +239,7 @@ class NotificationDispatcher:
                 timeout_seconds=timeout_seconds
                 or policy.timeout_seconds
                 or PLATFORM_DISPATCH_TIMEOUT_SECONDS,
+                idempotency_suffix=idempotency_suffix,
             )
             for endpoint in endpoints
         ]
@@ -263,6 +268,7 @@ class NotificationDispatcher:
         endpoint: NotificationEndpoint,
         policy: NotificationPolicy,
         timeout_seconds: float,
+        idempotency_suffix: Optional[str] = None,
     ) -> NotificationDeliveryResult:
         if policy.min_severity is not None and not self._severity_allowed(
             payload.severity, policy.min_severity
@@ -278,7 +284,11 @@ class NotificationDispatcher:
                 idempotent=True,
             )
 
-        key = f"notif:idem:{payload.alert_id}:{endpoint.endpoint_id}"
+        key = (
+            f"{payload.alert_id}:{endpoint.endpoint_id}:{idempotency_suffix}"
+            if idempotency_suffix
+            else f"notif:idem:{payload.alert_id}:{endpoint.endpoint_id}"
+        )
         if not await self._idempotency_store.acquire(key, PLATFORM_IDEMPOTENCY_TTL_SECONDS):
             return None
 
@@ -345,7 +355,8 @@ class NotificationDispatcher:
                     await self._delivery_recorder.record(result)
                     return result
                 logger.warning(
-                    "[NotificationDispatcher] channel=%s endpoint=%s failed (%s); retrying in %.2fs",
+                    "[NotificationDispatcher] channel=%s endpoint=%s failed (%s); "
+                    "retrying in %.2fs",
                     endpoint.channel,
                     endpoint.endpoint_id,
                     _mask_target(endpoint.target),

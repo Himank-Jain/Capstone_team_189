@@ -19,3 +19,14 @@ scoring:
 demo:
   host: 127.0.0.1
   port: 8001
+
+incident_lifecycle:
+  regression_window_minutes: 30
+  recovery:
+    low_score_threshold: 0.2
+    consecutive_batches: 6
+    auto_resolve: false
+  baseline:
+    adaptation_alpha: 0.35
+    adaptation_window: 20
+    adaptation_batches: 5
