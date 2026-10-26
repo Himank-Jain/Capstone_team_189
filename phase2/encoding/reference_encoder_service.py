@@ -156,6 +156,18 @@ def load_inference_encoder_from_manifest(
             else manifest_path.parent / Path(encoder_path_str).name
         )
     if not encoder_path.exists():
+        # Manifests written on another machine can hold that machine's absolute
+        # path (e.g. C:/Users/<someone>/.../model_registry/synthetic_32/x.pt).
+        # Re-anchor everything after the last "model_registry" segment onto
+        # this checkout before falling back to the bare filename, otherwise a
+        # same-named checkpoint from a different version gets loaded.
+        parts = Path(encoder_path_str).parts
+        anchors = [index for index, part in enumerate(parts) if part == manifest_path.parent.name]
+        if anchors:
+            reanchored = manifest_path.parent.joinpath(*parts[anchors[-1] + 1:])
+            if reanchored.exists():
+                encoder_path = reanchored
+    if not encoder_path.exists():
         # last resort: try relative to the manifest's own directory directly
         candidate = manifest_path.parent / Path(encoder_path_str).name
         if candidate.exists():

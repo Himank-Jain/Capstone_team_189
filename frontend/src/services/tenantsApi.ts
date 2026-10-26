@@ -6,6 +6,7 @@ export interface TenantSummary {
   name: string;
   live_alert_count: number;
   health: string;
+  role?: 'OWNER' | 'OPERATOR' | 'VIEWER' | null;
 }
 
 export async function getTenants(): Promise<TenantSummary[]> {

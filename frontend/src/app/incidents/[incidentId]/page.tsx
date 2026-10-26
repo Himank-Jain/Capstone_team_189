@@ -28,6 +28,7 @@ import {
   Tabs,
   Toast,
 } from '../../../components/ui';
+import ExplanationSectionBody from '../../../components/ExplanationSectionBody';
 
 type IncidentTab = 'Evidence' | 'Timeline' | 'Causes' | 'Explanation' | 'Checks' | 'Mitigation' | 'Response';
 type IncidentResolutionType = 'FIXED' | 'FALSE_POSITIVE' | 'EXPECTED_CHANGE' | 'AUTO_RECOVERED';
@@ -36,6 +37,20 @@ const TABS: IncidentTab[] = ['Evidence', 'Timeline', 'Causes', 'Explanation', 'C
 function isVerifiedMitreReference(item: { id: string; url: string }): boolean {
   return /^T\d{4}(?:\.\d{3})?$/.test(item.id)
     && item.url === `https://attack.mitre.org/techniques/${item.id.replace('.', '/')}/`;
+}
+
+function formatWindowValue(value: unknown): string {
+  if (Array.isArray(value)) return value.length ? value.join(', ') : 'none';
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).map(([key, item]) => `${key.replace(/_/g, ' ')}: ${String(item)}`).join(', ');
+  }
+  return String(value ?? '—');
+}
+
+function WindowRows({ window }: { window: Record<string, unknown> }) {
+  const entries = Object.entries(window || {});
+  if (!entries.length) return <p>Not recorded.</p>;
+  return <>{entries.map(([key, value]) => <div className="incident-window-row" key={key}><span>{key.replace(/_/g, ' ')}</span><strong>{formatWindowValue(value)}</strong></div>)}</>;
 }
 
 export default function IncidentPage() {
@@ -98,6 +113,12 @@ export default function IncidentPage() {
   }
 
   const canManageIncident = role === 'OWNER' || role === 'OPERATOR';
+  // The RCA category (what kind of change) and the threat pattern (what it may
+  // resemble) are separate results; show both instead of mixing them.
+  const primaryThreat = explanation?.mitigation_mode === 'threat_specific'
+    ? explanation.matched_threats.find((threat) => threat.match_confidence === 'HIGH' || threat.match_confidence === 'MEDIUM')
+      ?? null
+    : null;
   const criteriaComplete = !mitigation?.resolution_criteria.length
     || checkedCriteria.length === mitigation.resolution_criteria.length;
 
@@ -135,29 +156,41 @@ export default function IncidentPage() {
           <Card><span className="p3-label">Severity</span><SeverityBadge severity={incident.severity} /></Card>
           <Card><span className="p3-label">Final score</span><div className="p3-metric">{incident.final_score.toFixed(2)}</div></Card>
           <Card><span className="p3-label">RCA confidence</span><ConfidenceBadge confidence={incident.confidence} /></Card>
-          <Card><span className="p3-label">Category</span><div className="p3-metric">{explanation?.cause_category || 'UNKNOWN'}</div></Card>
+          <Card><span className="p3-label">Root cause category</span><div className="p3-metric incident-metric-text">{(explanation?.cause_category || 'UNKNOWN').replace(/_/g, ' ').toLowerCase()}</div></Card>
+          <Card>
+            <span className="p3-label">Matched pattern</span>
+            {primaryThreat ? <>
+              <div className="incident-pattern-title">{primaryThreat.title}</div>
+              <ConfidenceBadge confidence={primaryThreat.match_confidence} />
+            </> : <div className="incident-pattern-title incident-pattern-none">No confident match</div>}
+          </Card>
         </section>
         <Card className="incident-investigation-card">
           <Tabs items={TABS} active={tab} onChange={(next) => setTab(next as IncidentTab)} label="Incident investigation views" />
           {tab === 'Evidence' ? <div className="p3-grid">
             <div><h2>Component scores</h2>{Object.entries(incident.component_scores).map(([name, value]) => <div className="p3-row" key={name}><span>{name}</span><strong>{Number(value).toFixed(2)}</strong></div>)}</div>
-            <div><h2>Observed changes</h2>{incident.changed_features.length ? incident.changed_features.map((feature) => <div className="p3-row" key={feature}>{feature}</div>) : <p>No feature changes supplied.</p>}<h3 className="incident-subheading">Window</h3><p>Observed: {JSON.stringify(incident.observed_window)}</p><p>Baseline: {JSON.stringify(incident.baseline_window)}</p></div>
+            <div><h2>Observed changes</h2>{incident.changed_features.length ? incident.changed_features.map((feature) => <div className="p3-row" key={feature}>{feature}</div>) : <p>No feature changes supplied.</p>}<h3 className="incident-subheading">Observed window</h3><WindowRows window={incident.observed_window} /><h3 className="incident-subheading">Baseline window</h3><WindowRows window={incident.baseline_window} /></div>
           </div> : null}
           {tab === 'Timeline' ? <div>{incident.timeline.map((item, index) => <div className="p3-row" key={`${String(item.event)}-${index}`}><strong>{String(item.event || 'event')}</strong><span>{String(item.timestamp || '')}</span></div>)}</div> : null}
-          {tab === 'Causes' ? <div className="p3-grid">{incident.candidate_causes.map((cause) => <article className="p3-panel" key={cause.rule_id}><div className="p3-row"><h2>{cause.cause_category}</h2><span className={`p3-badge ${cause.confidence === 'HIGH' ? 'p3-badge-high' : cause.confidence === 'MEDIUM' ? 'p3-badge-medium' : 'p3-badge-low'}`}>{cause.confidence}</span></div><p>Rule: {cause.rule_id}</p><p>Supporting evidence: {cause.supporting_evidence_keys.join(', ') || 'None recorded'}</p><p>Contradicting evidence: {cause.contradicting_evidence_keys.join(', ') || 'None recorded'}</p></article>)}</div> : null}
+          {tab === 'Causes' ? <div className="p3-grid">{incident.candidate_causes.map((cause) => <article className="p3-panel" key={cause.rule_id}><div className="p3-row"><h2>{cause.cause_category.replace(/_/g, ' ')}</h2><span className={`p3-badge ${cause.confidence === 'HIGH' ? 'p3-badge-high' : cause.confidence === 'MEDIUM' ? 'p3-badge-medium' : 'p3-badge-low'}`}>{cause.confidence}</span></div><p>Rule: {cause.rule_id.startsWith('rca.threat_signature') ? 'Versioned threat-signature match' : cause.rule_id} <span className="p3-footer">({cause.rule_id})</span></p><p>Supporting evidence: {cause.supporting_evidence_keys.join(', ') || 'None recorded'}</p><p>Contradicting evidence: {cause.contradicting_evidence_keys.join(', ') || 'None recorded'}</p></article>)}</div> : null}
           {tab === 'Explanation' && explanation ? <div>
             <h2>{explanation.headline}</h2>
+            <p className="incident-explanation-context">
+              Root cause category <strong>{explanation.cause_category.replace(/_/g, ' ').toLowerCase()}</strong>
+              {primaryThreat ? <> · resembles <strong>{primaryThreat.title}</strong> ({primaryThreat.match_confidence.toLowerCase()} match)</> : null}
+              {' · '}a hypothesis to verify, not a diagnosis.
+            </p>
             {explanation.match_basis ? <p>{explanation.match_basis}</p> : null}
             {explanation.mitigation_mode === 'generic' ? <p className="p3-notice" role="note">No eligible threat signature matched; this explanation uses generic cause-category guidance.</p> : null}
             {explanation.matched_threats.length ? <section aria-label="Threat signature matches">
               <h3>Possible matching patterns — not a diagnosis</h3>
-              {explanation.matched_threats.map((threat) => <article className="p3-row" key={threat.threat_id}>
-                <strong>{threat.title}</strong><ConfidenceBadge confidence={threat.match_confidence} />
+              {explanation.matched_threats.map((threat) => <article className="incident-threat-match" key={threat.threat_id}>
+                <div className="incident-threat-match-header"><strong>{threat.title}</strong><ConfidenceBadge confidence={threat.match_confidence} /></div>
                 <p>Matched signals: {threat.matched_signals.join(', ') || 'None'}</p>
                 <p>Not observed: {threat.unmatched_signals.join(', ') || 'None'}</p>
               </article>)}
             </section> : null}
-            {explanation.sections.map((section) => <article className="incident-explanation-section" key={section.heading}><h3>{section.heading}</h3><p>{section.body}</p></article>)}
+            {explanation.sections.map((section) => <article className="incident-explanation-section" key={section.heading}><h3>{section.heading}</h3><ExplanationSectionBody body={section.body} /></article>)}
             <footer className="p3-footer">Knowledge base {explanation.kb_version} · Textbook context plus case evidence</footer>
           </div> : null}
           {tab === 'Checks' ? <div className="p3-grid">{checks.map((check) => <article className="p3-panel" key={`${check.check}-${check.why}`}><h2>{check.check}</h2><p>{check.why}</p><div className="p3-row"><span>Expected result</span><strong>{check.expected_result}</strong></div><span className="p3-badge">Risk: {check.risk}</span></article>)}</div> : null}

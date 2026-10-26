@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import IncidentPage from './[incidentId]/page';
 import type { IncidentCase, IncidentExplanation, IncidentInvestigation } from '../../services/phase3Api';
@@ -226,8 +226,14 @@ describe('IncidentPage RCA explanation', () => {
   it('shows threat-specific confidence, match basis, provider steps, and verified ATT&CK links', async () => {
     renderIncident();
     await screen.findByText('entity-demo');
+    // The matched pattern sits beside the RCA change type instead of replacing it.
+    const patternCard = screen.getByText('Matched pattern').closest('section') as HTMLElement;
+    expect(within(patternCard).getByText('Possible cloud credential misuse')).toBeInTheDocument();
+    expect(screen.getByText('Root cause category').closest('section')).toHaveTextContent(/behavior change/i);
     fireEvent.click(screen.getByRole('tab', { name: 'Explanation' }));
-    expect(screen.getByText('Possible cloud credential misuse')).toBeInTheDocument();
+    const matches = screen.getByRole('region', { name: 'Threat signature matches' });
+    expect(within(matches).getByText('Possible cloud credential misuse')).toBeInTheDocument();
+    expect(within(matches).getByText(/API calls increased, Authentication failures increased/)).toBeInTheDocument();
     expect(screen.getAllByText('HIGH').length).toBeGreaterThan(1);
     expect(screen.getByText(highConfidenceExplanation.match_basis)).toBeInTheDocument();
 
@@ -238,6 +244,32 @@ describe('IncidentPage RCA explanation', () => {
       'href',
       'https://attack.mitre.org/techniques/T1078/004/',
     );
+  });
+
+  it('renders multi-line knowledge sections as lists with safe links', async () => {
+    api.getIncidentInvestigation.mockResolvedValue({
+      ...highConfidenceInvestigation,
+      explanation: {
+        ...highConfidenceExplanation,
+        sections: [
+          { heading: 'Investigative checks', body: '1. Review the audit record.\n2. Compare the session.' },
+          { heading: 'Further reading', body: 'Cloud Accounts — https://attack.mitre.org/techniques/T1078/004/\njavascript:alert(1)' },
+        ],
+      },
+    });
+    renderIncident();
+    await screen.findByText('entity-demo');
+    fireEvent.click(screen.getByRole('tab', { name: 'Explanation' }));
+
+    const checks = screen.getByRole('heading', { name: 'Investigative checks' }).closest('article') as HTMLElement;
+    const items = within(checks).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual(['Review the audit record.', 'Compare the session.']);
+    expect(checks.querySelector('ol')).not.toBeNull();
+
+    const reading = screen.getByRole('heading', { name: 'Further reading' }).closest('article') as HTMLElement;
+    expect(within(reading).getByRole('link')).toHaveAttribute('href', 'https://attack.mitre.org/techniques/T1078/004/');
+    expect(within(reading).getAllByRole('link')).toHaveLength(1);
+    expect(within(reading).getByText('javascript:alert(1)')).toBeInTheDocument();
   });
 
   it('requires the operator to confirm resolution criteria before resolving', async () => {

@@ -1,5 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ExplanationSectionBody from '../../components/ExplanationSectionBody';
 import AlertResponseCard from '../../components/AlertResponseCard';
 import {
   Button,
@@ -438,13 +439,19 @@ export default function DemoPage() {
                   <Card>
                     <p className="ui-eyebrow">Evidence-based explanation</p>
                     <h2>{parsedResult.phase3.explanation.headline}</h2>
+                    <p className="incident-explanation-context">
+                      Root cause category <strong>{parsedResult.phase3.explanation.cause_category.replace(/_/g, ' ').toLowerCase()}</strong>
+                      {parsedResult.phase3.explanation.mitigation_mode === 'threat_specific' && parsedResult.phase3.explanation.match_basis
+                        ? <> · {parsedResult.phase3.explanation.match_basis}</>
+                        : null}
+                    </p>
                     {parsedResult.phase3.explanation.is_fallback ? (
                       <Toast message="No confident category. Review the evidence and recommended checks; this is not a diagnosis." />
                     ) : null}
                     {parsedResult.phase3.explanation.sections.map((section) => (
                       <article className="demo-explanation-section" key={section.heading}>
                         <h3>{section.heading}</h3>
-                        <p>{section.body}</p>
+                        <ExplanationSectionBody body={section.body} />
                       </article>
                     ))}
                     <p className="p3-footer">

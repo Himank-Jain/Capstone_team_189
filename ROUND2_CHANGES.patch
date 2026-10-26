@@ -1,0 +1,2887 @@
+diff --git a/.env.example b/.env.example
+index 69b4199..c8276b4 100644
+--- a/.env.example
++++ b/.env.example
+@@ -14,10 +14,25 @@ PLATFORM_JWT_TTL_SECONDS=28800
+ CAPSTONE_SIGNUP_ROLE=VIEWER
+ # Leave true. false re-enables the legacy X-User-Id header identity (tests only).
+ CAPSTONE_AUTH_REQUIRED=true
++# Admin account created (or promoted) when the API starts. Admin = owner of
++# every workspace. An existing account keeps its password.
++CAPSTONE_ADMIN_EMAIL=
++CAPSTONE_ADMIN_PASSWORD=
+ 
+ # --- Notifications (unset channels report "Not configured") ---------------
++# Email can also be set up per workspace from Settings in the dashboard;
++# workspace settings take priority over these.
+ DEMO_EMAIL_SENDER=your-gmail@gmail.com
++# Gmail: a 16-character App Password (myaccount.google.com/apppasswords)
+ DEMO_EMAIL_PASSWORD=
++# Defaults to Gmail; set these for another provider.
++SMTP_HOST=smtp.gmail.com
++SMTP_PORT=587
++SMTP_SECURITY=starttls
++SMTP_USERNAME=
++# Key for encrypting SMTP passwords saved from Settings (32+ chars).
++# Defaults to a key derived from PLATFORM_JWT_SECRET.
++PLATFORM_CREDENTIAL_KEY=
+ # Optional override; otherwise alerts email every member of the workspace.
+ DEMO_EMAIL_RECIPIENT=
+ SLACK_WEBHOOK_URL=
+diff --git a/.gitignore b/.gitignore
+index ca96e0d..7896ab0 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -49,3 +49,7 @@ dist/
+ build/
+ # Locally generated JWT signing secret (created when PLATFORM_JWT_SECRET is unset)
+ .capstone_dev_jwt_secret
++
++# Local secrets: SMTP passwords, webhooks, JWT secret
++.env
++.env.local
+diff --git a/conftest.py b/conftest.py
+index 261e83c..5660b1b 100644
+--- a/conftest.py
++++ b/conftest.py
+@@ -7,6 +7,8 @@ import sys
+ # Most route tests predate sign-in and identify callers with X-User-Id only.
+ # Tests that exercise real authentication set CAPSTONE_AUTH_REQUIRED=true.
+ os.environ.setdefault("CAPSTONE_AUTH_REQUIRED", "false")
++# Never read the developer's .env (it may hold real SMTP or Slack credentials).
++os.environ["CAPSTONE_SKIP_DOTENV"] = "1"
+ # Keep tests hermetic: never generate a dev signing secret inside the checkout.
+ os.environ.setdefault("PLATFORM_JWT_SECRET", "pytest-only-signing-secret-at-least-32-bytes")
+ 
+diff --git a/docs/guides/AUTH_NOTIFICATIONS_EXPLANATION_CHANGES.md b/docs/guides/AUTH_NOTIFICATIONS_EXPLANATION_CHANGES.md
+index a8df06f..ced27e8 100644
+--- a/docs/guides/AUTH_NOTIFICATIONS_EXPLANATION_CHANGES.md
++++ b/docs/guides/AUTH_NOTIFICATIONS_EXPLANATION_CHANGES.md
+@@ -1,5 +1,70 @@
+ # Accounts, notifications, and explanation fixes
+ 
++## Round 2: admin access, real email, root-cause categories
++
++### Admin access
++An **admin** is an account that is owner of every workspace. Admins get an
++**Admin console** (sidebar, last item) listing every registered account. From
++there they can make someone admin, operator, or viewer in all workspaces at
++once, or remove their access. There are three ways to get an admin:
++
++1. **Server-configured admin (recommended).** Put these in the repository-root
++   `.env` (now loaded automatically) and restart the API:
++   ```
++   CAPSTONE_ADMIN_EMAIL=admin@yourdomain.com
++   CAPSTONE_ADMIN_PASSWORD=choose-a-strong-password
++   ```
++   The account is created if missing, or promoted if it already exists (its
++   password is then left alone). Sign in with it on the normal sign-in screen.
++2. **Promote an existing account from a terminal** (repository root, same
++   environment as the API):
++   ```
++   python -m scripts.manage_users promote you@example.com
++   python -m scripts.manage_users list
++   python -m scripts.manage_users reset-password you@example.com
++   ```
++3. The **first account registered** on a fresh database becomes admin.
++
++Safeguards: you cannot remove your own admin access, and every workspace
++always keeps at least one owner.
++
++### Email
++* **From the dashboard:** Settings → *Alert email account*. Choose Gmail,
++  Outlook, or another SMTP server, enter the sender address and password, and
++  save. Then use **Send test** on the EMAIL channel; the test goes only to you.
++  Settings are per workspace. The password is encrypted at rest (Fernet) and
++  never returned by the API. Only owners can change it.
++* **Gmail** needs an *App Password*, not your normal password: turn on 2-Step
++  Verification, then create one at https://myaccount.google.com/apppasswords.
++* **From `.env`:** `DEMO_EMAIL_SENDER`, `DEMO_EMAIL_PASSWORD`, plus optional
++  `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY` (`starttls` | `ssl` | `none`) and
++  `SMTP_USERNAME`. Workspace settings take priority.
++* **Recipients:** real alerts go to the workspace's saved recipient list if
++  one is set, otherwise to every member of the workspace.
++* `.env` is now gitignored. It previously was not, so credentials placed there
++  could have been committed.
++
++### Root-cause analysis
++RCA used to return **UNKNOWN** for most attack scenarios. The score rules need
++a final score ≥ 0.75, and the security rules look for indicator names the
++generator never produces. The hypothesis engine now also uses the threat
++signature match. A MEDIUM or HIGH match adds a ranked candidate with a real
++category (mapping in `phase3/rca/hypothesis_rules.yaml` → `threat_categories`),
++and the score-based candidate is kept alongside it. Eleven categories were
++added to the knowledge base (`kb_version` 2.2.0), e.g. IDENTITY_MISUSE,
++UNUSUAL_DATA_TRANSFER, CROSS_RESOURCE_ACCESS, RESOURCE_ABUSE,
++DESTRUCTIVE_ACTIVITY, SERVICE_DISRUPTION. Category names never echo the
++scenario name, which the existing tests require.
++
++Incidents stored before this change are backfilled when read. If their
++evidence matches a signature, the category is shown; nothing stored is
++rewritten. To regenerate everything cleanly, use *Reset demo tenant to
++baseline* on the Live demo page and inject again.
++
++---
++
++## Round 1
++
+ This change adds real multi-user sign-in, makes notifications actually deliver
+ (or say plainly why they can't), and repairs the incident explanation. It also
+ fixes the trained model failing to load on any machine other than the one that
+diff --git a/frontend/e2e/ui-routes.spec.ts b/frontend/e2e/ui-routes.spec.ts
+index cbbe901..3de8528 100644
+--- a/frontend/e2e/ui-routes.spec.ts
++++ b/frontend/e2e/ui-routes.spec.ts
+@@ -88,6 +88,8 @@ test('account: registers, sees itself as owner, and signs out', async ({ page })
+ 
+   await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible();
+   await expect(page.getByLabel('Role for first.user@example.com')).toHaveValue('OWNER');
++  await page.getByRole('link', { name: /Admin console/ }).click();
++  await expect(page.getByLabel('Access for first.user@example.com')).toHaveValue('OWNER');
+   await expect(page.getByText('first.user@example.com').first()).toBeVisible();
+ 
+   await page.getByRole('button', { name: 'Sign out' }).click();
+diff --git a/frontend/src/app/admin/admin-page.test.tsx b/frontend/src/app/admin/admin-page.test.tsx
+new file mode 100644
+index 0000000..91fbf5c
+--- /dev/null
++++ b/frontend/src/app/admin/admin-page.test.tsx
+@@ -0,0 +1,56 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import { fireEvent, render, screen, waitFor } from '@testing-library/react';
++import { MemoryRouter } from 'react-router-dom';
++import { AuthContext, type AuthContextValue } from '../../auth/authContext';
++import AdminPage from './page';
++
++const authApi = vi.hoisted(() => ({ listAccounts: vi.fn(), setAccountAccess: vi.fn() }));
++vi.mock('../../services/authApi', async (importOriginal) => ({
++  ...(await importOriginal<typeof import('../../services/authApi')>()),
++  ...authApi,
++}));
++
++const workspaces = ['google', 'amazon'].map((id) => ({ tenant_id: id, tenant_name: id, role: 'OWNER' as const }));
++
++function renderAs(isAdmin: boolean) {
++  const value: AuthContextValue = {
++    status: 'authenticated',
++    session: { user: { user_id: 'admin-1', email: 'admin@example.com', role: 'OWNER', is_admin: isAdmin }, memberships: workspaces },
++    activeTenantId: 'google',
++    activeMembership: workspaces[0],
++    role: 'OWNER',
++    signIn: vi.fn(), signUp: vi.fn(), signOut: vi.fn(), switchTenant: vi.fn(),
++    refresh: vi.fn().mockResolvedValue(undefined),
++  };
++  return render(<MemoryRouter><AuthContext.Provider value={value}><AdminPage /></AuthContext.Provider></MemoryRouter>);
++}
++
++describe('AdminPage', () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    authApi.listAccounts.mockResolvedValue([
++      { user_id: 'admin-1', email: 'admin@example.com', is_admin: true, memberships: workspaces },
++      {
++        user_id: 'u-2', email: 'swathi@example.com', is_admin: false,
++        memberships: workspaces.map((item) => ({ ...item, role: 'VIEWER' as const })),
++      },
++    ]);
++  });
++
++  it('lets an admin promote another account everywhere', async () => {
++    authApi.setAccountAccess.mockResolvedValue({ user_id: 'u-2', email: 'swathi@example.com', is_admin: true, memberships: workspaces });
++    renderAs(true);
++
++    const select = await screen.findByLabelText('Access for swathi@example.com');
++    expect(select).toHaveValue('VIEWER');
++    fireEvent.change(select, { target: { value: 'OWNER' } });
++    await waitFor(() => expect(authApi.setAccountAccess).toHaveBeenCalledWith('u-2', 'OWNER'));
++    expect(await screen.findByLabelText('Access for swathi@example.com')).toHaveValue('OWNER');
++  });
++
++  it('blocks non-admins without calling the API', () => {
++    renderAs(false);
++    expect(screen.getByText('Administrator access required')).toBeInTheDocument();
++    expect(authApi.listAccounts).not.toHaveBeenCalled();
++  });
++});
+diff --git a/frontend/src/app/admin/page.tsx b/frontend/src/app/admin/page.tsx
+new file mode 100644
+index 0000000..dd45b03
+--- /dev/null
++++ b/frontend/src/app/admin/page.tsx
+@@ -0,0 +1,160 @@
++import { useEffect, useState } from 'react';
++import { Link } from 'react-router-dom';
++import { useAuth } from '../../auth/authContext';
++import {
++  friendlyError,
++  listAccounts,
++  setAccountAccess,
++  type AccessLevel,
++  type AccountSummary,
++} from '../../services/authApi';
++import {
++  Badge,
++  Card,
++  DataTable,
++  EmptyState,
++  PageHeader,
++  Skeleton,
++  Toast,
++  type DataTableColumn,
++} from '../../components/ui';
++
++const LEVELS: Array<{ value: AccessLevel; label: string }> = [
++  { value: 'OWNER', label: 'Admin (owner everywhere)' },
++  { value: 'OPERATOR', label: 'Operator everywhere' },
++  { value: 'VIEWER', label: 'Viewer everywhere' },
++  { value: 'NONE', label: 'No access' },
++];
++
++function uniformLevel(account: AccountSummary, workspaceCount: number): AccessLevel | 'MIXED' {
++  if (!account.memberships.length) return 'NONE';
++  const roles = new Set(account.memberships.map((item) => item.role));
++  if (roles.size === 1 && account.memberships.length === workspaceCount) return account.memberships[0].role;
++  return 'MIXED';
++}
++
++export default function AdminPage() {
++  const { session, refresh } = useAuth();
++  const isAdmin = Boolean(session?.user.is_admin);
++  const [accounts, setAccounts] = useState<AccountSummary[] | null>(null);
++  const [error, setError] = useState<string | null>(null);
++  const [notice, setNotice] = useState<string | null>(null);
++  const [busyId, setBusyId] = useState<string | null>(null);
++
++  useEffect(() => {
++    if (!isAdmin) return undefined;
++    let cancelled = false;
++    listAccounts()
++      .then((data) => { if (!cancelled) setAccounts(data); })
++      .catch((err: unknown) => { if (!cancelled) setError(friendlyError(err, 'Unable to load accounts')); });
++    return () => {
++      cancelled = true;
++    };
++  }, [isAdmin]);
++
++  if (!isAdmin) {
++    return (
++      <main className="app-page"><div className="app-page-content">
++        <PageHeader eyebrow="Administration" title="Admin console" />
++        <Card>
++          <EmptyState
++            title="Administrator access required"
++            description="Only admins (owners of every workspace) can open this page. Ask an admin to promote your account, or see docs/guides for the command-line option."
++            action={<Link className="p3-button p3-button-primary" to="/">Back to overview</Link>}
++          />
++        </Card>
++      </div></main>
++    );
++  }
++
++  const workspaceCount = session?.memberships.length ?? 0;
++
++  const change = async (account: AccountSummary, level: AccessLevel) => {
++    setBusyId(account.user_id);
++    setError(null);
++    setNotice(null);
++    try {
++      const updated = await setAccountAccess(account.user_id, level);
++      setAccounts((current) => current?.map((item) => (item.user_id === updated.user_id ? updated : item)) ?? null);
++      setNotice(`${account.email}: ${LEVELS.find((item) => item.value === level)?.label.toLowerCase()}`);
++      if (account.user_id === session?.user.user_id) await refresh();
++    } catch (err: unknown) {
++      setError(friendlyError(err, 'The change could not be saved'));
++    } finally {
++      setBusyId(null);
++    }
++  };
++
++  const columns: DataTableColumn<AccountSummary>[] = [
++    {
++      key: 'email',
++      header: 'Account',
++      render: (account) => (
++        <span>
++          {account.email}
++          {account.user_id === session?.user.user_id ? <Badge className="users-you">you</Badge> : null}
++          {account.is_admin ? <Badge className="users-you ui-confidence-high">admin</Badge> : null}
++        </span>
++      ),
++    },
++    {
++      key: 'workspaces',
++      header: 'Workspaces',
++      render: (account) => (account.memberships.length
++        ? <span className="admin-workspaces">{account.memberships.map((item) => `${item.tenant_name}: ${item.role.toLowerCase()}`).join(' · ')}</span>
++        : <span className="p3-footer">No access</span>),
++    },
++    {
++      key: 'access',
++      header: 'Access in every workspace',
++      render: (account) => {
++        const level = uniformLevel(account, workspaceCount);
++        return (
++          <select
++            aria-label={`Access for ${account.email}`}
++            value={level}
++            disabled={busyId !== null}
++            onChange={(event) => void change(account, event.target.value as AccessLevel)}
++          >
++            {level === 'MIXED' ? <option value="MIXED" disabled>Mixed (per workspace)</option> : null}
++            {LEVELS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
++          </select>
++        );
++      },
++    },
++  ];
++
++  return (
++    <main className="app-page">
++      <div className="app-page-content">
++        <PageHeader
++          eyebrow="Administration"
++          title="Admin console"
++          description="Every registered account and its access across all workspaces. Per-workspace roles can still be fine-tuned on the Users page."
++          actions={<Link className="p3-link-button" to="/users">Users (this workspace)</Link>}
++        />
++        {error ? <Toast message={error} tone="error" onDismiss={() => setError(null)} /> : null}
++        {notice ? <Toast message={notice} tone="success" onDismiss={() => setNotice(null)} /> : null}
++        <Card>
++          {accounts === null && !error ? <Skeleton rows={4} /> : (
++            <DataTable
++              columns={columns}
++              rows={accounts ?? []}
++              getRowKey={(account) => account.user_id}
++              emptyMessage="No accounts are registered yet."
++            />
++          )}
++        </Card>
++        <Card>
++          <h2>How admin access works</h2>
++          <p className="p3-footer">
++            An admin is an account that owns every workspace. The first account registered becomes admin automatically.
++            A server can also define one with CAPSTONE_ADMIN_EMAIL and CAPSTONE_ADMIN_PASSWORD, and an existing account
++            can be promoted from a terminal with <code>python -m scripts.manage_users promote you@example.com</code>.
++            You cannot remove your own admin access, and every workspace always keeps at least one owner.
++          </p>
++        </Card>
++      </div>
++    </main>
++  );
++}
+diff --git a/frontend/src/app/demo/page.tsx b/frontend/src/app/demo/page.tsx
+index 6a7e08d..2010720 100644
+--- a/frontend/src/app/demo/page.tsx
++++ b/frontend/src/app/demo/page.tsx
+@@ -440,7 +440,7 @@ export default function DemoPage() {
+                     <p className="ui-eyebrow">Evidence-based explanation</p>
+                     <h2>{parsedResult.phase3.explanation.headline}</h2>
+                     <p className="incident-explanation-context">
+-                      Change type <strong>{parsedResult.phase3.explanation.cause_category.replace(/_/g, ' ')}</strong>
++                      Root cause category <strong>{parsedResult.phase3.explanation.cause_category.replace(/_/g, ' ').toLowerCase()}</strong>
+                       {parsedResult.phase3.explanation.mitigation_mode === 'threat_specific' && parsedResult.phase3.explanation.match_basis
+                         ? <> · {parsedResult.phase3.explanation.match_basis}</>
+                         : null}
+diff --git a/frontend/src/app/incidents/[incidentId]/page.tsx b/frontend/src/app/incidents/[incidentId]/page.tsx
+index cef10ff..20f889a 100644
+--- a/frontend/src/app/incidents/[incidentId]/page.tsx
++++ b/frontend/src/app/incidents/[incidentId]/page.tsx
+@@ -156,7 +156,7 @@ export default function IncidentPage() {
+           <Card><span className="p3-label">Severity</span><SeverityBadge severity={incident.severity} /></Card>
+           <Card><span className="p3-label">Final score</span><div className="p3-metric">{incident.final_score.toFixed(2)}</div></Card>
+           <Card><span className="p3-label">RCA confidence</span><ConfidenceBadge confidence={incident.confidence} /></Card>
+-          <Card><span className="p3-label">Change type</span><div className="p3-metric incident-metric-text">{(explanation?.cause_category || 'UNKNOWN').replace(/_/g, ' ').toLowerCase()}</div></Card>
++          <Card><span className="p3-label">Root cause category</span><div className="p3-metric incident-metric-text">{(explanation?.cause_category || 'UNKNOWN').replace(/_/g, ' ').toLowerCase()}</div></Card>
+           <Card>
+             <span className="p3-label">Matched pattern</span>
+             {primaryThreat ? <>
+@@ -172,11 +172,11 @@ export default function IncidentPage() {
+             <div><h2>Observed changes</h2>{incident.changed_features.length ? incident.changed_features.map((feature) => <div className="p3-row" key={feature}>{feature}</div>) : <p>No feature changes supplied.</p>}<h3 className="incident-subheading">Observed window</h3><WindowRows window={incident.observed_window} /><h3 className="incident-subheading">Baseline window</h3><WindowRows window={incident.baseline_window} /></div>
+           </div> : null}
+           {tab === 'Timeline' ? <div>{incident.timeline.map((item, index) => <div className="p3-row" key={`${String(item.event)}-${index}`}><strong>{String(item.event || 'event')}</strong><span>{String(item.timestamp || '')}</span></div>)}</div> : null}
+-          {tab === 'Causes' ? <div className="p3-grid">{incident.candidate_causes.map((cause) => <article className="p3-panel" key={cause.rule_id}><div className="p3-row"><h2>{cause.cause_category}</h2><span className={`p3-badge ${cause.confidence === 'HIGH' ? 'p3-badge-high' : cause.confidence === 'MEDIUM' ? 'p3-badge-medium' : 'p3-badge-low'}`}>{cause.confidence}</span></div><p>Rule: {cause.rule_id}</p><p>Supporting evidence: {cause.supporting_evidence_keys.join(', ') || 'None recorded'}</p><p>Contradicting evidence: {cause.contradicting_evidence_keys.join(', ') || 'None recorded'}</p></article>)}</div> : null}
++          {tab === 'Causes' ? <div className="p3-grid">{incident.candidate_causes.map((cause) => <article className="p3-panel" key={cause.rule_id}><div className="p3-row"><h2>{cause.cause_category.replace(/_/g, ' ')}</h2><span className={`p3-badge ${cause.confidence === 'HIGH' ? 'p3-badge-high' : cause.confidence === 'MEDIUM' ? 'p3-badge-medium' : 'p3-badge-low'}`}>{cause.confidence}</span></div><p>Rule: {cause.rule_id.startsWith('rca.threat_signature') ? 'Versioned threat-signature match' : cause.rule_id} <span className="p3-footer">({cause.rule_id})</span></p><p>Supporting evidence: {cause.supporting_evidence_keys.join(', ') || 'None recorded'}</p><p>Contradicting evidence: {cause.contradicting_evidence_keys.join(', ') || 'None recorded'}</p></article>)}</div> : null}
+           {tab === 'Explanation' && explanation ? <div>
+             <h2>{explanation.headline}</h2>
+             <p className="incident-explanation-context">
+-              Change type <strong>{explanation.cause_category.replace(/_/g, ' ')}</strong>
++              Root cause category <strong>{explanation.cause_category.replace(/_/g, ' ').toLowerCase()}</strong>
+               {primaryThreat ? <> · resembles <strong>{primaryThreat.title}</strong> ({primaryThreat.match_confidence.toLowerCase()} match)</> : null}
+               {' · '}a hypothesis to verify, not a diagnosis.
+             </p>
+diff --git a/frontend/src/app/incidents/incident-page.test.tsx b/frontend/src/app/incidents/incident-page.test.tsx
+index 4dc5dc4..d5ca96d 100644
+--- a/frontend/src/app/incidents/incident-page.test.tsx
++++ b/frontend/src/app/incidents/incident-page.test.tsx
+@@ -229,7 +229,7 @@ describe('IncidentPage RCA explanation', () => {
+     // The matched pattern sits beside the RCA change type instead of replacing it.
+     const patternCard = screen.getByText('Matched pattern').closest('section') as HTMLElement;
+     expect(within(patternCard).getByText('Possible cloud credential misuse')).toBeInTheDocument();
+-    expect(screen.getByText('Change type').closest('section')).toHaveTextContent(/behavior change/i);
++    expect(screen.getByText('Root cause category').closest('section')).toHaveTextContent(/behavior change/i);
+     fireEvent.click(screen.getByRole('tab', { name: 'Explanation' }));
+     const matches = screen.getByRole('region', { name: 'Threat signature matches' });
+     expect(within(matches).getByText('Possible cloud credential misuse')).toBeInTheDocument();
+diff --git a/frontend/src/app/login/page.tsx b/frontend/src/app/login/page.tsx
+index 64d976b..6a20b67 100644
+--- a/frontend/src/app/login/page.tsx
++++ b/frontend/src/app/login/page.tsx
+@@ -116,7 +116,7 @@ export default function LoginPage() {
+         <p className="login-footnote">
+           {isRegister
+             ? 'The first account becomes the owner of the demo workspaces. Later accounts join as viewers until an owner changes their role.'
+-            : 'New here? Create an account to get access to the demo workspaces.'}
++            : 'Admins and members sign in here. Admin access comes from the account (the first account registered, or the one configured on the server). New here? Create an account.'}
+           {isMockMode() ? ' Mock mode: accounts are stored only in this browser.' : ''}
+         </p>
+       </Card>
+diff --git a/frontend/src/app/phase3.css b/frontend/src/app/phase3.css
+index 96a16b6..f9dbe2c 100644
+--- a/frontend/src/app/phase3.css
++++ b/frontend/src/app/phase3.css
+@@ -1767,3 +1767,55 @@ ol.explanation-list {
+   .users-invite-form { grid-template-columns: 1fr; }
+   .app-tenant-switch select { max-width: 150px; }
+ }
++
++/* Admin and email settings */
++.app-admin-badge {
++  min-height: 18px;
++  margin-left: 6px;
++  padding: 1px 6px;
++  font-size: 9px;
++  vertical-align: middle;
++}
++
++.admin-workspaces {
++  color: var(--color-app-muted);
++  font-size: 12px;
++}
++
++.email-settings {
++  margin-top: 14px;
++}
++
++.email-settings-header {
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++  gap: 12px;
++}
++
++.email-settings-problem {
++  margin: 8px 0 0;
++  color: var(--color-severity-medium);
++  font-size: 13px;
++}
++
++.email-settings-form {
++  display: grid;
++  gap: 14px;
++  margin-top: 14px;
++}
++
++.email-settings-row {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
++  gap: 12px;
++}
++
++.email-settings-actions {
++  display: flex;
++  gap: 10px;
++}
++
++.email-settings a {
++  color: var(--color-accent);
++}
+diff --git a/frontend/src/app/routes.tsx b/frontend/src/app/routes.tsx
+index 2363f12..bafaa70 100644
+--- a/frontend/src/app/routes.tsx
++++ b/frontend/src/app/routes.tsx
+@@ -18,6 +18,7 @@ import OnboardingPage from './onboarding/page';
+ import ConnectionsPage from './connections/page';
+ import IncidentsPage from './incidents/page';
+ import IncidentPage from './incidents/[incidentId]/page';
++import AdminPage from './admin/page';
+ import './phase3.css';
+ import '../theme.css';
+ import { Button, Skeleton } from '../components/ui';
+@@ -52,7 +53,9 @@ function AppLayout() {
+   if (status !== 'authenticated' || !session) {
+     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+   }
+-  const currentLink = NAV_LINKS.find(({ path }) =>
++  const isAdmin = Boolean(session.user.is_admin);
++  const navLinks = isAdmin ? [...NAV_LINKS, { label: 'Admin console', path: '/admin' }] : NAV_LINKS;
++  const currentLink = navLinks.find(({ path }) =>
+     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path),
+   );
+   const tenantLabel = activeMembership?.tenant_name || activeTenantId || 'No workspace';
+@@ -64,7 +67,7 @@ function AppLayout() {
+           <span>CAPSTONE-189</span>
+         </NavLink>
+         <div className="app-nav-links">
+-          {NAV_LINKS.map(({ label, path, section }, index) => (
++          {navLinks.map(({ label, path, section }, index) => (
+             <div key={path}>
+               {section ? <p className="app-nav-section">{section}</p> : null}
+               <NavLink
+@@ -81,7 +84,10 @@ function AppLayout() {
+         </div>
+         <div className="app-sidebar-footer">
+           <div className="app-session-user">
+-            <span className="app-session-email" title={session.user.email}>{session.user.email}</span>
++            <span className="app-session-email" title={session.user.email}>
++              {session.user.email}
++              {isAdmin ? <span className="ui-badge ui-confidence-high app-admin-badge">admin</span> : null}
++            </span>
+             <span className="app-session-label">{role ? `${role.toLowerCase()} · ${tenantLabel}` : `No access to ${tenantLabel}`}</span>
+           </div>
+           <Button
+@@ -144,6 +150,7 @@ export default function AppRoutes() {
+           <Route path="/demo" element={<DemoPage />} />
+           <Route path="/settings" element={<SettingsPage />} />
+           <Route path="/users" element={<UsersPage />} />
++          <Route path="/admin" element={<AdminPage />} />
+           <Route path="/system-health" element={<SystemHealthPage />} />
+           <Route path="/model-health" element={<ModelHealthPage />} />
+           <Route path="/onboarding" element={<OnboardingPage />} />
+diff --git a/frontend/src/app/settings/page.tsx b/frontend/src/app/settings/page.tsx
+index 3843b0b..fe6455c 100644
+--- a/frontend/src/app/settings/page.tsx
++++ b/frontend/src/app/settings/page.tsx
+@@ -1,11 +1,14 @@
++import { useState } from 'react';
+ import { Link, useNavigate } from 'react-router-dom';
+ import { useAuth } from '../../auth/authContext';
++import EmailSettingsCard from '../../components/EmailSettingsCard';
+ import NotificationChannelsPanel from '../../components/NotificationChannelsPanel';
+ import { Badge, Button, Card, PageHeader } from '../../components/ui';
+ 
+ export default function SettingsPage() {
+   const navigate = useNavigate();
+   const { session, role, activeTenantId, activeMembership, signOut } = useAuth();
++  const [channelsVersion, setChannelsVersion] = useState(0);
+   return (
+     <main className="app-page">
+       <div className="app-page-content">
+@@ -25,11 +28,23 @@ export default function SettingsPage() {
+           <Card>
+             <p className="ui-eyebrow">Workspace</p>
+             <h2>{activeMembership?.tenant_name || activeTenantId}</h2>
+-            <p>Your role: <Badge>{role?.toLowerCase() || 'none'}</Badge></p>
++            <p>
++              Your role: <Badge>{role?.toLowerCase() || 'none'}</Badge>
++              {session?.user.is_admin ? <> <Badge className="ui-confidence-high">admin</Badge> <Link to="/admin">Admin console</Link></> : null}
++            </p>
+             <p className="p3-footer">Member of {session?.memberships.length ?? 0} workspace(s). Switch workspaces from the top bar.</p>
+           </Card>
+         </section>
+-        <NotificationChannelsPanel canSendTest={role === 'OWNER' || role === 'OPERATOR'} tenantId={activeTenantId} />
++        <EmailSettingsCard
++          canEdit={role === 'OWNER'}
++          tenantId={activeTenantId}
++          onSaved={() => setChannelsVersion((version) => version + 1)}
++        />
++        <NotificationChannelsPanel
++          canSendTest={role === 'OWNER' || role === 'OPERATOR'}
++          tenantId={activeTenantId}
++          refreshKey={channelsVersion}
++        />
+       </div>
+     </main>
+   );
+diff --git a/frontend/src/components/EmailSettingsCard.tsx b/frontend/src/components/EmailSettingsCard.tsx
+new file mode 100644
+index 0000000..6355d80
+--- /dev/null
++++ b/frontend/src/components/EmailSettingsCard.tsx
+@@ -0,0 +1,206 @@
++import { useEffect, useState, type FormEvent } from 'react';
++import { friendlyError } from '../services/authApi';
++import {
++  clearEmailSettings,
++  getEmailSettings,
++  saveEmailSettings,
++  type EmailSettingsSummary,
++  type SmtpSecurity,
++} from '../services/notificationsApi';
++import { Badge, Button, Card, FormField, Skeleton, Toast } from './ui';
++
++type Preset = 'gmail' | 'outlook' | 'custom';
++
++const PRESETS: Record<Exclude<Preset, 'custom'>, { host: string; port: number; security: SmtpSecurity; label: string }> = {
++  gmail: { host: 'smtp.gmail.com', port: 587, security: 'starttls', label: 'Gmail' },
++  outlook: { host: 'smtp.office365.com', port: 587, security: 'starttls', label: 'Outlook / Microsoft 365' },
++};
++
++function presetFor(host: string): Preset {
++  if (host === PRESETS.gmail.host) return 'gmail';
++  if (host === PRESETS.outlook.host) return 'outlook';
++  return host ? 'custom' : 'gmail';
++}
++
++export default function EmailSettingsCard({
++  canEdit,
++  tenantId,
++  onSaved,
++}: {
++  canEdit: boolean;
++  tenantId: string | null;
++  onSaved?: () => void;
++}) {
++  const [summary, setSummary] = useState<EmailSettingsSummary | null>(null);
++  const [preset, setPreset] = useState<Preset>('gmail');
++  const [host, setHost] = useState(PRESETS.gmail.host);
++  const [port, setPort] = useState(587);
++  const [security, setSecurity] = useState<SmtpSecurity>('starttls');
++  const [username, setUsername] = useState('');
++  const [password, setPassword] = useState('');
++  const [recipients, setRecipients] = useState('');
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const [notice, setNotice] = useState<string | null>(null);
++
++  const apply = (data: EmailSettingsSummary) => {
++    setSummary(data);
++    if (data.source === 'workspace') {
++      setPreset(presetFor(data.host));
++      setHost(data.host);
++      setPort(data.port);
++      setSecurity(data.security);
++      setUsername(data.username);
++      setRecipients(data.recipients.join(', '));
++    }
++    setPassword('');
++  };
++
++  useEffect(() => {
++    let cancelled = false;
++    getEmailSettings()
++      .then((data) => { if (!cancelled) apply(data); })
++      .catch((err: unknown) => { if (!cancelled) setError(friendlyError(err, 'Unable to load email settings')); });
++    return () => {
++      cancelled = true;
++    };
++  }, [tenantId]);
++
++  const choosePreset = (next: Preset) => {
++    setPreset(next);
++    if (next !== 'custom') {
++      setHost(PRESETS[next].host);
++      setPort(PRESETS[next].port);
++      setSecurity(PRESETS[next].security);
++    }
++  };
++
++  const save = async (event: FormEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    setBusy(true);
++    setError(null);
++    setNotice(null);
++    try {
++      apply(await saveEmailSettings({
++        host: host.trim(),
++        port,
++        security,
++        username: username.trim(),
++        password: password || undefined,
++        recipients: recipients.split(/[,\s]+/).map((item) => item.trim()).filter(Boolean),
++      }));
++      setNotice('Email settings saved. Use "Send test" on the EMAIL channel to check delivery.');
++      onSaved?.();
++    } catch (err: unknown) {
++      setError(friendlyError(err, 'Unable to save email settings'));
++    } finally {
++      setBusy(false);
++    }
++  };
++
++  const remove = async () => {
++    setBusy(true);
++    setError(null);
++    try {
++      apply(await clearEmailSettings());
++      setNotice('Workspace email settings removed; the server environment settings (if any) apply again.');
++      onSaved?.();
++    } catch (err: unknown) {
++      setError(friendlyError(err, 'Unable to remove email settings'));
++    } finally {
++      setBusy(false);
++    }
++  };
++
++  const sourceLabel = summary?.source === 'workspace'
++    ? 'Saved for this workspace'
++    : summary?.source === 'environment'
++      ? 'From the server environment (.env)'
++      : 'Not set up';
++
++  return (
++    <Card className="email-settings">
++      <div className="email-settings-header">
++        <div>
++          <p className="ui-eyebrow">Email delivery</p>
++          <h2>Alert email account</h2>
++        </div>
++        {summary ? <Badge className={summary.ready ? 'ui-confidence-high' : 'ui-confidence-low'}>{summary.ready ? 'Ready' : 'Not configured'}</Badge> : null}
++      </div>
++      {!summary && !error ? <Skeleton rows={3} /> : null}
++      {summary ? (
++        <>
++          <p className="p3-footer">
++            {sourceLabel}
++            {summary.ready ? ` · sends as ${summary.sender} via ${summary.host}:${summary.port}` : ''}
++            {summary.effective_recipients.length ? ` · alerts go to ${summary.effective_recipients.join(', ')}` : ''}
++          </p>
++          {summary.problem ? <p className="email-settings-problem">{summary.problem}</p> : null}
++        </>
++      ) : null}
++      {error ? <Toast message={error} tone="error" onDismiss={() => setError(null)} /> : null}
++      {notice ? <Toast message={notice} tone="success" onDismiss={() => setNotice(null)} /> : null}
++
++      {canEdit ? (
++        <form className="email-settings-form" onSubmit={save}>
++          <FormField label="Provider">
++            <select value={preset} onChange={(event) => choosePreset(event.target.value as Preset)}>
++              <option value="gmail">{PRESETS.gmail.label}</option>
++              <option value="outlook">{PRESETS.outlook.label}</option>
++              <option value="custom">Other SMTP server</option>
++            </select>
++          </FormField>
++          {preset === 'custom' ? (
++            <div className="email-settings-row">
++              <FormField label="SMTP host">
++                <input value={host} onChange={(event) => setHost(event.target.value)} required />
++              </FormField>
++              <FormField label="Port">
++                <input type="number" min={1} max={65535} value={port} onChange={(event) => setPort(Number(event.target.value))} required />
++              </FormField>
++              <FormField label="Security">
++                <select value={security} onChange={(event) => setSecurity(event.target.value as SmtpSecurity)}>
++                  <option value="starttls">STARTTLS (587)</option>
++                  <option value="ssl">SSL/TLS (465)</option>
++                  <option value="none">None (local testing only)</option>
++                </select>
++              </FormField>
++            </div>
++          ) : null}
++          <div className="email-settings-row">
++            <FormField label="Sender email (SMTP login)">
++              <input type="email" autoComplete="off" value={username} onChange={(event) => setUsername(event.target.value)} required />
++            </FormField>
++            <FormField
++              label={preset === 'gmail' ? 'Gmail app password' : 'SMTP password'}
++              hint={summary?.password_set ? 'Leave blank to keep the saved password.' : undefined}
++            >
++              <input
++                type="password"
++                autoComplete="new-password"
++                value={password}
++                onChange={(event) => setPassword(event.target.value)}
++                placeholder={summary?.password_set ? '••••••••' : ''}
++              />
++            </FormField>
++          </div>
++          <FormField label="Send alerts to" hint="Optional. Comma-separated. Leave empty to email every member of this workspace.">
++            <input value={recipients} onChange={(event) => setRecipients(event.target.value)} />
++          </FormField>
++          {preset === 'gmail' ? (
++            <p className="p3-footer">
++              Gmail needs an app password, not your normal password: turn on 2-Step Verification, then create one at{' '}
++              <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">myaccount.google.com/apppasswords</a>.
++            </p>
++          ) : null}
++          <div className="email-settings-actions">
++            <Button variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save email settings'}</Button>
++            {summary?.source === 'workspace' ? <Button type="button" variant="ghost" disabled={busy} onClick={() => void remove()}>Remove</Button> : null}
++          </div>
++        </form>
++      ) : (
++        <p className="p3-footer">Only workspace owners can change the email account.</p>
++      )}
++    </Card>
++  );
++}
+diff --git a/frontend/src/components/NotificationChannelsPanel.tsx b/frontend/src/components/NotificationChannelsPanel.tsx
+index dbc18e1..61a821a 100644
+--- a/frontend/src/components/NotificationChannelsPanel.tsx
++++ b/frontend/src/components/NotificationChannelsPanel.tsx
+@@ -27,11 +27,14 @@ function resultTone(result: NotificationResult): 'success' | 'error' | 'info' {
+ export default function NotificationChannelsPanel({
+   canSendTest,
+   tenantId,
++  refreshKey = 0,
+   title = 'Notification channels',
+   description = 'Where alerts for this workspace are delivered. Credentials stay on the server; only readiness is shown.',
+ }: {
+   canSendTest: boolean;
+   tenantId: string | null;
++  /** Bump to reload channel readiness (e.g. after saving email settings). */
++  refreshKey?: number;
+   title?: string;
+   description?: string;
+ }) {
+@@ -50,7 +53,7 @@ export default function NotificationChannelsPanel({
+     return () => {
+       cancelled = true;
+     };
+-  }, [tenantId]);
++  }, [tenantId, refreshKey]);
+ 
+   const sendTest = async (channel: string) => {
+     setSending(channel);
+diff --git a/frontend/src/components/email-settings-card.test.tsx b/frontend/src/components/email-settings-card.test.tsx
+new file mode 100644
+index 0000000..17392e2
+--- /dev/null
++++ b/frontend/src/components/email-settings-card.test.tsx
+@@ -0,0 +1,50 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import { fireEvent, render, screen, waitFor } from '@testing-library/react';
++import EmailSettingsCard from './EmailSettingsCard';
++
++const api = vi.hoisted(() => ({ getEmailSettings: vi.fn(), saveEmailSettings: vi.fn(), clearEmailSettings: vi.fn() }));
++vi.mock('../services/notificationsApi', async (importOriginal) => ({
++  ...(await importOriginal<typeof import('../services/notificationsApi')>()),
++  ...api,
++}));
++
++const empty = {
++  source: 'none', host: 'smtp.gmail.com', port: 587, security: 'starttls', username: '', sender: '',
++  password_set: false, recipients: [], effective_recipients: ['owner@example.com'], ready: false,
++  problem: 'Email is not set up', updated_at: null,
++};
++
++describe('EmailSettingsCard', () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    api.getEmailSettings.mockResolvedValue(empty);
++  });
++
++  it('saves Gmail settings and never shows the password again', async () => {
++    const onSaved = vi.fn();
++    api.saveEmailSettings.mockResolvedValue({
++      ...empty, source: 'workspace', username: 'me@gmail.com', sender: 'me@gmail.com', password_set: true, ready: true, problem: null,
++    });
++    render(<EmailSettingsCard canEdit tenantId="google" onSaved={onSaved} />);
++
++    await screen.findByText('Email is not set up');
++    fireEvent.change(screen.getByLabelText(/^Sender email/), { target: { value: 'me@gmail.com' } });
++    fireEvent.change(screen.getByLabelText(/^Gmail app password/), { target: { value: 'abcd efgh ijkl mnop' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Save email settings' }));
++
++    await waitFor(() => expect(api.saveEmailSettings).toHaveBeenCalledWith({
++      host: 'smtp.gmail.com', port: 587, security: 'starttls', username: 'me@gmail.com',
++      password: 'abcd efgh ijkl mnop', recipients: [],
++    }));
++    expect(onSaved).toHaveBeenCalled();
++    expect(await screen.findByText(/Email settings saved/)).toBeInTheDocument();
++    expect(screen.getByLabelText(/^Gmail app password/)).toHaveValue('');
++    expect(screen.getByText(/Leave blank to keep the saved password/)).toBeInTheDocument();
++  });
++
++  it('is read-only for non-owners', async () => {
++    render(<EmailSettingsCard canEdit={false} tenantId="google" />);
++    expect(await screen.findByText(/Only workspace owners/)).toBeInTheDocument();
++    expect(screen.queryByRole('button', { name: 'Save email settings' })).toBeNull();
++  });
++});
+diff --git a/frontend/src/services/authApi.ts b/frontend/src/services/authApi.ts
+index 326807c..8e27c14 100644
+--- a/frontend/src/services/authApi.ts
++++ b/frontend/src/services/authApi.ts
+@@ -13,6 +13,8 @@ export interface SessionUser {
+   user_id: string;
+   email: string;
+   role: Role | null;
++  /** Owner of every workspace: can use the Admin console. */
++  is_admin?: boolean;
+ }
+ 
+ export interface AuthSession {
+@@ -30,6 +32,16 @@ export interface Member {
+   joined_at?: string | null;
+ }
+ 
++export type AccessLevel = Role | 'NONE';
++
++export interface AccountSummary {
++  user_id: string;
++  email: string;
++  created_at?: string | null;
++  is_admin: boolean;
++  memberships: Membership[];
++}
++
+ export const ROLE_RANK: Record<Role, number> = { OWNER: 3, OPERATOR: 2, VIEWER: 1 };
+ export const MIN_PASSWORD_LENGTH = 8;
+ 
+@@ -72,6 +84,22 @@ async function digest(value: string): Promise<string> {
+   return `plain:${value.length}:${value}`;
+ }
+ 
++function mockIsAdmin(user: MockUser): boolean {
++  return MOCK_TENANTS.every((tenant) => user.roles[tenant.id] === 'OWNER');
++}
++
++function mockAccount(user: MockUser): AccountSummary {
++  return {
++    user_id: user.user_id,
++    email: user.email,
++    created_at: user.created_at,
++    is_admin: mockIsAdmin(user),
++    memberships: MOCK_TENANTS
++      .filter((tenant) => user.roles[tenant.id])
++      .map((tenant) => ({ tenant_id: tenant.id, tenant_name: tenant.name, role: user.roles[tenant.id] })),
++  };
++}
++
+ function mockSession(user: MockUser): AuthSession {
+   const memberships = MOCK_TENANTS
+     .filter((tenant) => user.roles[tenant.id])
+@@ -82,7 +110,7 @@ function mockSession(user: MockUser): AuthSession {
+   );
+   return {
+     access_token: `mock-token-${user.user_id}`,
+-    user: { user_id: user.user_id, email: user.email, role },
++    user: { user_id: user.user_id, email: user.email, role, is_admin: mockIsAdmin(user) },
+     memberships,
+   };
+ }
+@@ -221,3 +249,34 @@ export async function removeMember(userId: string): Promise<void> {
+   }
+   await fetchJson<void>(`${getApiBase()}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+ }
++
++export async function listAccounts(): Promise<AccountSummary[]> {
++  if (isMockMode()) {
++    const users = readMockUsers();
++    const actor = users.find((item) => item.user_id === getStoredUserId());
++    if (!actor || !mockIsAdmin(actor)) throw new Error('HTTP 403: Administrator access required');
++    return users.map(mockAccount);
++  }
++  return fetchJson<AccountSummary[]>(`${getApiBase()}/admin/users`);
++}
++
++export async function setAccountAccess(userId: string, role: AccessLevel): Promise<AccountSummary> {
++  if (isMockMode()) {
++    const users = readMockUsers();
++    const actor = users.find((item) => item.user_id === getStoredUserId());
++    if (!actor || !mockIsAdmin(actor)) throw new Error('HTTP 403: Administrator access required');
++    if (userId === actor.user_id && role !== 'OWNER') throw new Error("HTTP 409: You can't remove your own admin access");
++    const user = users.find((item) => item.user_id === userId);
++    if (!user) throw new Error('HTTP 404: Account not found');
++    MOCK_TENANTS.forEach((tenant) => {
++      if (role === 'NONE') delete user.roles[tenant.id];
++      else user.roles[tenant.id] = role;
++    });
++    writeMockUsers(users);
++    return mockAccount(user);
++  }
++  return fetchJson<AccountSummary>(`${getApiBase()}/admin/users/${encodeURIComponent(userId)}/access`, {
++    method: 'PUT',
++    body: JSON.stringify({ role }),
++  });
++}
+diff --git a/frontend/src/services/notificationsApi.ts b/frontend/src/services/notificationsApi.ts
+index aafee24..0758045 100644
+--- a/frontend/src/services/notificationsApi.ts
++++ b/frontend/src/services/notificationsApi.ts
+@@ -45,3 +45,54 @@ export async function sendTestNotification(channel: string): Promise<Notificatio
+     body: JSON.stringify({ channel }),
+   });
+ }
++
++export type SmtpSecurity = 'starttls' | 'ssl' | 'none';
++
++export interface EmailSettingsSummary {
++  source: 'workspace' | 'environment' | 'none';
++  host: string;
++  port: number;
++  security: SmtpSecurity;
++  username: string;
++  sender: string;
++  password_set: boolean;
++  recipients: string[];
++  effective_recipients: string[];
++  ready: boolean;
++  problem: string | null;
++  updated_at?: string | null;
++}
++
++export interface EmailSettingsInput {
++  host: string;
++  port: number;
++  security: SmtpSecurity;
++  username: string;
++  password?: string;
++  sender?: string;
++  recipients: string[];
++}
++
++const MOCK_EMAIL: EmailSettingsSummary = {
++  source: 'none', host: 'smtp.gmail.com', port: 587, security: 'starttls', username: '', sender: '',
++  password_set: false, recipients: [], effective_recipients: [], ready: false,
++  problem: 'Mock mode: email settings are not saved and no email is sent',
++};
++
++export async function getEmailSettings(): Promise<EmailSettingsSummary> {
++  if (isMockMode()) return MOCK_EMAIL;
++  return fetchJson<EmailSettingsSummary>(`${getApiBase()}/notifications/email-settings`);
++}
++
++export async function saveEmailSettings(input: EmailSettingsInput): Promise<EmailSettingsSummary> {
++  if (isMockMode()) throw new Error('Mock mode cannot save email settings; run the API to send real email');
++  return fetchJson<EmailSettingsSummary>(`${getApiBase()}/notifications/email-settings`, {
++    method: 'PUT',
++    body: JSON.stringify(input),
++  });
++}
++
++export async function clearEmailSettings(): Promise<EmailSettingsSummary> {
++  if (isMockMode()) return MOCK_EMAIL;
++  return fetchJson<EmailSettingsSummary>(`${getApiBase()}/notifications/email-settings`, { method: 'DELETE' });
++}
+diff --git a/phase3/api/__init__.py b/phase3/api/__init__.py
+index 15d6ac5..6538e3c 100644
+--- a/phase3/api/__init__.py
++++ b/phase3/api/__init__.py
+@@ -1 +1,22 @@
+ """Canonical Phase 3 API package."""
++
++import os
++from pathlib import Path
++
++
++def _load_dotenv() -> None:
++    """Read the repository-root .env so settings work without exporting them.
++
++    Real environment variables always win (override=False). Tests set
++    CAPSTONE_SKIP_DOTENV=1 so a developer's real credentials are never used.
++    """
++    if os.getenv("CAPSTONE_SKIP_DOTENV", "").strip().lower() in {"1", "true", "yes"}:
++        return
++    try:
++        from dotenv import load_dotenv
++    except ImportError:  # python-dotenv is in requirements.txt; tolerate its absence
++        return
++    load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
++
++
++_load_dotenv()
+diff --git a/phase3/api/alert_notifications.py b/phase3/api/alert_notifications.py
+index 103c5be..35b2770 100644
+--- a/phase3/api/alert_notifications.py
++++ b/phase3/api/alert_notifications.py
+@@ -4,10 +4,13 @@ Every channel reports what actually happened. A channel without credentials
+ returns ``not_configured``; it is never reported as sent. Configuration comes
+ from environment variables (see ``docs/guides/AUTH_NOTIFICATIONS_EXPLANATION_CHANGES.md``):
+ 
+-* EMAIL      DEMO_EMAIL_SENDER + DEMO_EMAIL_PASSWORD (Gmail app password).
+-             Recipients: DEMO_EMAIL_RECIPIENT if set, otherwise every
+-             registered member of the tenant, otherwise
+-             DEMO_EMAIL_DEFAULT_RECIPIENT.
++* EMAIL      SMTP settings saved for the workspace on the Settings page
++             (password encrypted at rest), otherwise environment variables:
++             DEMO_EMAIL_SENDER + DEMO_EMAIL_PASSWORD, optional SMTP_HOST,
++             SMTP_PORT, SMTP_SECURITY, SMTP_USERNAME (Gmail by default).
++             Recipients: the workspace's saved recipient list, otherwise
++             DEMO_EMAIL_RECIPIENT, otherwise every registered member of the
++             workspace, otherwise DEMO_EMAIL_DEFAULT_RECIPIENT.
+ * SLACK      SLACK_WEBHOOK_URL (Slack incoming webhook).
+ * WEBHOOK    ALERT_WEBHOOK_URL (+ optional ALERT_WEBHOOK_SECRET for an
+              HMAC-SHA256 ``X-Capstone-Signature`` header).
+@@ -25,11 +28,16 @@ from datetime import datetime, timezone
+ from pathlib import Path
+ from typing import Any, Callable, Dict, List, Optional
+ 
++import base64
++
+ import httpx
++from cryptography.fernet import Fernet, InvalidToken
++
++from phase3.db.models import TenantMembershipRow, TenantRow, UserRow
+ 
+-from phase3.db.models import TenantMembershipRow, UserRow
++from .email_service import SMTP_SECURITY_MODES, EmailService, SmtpSettings
+ 
+-from .email_service import EmailService
++_EMAIL_SETTINGS_KEY = "email_smtp"
+ 
+ 
+ def _platform():
+@@ -55,7 +63,124 @@ def _env(name: str) -> str:
+     return os.getenv(name, "").strip()
+ 
+ 
++# ---------------------------------------------------------------------------
++# Workspace email settings (saved from the Settings page)
++# ---------------------------------------------------------------------------
++
++
++def _fernet() -> Fernet:
++    """Encryption for stored SMTP passwords.
++
++    PLATFORM_CREDENTIAL_KEY if set, otherwise derived from the JWT signing
++    secret. Changing either makes saved passwords unreadable (re-enter them).
++    """
++    secret = os.getenv("PLATFORM_CREDENTIAL_KEY", "").strip()
++    if len(secret.encode("utf-8")) < 32:
++        secret = "smtp-credentials:" + _platform()._resolve_jwt_secret()
++    digest = hashlib.sha256(secret.encode("utf-8")).digest()
++    return Fernet(base64.urlsafe_b64encode(digest))
++
++
++def _read_tenant_settings(tenant_id: str) -> Dict[str, Any]:
++    with _platform().platform_session_factory.session_scope() as session:
++        row = session.get(TenantRow, tenant_id)
++        state = dict((row.onboarding_state or {}) if row is not None else {})
++    return dict(state.get("settings") or {})
++
++
++def load_workspace_email_settings(tenant_id: str) -> Optional[Dict[str, Any]]:
++    stored = _read_tenant_settings(tenant_id).get(_EMAIL_SETTINGS_KEY)
++    return dict(stored) if isinstance(stored, dict) else None
++
++
++def save_workspace_email_settings(
++    tenant_id: str,
++    *,
++    host: str,
++    port: int,
++    security: str,
++    username: str,
++    password: Optional[str],
++    sender: str,
++    recipients: List[str],
++) -> Dict[str, Any]:
++    """Store SMTP settings for one workspace. A blank password keeps the saved one."""
++    if security not in SMTP_SECURITY_MODES:
++        raise ValueError(f"security must be one of {', '.join(SMTP_SECURITY_MODES)}")
++    existing = load_workspace_email_settings(tenant_id) or {}
++    if password:
++        ciphertext = _fernet().encrypt("".join(password.split()).encode("utf-8")).decode("utf-8")
++    elif existing.get("password_ciphertext"):
++        ciphertext = existing["password_ciphertext"]
++    else:
++        raise ValueError("Enter the SMTP password (or app password)")
++    record = {
++        "host": host.strip(),
++        "port": int(port),
++        "security": security,
++        "username": username.strip(),
++        "sender": sender.strip(),
++        "recipients": [item.strip() for item in recipients if item.strip()],
++        "password_ciphertext": ciphertext,
++        "updated_at": datetime.now(timezone.utc).isoformat(),
++    }
++    _platform().ensure_demo_tenants()
++    with _platform().platform_session_factory.session_scope() as session:
++        row = session.get(TenantRow, tenant_id)
++        if row is None:
++            raise ValueError("Workspace not found")
++        state = dict(row.onboarding_state or {})
++        settings = dict(state.get("settings") or {})
++        settings[_EMAIL_SETTINGS_KEY] = record
++        state["settings"] = settings
++        row.onboarding_state = state  # reassign so SQLAlchemy persists the JSON change
++    return record
++
++
++def clear_workspace_email_settings(tenant_id: str) -> None:
++    with _platform().platform_session_factory.session_scope() as session:
++        row = session.get(TenantRow, tenant_id)
++        if row is None or not row.onboarding_state:
++            return
++        state = dict(row.onboarding_state)
++        settings = dict(state.get("settings") or {})
++        settings.pop(_EMAIL_SETTINGS_KEY, None)
++        state["settings"] = settings
++        row.onboarding_state = state
++
++
++def resolve_smtp_settings(tenant_id: str) -> tuple[SmtpSettings, Optional[str]]:
++    """The SMTP account to use, plus a problem description if it is unusable."""
++    stored = load_workspace_email_settings(tenant_id)
++    if stored:
++        try:
++            password = _fernet().decrypt(str(stored.get("password_ciphertext", "")).encode("utf-8")).decode("utf-8")
++            problem = None
++        except (InvalidToken, ValueError):
++            password = ""
++            problem = "The saved email password can no longer be decrypted (the server secret changed); re-enter it in Settings"
++        return (
++            SmtpSettings(
++                host=str(stored.get("host", "")),
++                port=int(stored.get("port") or 587),
++                security=str(stored.get("security") or "starttls"),
++                username=str(stored.get("username", "")),
++                password=password,
++                sender=str(stored.get("sender", "")),
++                source="workspace",
++            ),
++            problem,
++        )
++    settings = SmtpSettings.from_env()
++    if not settings.configured:
++        return settings, "Email is not set up: add an SMTP account in Settings (or set DEMO_EMAIL_SENDER and DEMO_EMAIL_PASSWORD)"
++    return settings, None
++
++
+ def resolve_email_recipients(tenant_id: str) -> List[str]:
++    saved = (load_workspace_email_settings(tenant_id) or {}).get("recipients") or []
++    if saved:
++        return list(saved)
+     override = _env("DEMO_EMAIL_RECIPIENT")
+     if override:
+         return [item.strip() for item in override.split(",") if item.strip()]
+@@ -78,15 +203,37 @@ def resolve_email_recipients(tenant_id: str) -> List[str]:
+     return [fallback] if fallback else []
+ 
+ 
++def email_settings_summary(tenant_id: str) -> Dict[str, Any]:
++    """Safe description of the email setup (never includes the password)."""
++    settings, problem = resolve_smtp_settings(tenant_id)
++    stored = load_workspace_email_settings(tenant_id) or {}
++    return {
++        "source": settings.source if (settings.configured or stored) else "none",
++        "host": settings.host,
++        "port": settings.port,
++        "security": settings.security,
++        "username": settings.username,
++        "sender": settings.sender,
++        "password_set": bool(settings.password) or bool(stored.get("password_ciphertext")),
++        "recipients": list(stored.get("recipients") or []),
++        "effective_recipients": resolve_email_recipients(tenant_id),
++        "ready": settings.configured and problem is None,
++        "problem": problem,
++        "updated_at": stored.get("updated_at"),
++    }
++
++
+ def channel_statuses(tenant_id: str) -> List[Dict[str, str]]:
+     """Readiness of each channel for this tenant, without sending anything."""
+     recipients = resolve_email_recipients(tenant_id)
+-    if not EmailService.is_configured():
+-        email = ("credentials_required", "Set DEMO_EMAIL_SENDER and DEMO_EMAIL_PASSWORD (Gmail app password)")
++    smtp, problem = resolve_smtp_settings(tenant_id)
++    if problem or not smtp.configured:
++        email = ("credentials_required", problem or "Add an SMTP account in Settings")
+     elif not recipients:
+-        email = ("credentials_required", "No recipients: add members or set DEMO_EMAIL_RECIPIENT")
++        email = ("credentials_required", "No recipients: add members or a recipient list")
+     else:
+-        email = ("ready", f"Gmail SMTP to {len(recipients)} recipient(s)")
++        where = "workspace settings" if smtp.source == "workspace" else "server environment"
++        email = ("ready", f"{smtp.host} as {smtp.sender} to {len(recipients)} recipient(s) ({where})")
+     webhook_ready = bool(_env("ALERT_WEBHOOK_URL"))
+     return [
+         {"channel": "PAGE", "status": "ready", "detail": "In-dashboard notifications for signed-in members"},
+@@ -164,19 +311,27 @@ def _log_email_failure(recipients: List[str], payload: Dict[str, Any], error: st
+     return str(log_file)
+ 
+ 
+-async def _send_email(payload: Dict[str, Any], tenant_id: str, subject: Optional[str]) -> Dict[str, Any]:
+-    recipients = resolve_email_recipients(tenant_id)
++async def _send_email(
++    payload: Dict[str, Any],
++    tenant_id: str,
++    subject: Optional[str],
++    recipients: Optional[List[str]] = None,
++) -> Dict[str, Any]:
++    recipients = recipients if recipients is not None else resolve_email_recipients(tenant_id)
+     email_to = ", ".join(recipients)
+     if not recipients:
+         return _result("EMAIL", "not_configured", "No email recipients for this workspace", email_to="")
+-    if not EmailService.is_configured():
++    smtp, problem = resolve_smtp_settings(tenant_id)
++    if problem or not smtp.configured:
+         return _result(
+             "EMAIL",
+             "not_configured",
+-            "Email is not configured: set DEMO_EMAIL_SENDER and DEMO_EMAIL_PASSWORD",
++            problem or "Email is not set up: add an SMTP account in Settings",
+             email_to=email_to,
+         )
+-    outcome = await EmailService.send_alert_email_result(email_to, payload, subject_override=subject)
++    outcome = await EmailService.send_alert_email_result(
++        email_to, payload, subject_override=subject, settings=smtp
++    )
+     if outcome.get("sent"):
+         return _result("EMAIL", "sent", f"Email sent to {email_to}", email_to=email_to)
+     error = str(outcome.get("error") or "unknown error")
+@@ -268,6 +423,7 @@ async def send_alert_notification(
+     tenant_id: str,
+     *,
+     subject: Optional[str] = None,
++    email_recipients: Optional[List[str]] = None,
+ ) -> Dict[str, Any]:
+     """Deliver one alert through one channel and report the real outcome."""
+     channel = channel.upper()
+@@ -275,7 +431,7 @@ async def send_alert_notification(
+         if channel == "PAGE":
+             return _result("PAGE", "displayed", "Alert pushed to signed-in dashboards")
+         if channel == "EMAIL":
+-            return await _send_email(payload, tenant_id, subject)
++            return await _send_email(payload, tenant_id, subject, email_recipients)
+         if channel == "SLACK":
+             return await _send_slack(payload)
+         if channel == "WEBHOOK":
+diff --git a/phase3/api/app.py b/phase3/api/app.py
+index a8711ea..2b3ad4f 100644
+--- a/phase3/api/app.py
++++ b/phase3/api/app.py
+@@ -1,4 +1,5 @@
+ import random
++from contextlib import asynccontextmanager
+ import copy
+ import uuid
+ from datetime import datetime, timedelta, timezone
+@@ -27,6 +28,7 @@ from phase2.encoding.record_encoder import RecordEncoder
+ from phase2.encoding.reference_encoder_service import load_inference_encoder_from_manifest
+ from demo_generator.generator import DemoGenerator, metric_family_matches
+ from phase3.api.routers import _support, router as phase3_router
++from phase3.api.routers.auth import bootstrap_admin_from_env
+ from phase3.api.routers._support import require_tenant_membership
+ from phase3.db.models import IncidentRow, RcaCaseRow, TenantRow
+ from phase3.lifecycle.incident_resolution_service import IncidentResolutionService
+@@ -48,7 +50,14 @@ from .ws_common import broadcast_alert
+ from .ws_heartbeat import build_stage_heartbeat
+ from .ws_router import router as ws_router
+ 
+-app = FastAPI(title="CAPSTONE-189 Demo API")
++@asynccontextmanager
++async def _lifespan(_app: FastAPI):
++    # Creates/promotes the CAPSTONE_ADMIN_EMAIL account when set; no-op otherwise.
++    bootstrap_admin_from_env()
++    yield
++
++
++app = FastAPI(title="CAPSTONE-189 Demo API", lifespan=_lifespan)
+ 
+ alerts_by_tenant: Dict[str, List[Dict[str, Any]]] = {}
+ 
+diff --git a/phase3/api/email_service.py b/phase3/api/email_service.py
+index c702c8c..26ad7ec 100644
+--- a/phase3/api/email_service.py
++++ b/phase3/api/email_service.py
+@@ -3,10 +3,50 @@
+ import asyncio
+ import os
+ import smtplib
++import ssl
++from dataclasses import dataclass
+ from email.mime.multipart import MIMEMultipart
+ from email.mime.text import MIMEText
++from email.utils import formataddr
+ from typing import Any, Dict, Optional
+ 
++SMTP_SECURITY_MODES = ("starttls", "ssl", "none")
++_DEFAULT_PORTS = {"starttls": 587, "ssl": 465, "none": 25}
++
++
++@dataclass(frozen=True)
++class SmtpSettings:
++    """Where and how alert email is sent. ``password`` is never logged or returned."""
++
++    host: str
++    port: int
++    security: str  # starttls | ssl | none
++    username: str
++    password: str
++    sender: str
++    source: str = "environment"  # environment | workspace
++
++    @property
++    def configured(self) -> bool:
++        return bool(self.host and self.username and self.password and "@" in self.sender)
++
++    @classmethod
++    def from_env(cls) -> "SmtpSettings":
++        security = os.getenv("SMTP_SECURITY", "starttls").strip().lower()
++        if security not in SMTP_SECURITY_MODES:
++            security = "starttls"
++        port_text = os.getenv("SMTP_PORT", "").strip()
++        sender = EmailService.resolve_sender_email().strip()
++        return cls(
++            host=os.getenv("SMTP_HOST", "smtp.gmail.com").strip(),
++            port=int(port_text) if port_text.isdigit() else _DEFAULT_PORTS[security],
++            security=security,
++            username=os.getenv("SMTP_USERNAME", "").strip() or sender,
++            password=EmailService.resolve_sender_password(),
++            sender=sender,
++            source="environment",
++        )
++
+ _TENANT_EMAIL_DEFAULTS = {
+     "google": "ops@google-demo.internal",
+     "microsoft": "security@microsoft-demo.internal",
+@@ -259,25 +299,27 @@ class EmailService:
+ 
+     @staticmethod
+     async def send_alert_email_result(
+-        recipient_email: str, alert_data: Dict[str, Any], subject_override: Optional[str] = None
++        recipient_email: str,
++        alert_data: Dict[str, Any],
++        subject_override: Optional[str] = None,
++        settings: Optional[SmtpSettings] = None,
+     ) -> Dict[str, Any]:
+         """
+-        Send alert email asynchronously.
++        Send an alert email.
+ 
+         Args:
+-            recipient_email: Email address to send to
++            recipient_email: One address, or several separated by commas
+             alert_data: Alert payload dictionary
+             subject_override: Optional custom subject line
++            settings: SMTP account to use; defaults to the environment settings
+ 
+         Returns:
+             Delivery result with success and error details.
+         """
++        settings = settings or SmtpSettings.from_env()
+         try:
+-            sender_email = EmailService.resolve_sender_email()
+-            sender_password = EmailService.resolve_sender_password()
+-
+-            if not sender_password:
+-                error_message = "DEMO_EMAIL_PASSWORD is not configured"
++            if not settings.password:
++                error_message = "No SMTP password is configured"
+                 print(f"✗ Failed to send email: {error_message}")
+                 return {"sent": False, "error": error_message}
+ 
+@@ -288,26 +330,25 @@ class EmailService:
+ 
+             html, text = EmailService.build_alert_html(alert_data, recipient_email)
+ 
+-            # Create message
+             message = MIMEMultipart("alternative")
+             message["Subject"] = subject
+-            message["From"] = sender_email
++            message["From"] = formataddr(("CAPSTONE-189 Alerts", settings.sender))
+             message["To"] = recipient_email
+-
+-            # Attach both plain text and HTML versions
+-            part1 = MIMEText(text, "plain")
+-            part2 = MIMEText(html, "html")
+-            message.attach(part1)
+-            message.attach(part2)
++            message.attach(MIMEText(text, "plain"))
++            message.attach(MIMEText(html, "html"))
+ 
+             # smtplib is blocking; run it in a worker thread so a slow SMTP
+             # handshake does not stall every other request on the event loop.
+             def _deliver() -> None:
+-                with smtplib.SMTP(
+-                    EmailService.SMTP_SERVER, EmailService.SMTP_PORT, timeout=20
+-                ) as server:
+-                    server.starttls()
+-                    server.login(sender_email, sender_password)
++                context = ssl.create_default_context()
++                if settings.security == "ssl":
++                    server = smtplib.SMTP_SSL(settings.host, settings.port, timeout=20, context=context)
++                else:
++                    server = smtplib.SMTP(settings.host, settings.port, timeout=20)
++                with server:
++                    if settings.security == "starttls":
++                        server.starttls(context=context)
++                    server.login(settings.username, settings.password)
+                     server.send_message(message)
+ 
+             await asyncio.to_thread(_deliver)
+@@ -316,14 +357,27 @@ class EmailService:
+             return {"sent": True, "detail": f"Email sent to {recipient_email}"}
+ 
+         except smtplib.SMTPAuthenticationError as e:
+-            auth_hint = (
+-                "Gmail authentication failed. Verify DEMO_EMAIL_SENDER is the same Gmail account "
+-                "that generated the App Password, ensure 2-Step Verification is enabled, and paste "
+-                "the 16-character App Password (spaces allowed; backend normalizes them)."
+-            )
++            if "gmail" in settings.host.lower():
++                auth_hint = (
++                    "Gmail rejected the login. Use the Gmail address that created the App "
++                    "Password as the username, make sure 2-Step Verification is on, and paste "
++                    "the 16-character App Password (not your normal Gmail password)."
++                )
++            else:
++                auth_hint = "The SMTP server rejected the username or password."
+             print(f"✗ Failed to send email to {recipient_email}: {str(e)}")
+             return {"sent": False, "error": f"{auth_hint} SMTP says: {str(e)}"}
+ 
++        except (OSError, smtplib.SMTPException) as e:
++            print(f"✗ Failed to send email to {recipient_email}: {str(e)}")
++            return {
++                "sent": False,
++                "error": (
++                    f"Could not deliver through {settings.host}:{settings.port} "
++                    f"({settings.security}): {e}"
++                ),
++            }
++
+         except Exception as e:
+             print(f"✗ Failed to send email to {recipient_email}: {str(e)}")
+             return {"sent": False, "error": str(e)}
+diff --git a/phase3/api/routers/_support.py b/phase3/api/routers/_support.py
+index a8990f5..39a206e 100644
+--- a/phase3/api/routers/_support.py
++++ b/phase3/api/routers/_support.py
+@@ -42,7 +42,7 @@ from phase3.onboarding.wizard_service import OnboardingWizardService
+ from phase3.rca.confidence_scorer import ConfidenceScorer
+ from phase3.rca.evidence_builder import EvidenceBuilder
+ from phase3.rca.hypothesis_engine import HypothesisEngine
+-from phase3.rca.types import RCACase
++from phase3.rca.types import CandidateCause, RCACase
+ from phase3.security.middleware import TenantIsolationMiddleware
+ from phase3.lifecycle.incident_resolution_service import IncidentResolutionService
+ from phase3.shared.types import (
+@@ -83,7 +83,7 @@ onboarding_tenant_ids: Dict[str, str] = {}
+ knowledge_loader = KnowledgeLoader()
+ threat_signature_matcher = ThreatSignatureMatcher()
+ evidence_builder = EvidenceBuilder()
+-hypothesis_engine = HypothesisEngine()
++hypothesis_engine = HypothesisEngine(threat_matcher=threat_signature_matcher)
+ explanation_builder = ExplanationBuilder(knowledge_loader, threat_signature_matcher)
+ recommendation_engine = RecommendationEngine(knowledge_loader, threat_signature_matcher)
+ rca_cases: Dict[str, Dict[str, RCACase]] = {}
+@@ -532,11 +532,41 @@ def record_channel_delivery(
+     return record
+ 
+ 
++def refresh_case_hypotheses(case_data: Dict[str, Any]) -> Dict[str, Any]:
++    """Backfill signature-based RCA for incidents stored before it existed.
++
++    If a stored case has no threat-signature candidate but its evidence now
++    matches a signature with MEDIUM or HIGH confidence, that candidate is
++    ranked in (replacing a bare UNKNOWN). Any other stored result is returned
++    unchanged, and the stored record itself is never modified.
++    """
++    stored = list(case_data.get("candidate_causes") or [])
++    if any(str(item.get("rule_id", "")).startswith("rca.threat_signature") for item in stored):
++        return case_data
++    try:
++        typed = dict(case_data)
++        typed["batch_ts"] = datetime.fromisoformat(str(typed["batch_ts"]).replace("Z", "+00:00"))
++        typed["candidate_causes"] = [CandidateCause(**candidate) for candidate in stored]
++        case = RCACase(**typed)
++    except (KeyError, TypeError, ValueError):
++        return case_data
++    threat = hypothesis_engine.threat_candidate(case)
++    if threat is None:
++        return case_data
++    case.candidate_causes = hypothesis_engine.rank(case.candidate_causes, threat)
++    refreshed = dict(case_data)
++    refreshed["candidate_causes"] = jsonable_encoder(
++        [asdict(candidate) for candidate in case.candidate_causes]
++    )
++    refreshed["confidence"] = ConfidenceScorer.score_case(case)
++    return refreshed
++
++
+ def case_for_tenant(tenant_id: Optional[str], incident_id: str) -> Dict[str, Any]:
+     resolved_tenant = _tenant_header(tenant_id)
+     case = rca_cases.get(resolved_tenant, {}).get(incident_id)
+     if case is not None:
+-        return jsonable_encoder(asdict(case))
++        return refresh_case_hypotheses(jsonable_encoder(asdict(case)))
+     with platform_session_factory.session_scope() as session:
+         row = (
+             session.query(RcaCaseRow)
+@@ -545,7 +575,7 @@ def case_for_tenant(tenant_id: Optional[str], incident_id: str) -> Dict[str, Any
+         )
+         if row is None or not row.body:
+             raise HTTPException(status_code=404, detail="Incident not found")
+-        return row.body["case"]
++        return refresh_case_hypotheses(row.body["case"])
+ 
+ 
+ async def process_demo_alert(
+diff --git a/phase3/api/routers/auth.py b/phase3/api/routers/auth.py
+index 2fb5955..1b81e21 100644
+--- a/phase3/api/routers/auth.py
++++ b/phase3/api/routers/auth.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ import os
+ import re
+ import uuid
+-from typing import Any, Dict, List, Optional
++from typing import Any, Dict, List, Literal, Optional
+ 
+ from fastapi import APIRouter, Depends, Header, HTTPException, status
+ from pydantic import BaseModel, Field
+@@ -47,6 +47,11 @@ class MemberRoleRequest(BaseModel):
+     role: Role
+ 
+ 
++class AdminAccessRequest(BaseModel):
++    # NONE removes the account from every demo workspace (the account remains).
++    role: Literal["OWNER", "OPERATOR", "VIEWER", "NONE"]
++
++
+ def _normalize_email(email: str) -> str:
+     normalized = email.strip().lower()
+     if not _EMAIL_PATTERN.match(normalized):
+@@ -88,6 +93,110 @@ def _memberships_for(user_id: str) -> List[Dict[str, Any]]:
+         ]
+ 
+ 
++# ---------------------------------------------------------------------------
++# Administration
++# ---------------------------------------------------------------------------
++# An administrator is an account that is OWNER of every demo workspace. The
++# first registered account becomes one automatically; CAPSTONE_ADMIN_EMAIL /
++# CAPSTONE_ADMIN_PASSWORD create or promote one when the API starts; and
++# scripts/manage_users.py can promote an existing account from the terminal.
++
++
++def _workspace_ids() -> List[str]:
++    return list(TENANT_CONNECTIONS)
++
++
++def is_platform_admin(user_id: str) -> bool:
++    with _support.platform_session_factory.session_scope() as session:
++        roles = {
++            row.tenant_id: row.role
++            for row in session.query(TenantMembershipRow).filter_by(user_id=user_id).all()
++        }
++    return all(roles.get(tenant_id) == Role.OWNER.value for tenant_id in _workspace_ids())
++
++
++def require_platform_admin(user_id: str = Depends(current_user_id)) -> str:
++    if not is_platform_admin(user_id):
++        raise HTTPException(status_code=403, detail="Administrator access required")
++    return user_id
++
++
++def set_workspace_access(user_id: str, role: Optional[str]) -> None:
++    """Give an account one role in every demo workspace (None removes access)."""
++    ensure_demo_tenants()
++    with _support.platform_session_factory.session_scope() as session:
++        if session.get(UserRow, user_id) is None:
++            raise HTTPException(status_code=404, detail="Account not found")
++        memberships = {
++            row.tenant_id: row
++            for row in session.query(TenantMembershipRow).filter_by(user_id=user_id).all()
++        }
++        # Validate everything first so a refusal leaves no partial change.
++        for tenant_id in _workspace_ids():
++            current = memberships.get(tenant_id)
++            losing_owner = current is not None and current.role == Role.OWNER.value and role != Role.OWNER.value
++            if losing_owner and _owner_count(session, tenant_id) <= 1:
++                raise HTTPException(
++                    status_code=409,
++                    detail=f"Workspace {tenant_id} needs at least one owner",
++                )
++        for tenant_id in _workspace_ids():
++            current = memberships.get(tenant_id)
++            if role is None:
++                if current is not None:
++                    session.delete(current)
++            elif current is None:
++                session.add(
++                    TenantMembershipRow(
++                        membership_id=f"tm-{uuid.uuid4()}",
++                        user_id=user_id,
++                        tenant_id=tenant_id,
++                        role=role,
++                    )
++                )
++            else:
++                current.role = role
++
++
++def ensure_admin_account(email: str, password: Optional[str]) -> tuple[str, bool]:
++    """Create (or find) an account and make it OWNER of every demo workspace.
++
++    Returns (user_id, created). An existing account keeps its password.
++    """
++    normalized = _normalize_email(email)
++    ensure_demo_tenants()
++    with _support.platform_session_factory.session_scope() as session:
++        row = session.query(UserRow).filter_by(email=normalized).one_or_none()
++        user_id = row.user_id if row is not None else None
++    created = False
++    if user_id is None:
++        if not password:
++            raise HTTPException(status_code=422, detail="A password is required to create the admin")
++        _validate_password(password)
++        user_id = get_auth_service().register(normalized, password).user_id
++        created = True
++    set_workspace_access(user_id, Role.OWNER.value)
++    return user_id, created
++
++
++def bootstrap_admin_from_env() -> Optional[str]:
++    """Create/promote the admin named by CAPSTONE_ADMIN_EMAIL at API start."""
++    email = os.getenv("CAPSTONE_ADMIN_EMAIL", "").strip()
++    if not email:
++        return None
++    try:
++        user_id, created = ensure_admin_account(email, os.getenv("CAPSTONE_ADMIN_PASSWORD", ""))
++    except HTTPException as exc:
++        print(f"[auth] Could not set up admin {email}: {exc.detail}")
++        return None
++    print(
++        f"[auth] Admin account {'created' if created else 'confirmed'}: {email} "
++        "(owner of every demo workspace)"
++        + ("" if created else "; its existing password was left unchanged")
++    )
++    return user_id
++
++
+ def _session_payload(user_id: str, access_token: Optional[str] = None) -> Dict[str, Any]:
+     with _support.platform_session_factory.session_scope() as session:
+         row = session.get(UserRow, user_id)
+@@ -101,7 +210,12 @@ def _session_payload(user_id: str, access_token: Optional[str] = None) -> Dict[s
+         default=None,
+     )
+     payload: Dict[str, Any] = {
+-        "user": {"user_id": user_id, "email": email, "role": highest_role},
++        "user": {
++            "user_id": user_id,
++            "email": email,
++            "role": highest_role,
++            "is_admin": is_platform_admin(user_id),
++        },
+         "memberships": memberships,
+     }
+     if access_token is not None:
+@@ -326,4 +440,59 @@ def remove_member(
+         session.delete(membership)
+ 
+ 
+-__all__ = ["router"]
++def _account_rows() -> List[Dict[str, Any]]:
++    with _support.platform_session_factory.session_scope() as session:
++        users = (
++            session.query(UserRow)
++            .filter(UserRow.user_id != LEGACY_DEMO_USER_ID)
++            .order_by(UserRow.email)
++            .all()
++        )
++        tenants = {row.tenant_id: row.name for row in session.query(TenantRow).all()}
++        memberships: Dict[str, List[Dict[str, Any]]] = {}
++        for row in session.query(TenantMembershipRow).all():
++            memberships.setdefault(row.user_id, []).append(
++                {"tenant_id": row.tenant_id, "tenant_name": tenants.get(row.tenant_id, row.tenant_id), "role": row.role}
++            )
++        result = []
++        for user in users:
++            items = sorted(memberships.get(user.user_id, []), key=lambda item: item["tenant_name"])
++            roles = {item["tenant_id"]: item["role"] for item in items}
++            result.append(
++                {
++                    "user_id": user.user_id,
++                    "email": user.email,
++                    "created_at": user.created_at,
++                    "memberships": items,
++                    "is_admin": all(
++                        roles.get(tenant_id) == Role.OWNER.value for tenant_id in _workspace_ids()
++                    ),
++                }
++            )
++        return result
++
++
++@router.get("/admin/users")
++def admin_list_users(_admin: str = Depends(require_platform_admin)) -> List[Dict[str, Any]]:
++    return _account_rows()
++
++
++@router.put("/admin/users/{target_user_id}/access")
++def admin_set_access(
++    target_user_id: str,
++    payload: AdminAccessRequest,
++    admin_user_id: str = Depends(require_platform_admin),
++) -> Dict[str, Any]:
++    if target_user_id == admin_user_id and payload.role != Role.OWNER.value:
++        raise HTTPException(status_code=409, detail="You can't remove your own admin access")
++    set_workspace_access(target_user_id, None if payload.role == "NONE" else payload.role)
++    return next(item for item in _account_rows() if item["user_id"] == target_user_id)
++
++
++__all__ = [
++    "bootstrap_admin_from_env",
++    "ensure_admin_account",
++    "is_platform_admin",
++    "router",
++    "set_workspace_access",
++]
+diff --git a/phase3/api/routers/incidents.py b/phase3/api/routers/incidents.py
+index 345df81..4990cb1 100644
+--- a/phase3/api/routers/incidents.py
++++ b/phase3/api/routers/incidents.py
+@@ -68,7 +68,7 @@ def list_incidents(
+         for row in rows:
+             if not row.body or not row.body.get("case"):
+                 continue
+-            case = dict(row.body["case"])
++            case = _support.refresh_case_hypotheses(dict(row.body["case"]))
+             incident = incidents.get(row.incident_id)
+             if incident is not None:
+                 case.update(
+diff --git a/phase3/api/routers/notifications.py b/phase3/api/routers/notifications.py
+index b82686c..056481b 100644
+--- a/phase3/api/routers/notifications.py
++++ b/phase3/api/routers/notifications.py
+@@ -1,9 +1,10 @@
+ """Notification delivery query endpoints."""
+ 
+-from typing import Any, Dict, Optional
++import re
++from typing import Any, Dict, List, Literal, Optional
+ 
+ from fastapi import APIRouter, Depends, Header, HTTPException
+-from pydantic import BaseModel
++from pydantic import BaseModel, Field
+ 
+ from phase3.db.models import RcaCaseRow, UserRow
+ 
+@@ -11,10 +12,19 @@ from ..alert_notifications import (
+     SUPPORTED_CHANNELS,
+     build_test_payload,
+     channel_statuses,
++    clear_workspace_email_settings,
++    email_settings_summary,
++    save_workspace_email_settings,
+     send_alert_notification,
+ )
+ from . import _support
+-from ._support import require_operator_membership, require_tenant_membership
++from ._support import (
++    require_operator_membership,
++    require_owner_membership,
++    require_tenant_membership,
++)
++
++_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+ 
+ router = APIRouter(
+     tags=["phase3-demo"],
+@@ -66,7 +76,65 @@ async def send_test_notification(
+         build_test_payload(resolved_tenant, actor_email),
+         resolved_tenant,
+         subject="[TEST] CAPSTONE-189 notification channel check",
++        # A test email goes only to the person who asked for it.
++        email_recipients=[actor_email] if "@" in actor_email else None,
+     )
+ 
+ 
++class EmailSettingsRequest(BaseModel):
++    host: str = Field(..., min_length=1, max_length=255)
++    port: int = Field(587, ge=1, le=65535)
++    security: Literal["starttls", "ssl", "none"] = "starttls"
++    username: str = Field(..., min_length=1, max_length=255)
++    password: Optional[str] = Field(None, max_length=255)
++    sender: Optional[str] = Field(None, max_length=255)
++    recipients: List[str] = Field(default_factory=list, max_length=50)
++
++
++@router.get("/notifications/email-settings")
++def get_email_settings(
++    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
++) -> Dict[str, Any]:
++    return email_settings_summary(_support._tenant_header(tenant_id))
++
++
++@router.put("/notifications/email-settings")
++def put_email_settings(
++    payload: EmailSettingsRequest,
++    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
++    _owner: str = Depends(require_owner_membership),
++) -> Dict[str, Any]:
++    resolved_tenant = _support._tenant_header(tenant_id)
++    sender = (payload.sender or payload.username).strip()
++    if not _EMAIL.match(sender):
++        raise HTTPException(status_code=422, detail="The sender must be an email address")
++    bad = [item for item in payload.recipients if item.strip() and not _EMAIL.match(item.strip())]
++    if bad:
++        raise HTTPException(status_code=422, detail=f"Not an email address: {', '.join(bad)}")
++    try:
++        save_workspace_email_settings(
++            resolved_tenant,
++            host=payload.host,
++            port=payload.port,
++            security=payload.security,
++            username=payload.username,
++            password=payload.password,
++            sender=sender,
++            recipients=payload.recipients,
++        )
++    except ValueError as exc:
++        raise HTTPException(status_code=422, detail=str(exc)) from exc
++    return email_settings_summary(resolved_tenant)
++
++
++@router.delete("/notifications/email-settings")
++def delete_email_settings(
++    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
++    _owner: str = Depends(require_owner_membership),
++) -> Dict[str, Any]:
++    resolved_tenant = _support._tenant_header(tenant_id)
++    clear_workspace_email_settings(resolved_tenant)
++    return email_settings_summary(resolved_tenant)
++
++
+ __all__ = ["router"]
+diff --git a/phase3/api/routers/rca.py b/phase3/api/routers/rca.py
+index 3142629..d934aa8 100644
+--- a/phase3/api/routers/rca.py
++++ b/phase3/api/routers/rca.py
+@@ -33,7 +33,7 @@ def _rca_record(tenant_id: Optional[str], incident_id: str) -> Dict[str, Any]:
+         )
+         if row is None or not row.body:
+             raise HTTPException(status_code=404, detail="Incident not found")
+-        return row.body
++        return {**row.body, "case": _support.refresh_case_hypotheses(row.body["case"])}
+ 
+ 
+ def _typed_case(record: Dict[str, Any]) -> RCACase:
+diff --git a/phase3/knowledge/knowledge_base.yaml b/phase3/knowledge/knowledge_base.yaml
+index a0ee835..5cf016b 100644
+--- a/phase3/knowledge/knowledge_base.yaml
++++ b/phase3/knowledge/knowledge_base.yaml
+@@ -1,4 +1,4 @@
+-kb_version: "2.1.0"
++kb_version: "2.2.0"
+ causes:
+   - cause_category: "CREDENTIAL_THEFT"
+     title: "Possible credential misuse"
+@@ -23,7 +23,7 @@ causes:
+   - cause_category: "PRIVILEGE_ESCALATION"
+     title: "Possible privilege escalation"
+     definition: "A privilege-escalation indicator occurring with unusual file access or data-transfer behavior can suggest that an identity or workload accessed capabilities beyond its established pattern."
+-    how_it_shows_up: "This category requires privilege_escalation_attempt together with file_access_spike or new_data_exfiltration_pattern and a final score above the configured threshold."
++    how_it_shows_up: "Selected when privilege_escalation_attempt occurs with file_access_spike or new_data_exfiltration_pattern above the configured score threshold, or when the versioned privilege- and policy-misuse signature (privileged API calls, policy changes, or storage reads increasing) matches with MEDIUM or HIGH confidence."
+     common_causes:
+       - "An unapproved permission grant or role assumption may have expanded access."
+       - "A deployment, incident response task, or scheduled automation may have used elevated permissions legitimately."
+@@ -43,7 +43,7 @@ causes:
+   - cause_category: "NETWORK_RECONNAISSANCE"
+     title: "Possible network reconnaissance"
+     definition: "A port-scan indicator combined with discovery of new IPs or a lateral-probe burst can be consistent with systematic service or asset discovery."
+-    how_it_shows_up: "This category requires port_scan_count together with new_ip_discovery or lateral_probe_burst and a final score above the configured threshold."
++    how_it_shows_up: "Selected when port_scan_count occurs with new_ip_discovery or lateral_probe_burst above the configured score threshold, or when the versioned reconnaissance signature (application requests and east-west connections increasing) matches with MEDIUM or HIGH confidence."
+     common_causes:
+       - "An unauthorized actor may be mapping reachable services or adjacent resources."
+       - "An approved vulnerability scanner, inventory job, or deployment health check may create similar traffic."
+@@ -112,6 +112,209 @@ causes:
+         risk: "LOW"
+     limitations: "This is comparative evidence and should be verified with operational records."
+     further_reading: "Match the entity against similar historical episodes and resource inventories."
++  - cause_category: "IDENTITY_MISUSE"
++    title: "Possible identity or credential misuse"
++    definition: "Authentication failures and API activity changed together in a way that can be consistent with a credential being used outside its normal pattern or being guessed."
++    how_it_shows_up: "Selected when a versioned credential-misuse or repeated-authentication-failure signature (API calls, authentication failures, or failed logins increasing) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "An exposed or stolen credential may be in use, or passwords may be being guessed."
++      - "A misconfigured client or expired secret may be retrying with bad credentials."
++      - "A credential rotation, new integration, or CI/CD job may change API and sign-in patterns."
++    why_it_matters: "Identity misuse can give access to cloud resources; these metrics alone do not show which principal acted or whether access succeeded."
++    recommended_checks:
++      - check: "Review the identity provider and cloud audit records for ${entity_id} in the alert window."
++        why: "Audit records show which principals failed or succeeded and from where."
++        expected_result: "Failures and calls are attributed to known principals, or unknown sources are listed for review."
++        risk: "LOW"
++      - check: "Check for recent credential rotations, new API keys, or client deployments."
++        why: "Expired or rotated secrets are a common benign cause of authentication failures."
++        expected_result: "A rotation or deployment explains the failures, or none is found and access is reviewed."
++        risk: "LOW"
++    limitations: "Aggregate counts lack source IP, principal, and session data; a signature match is a lead, not attribution."
++    further_reading: "Use identity-provider sign-in logs and cloud audit trails to attribute the activity."
++  - cause_category: "CROSS_RESOURCE_ACCESS"
++    title: "Possible cross-resource access"
++    definition: "Connections between internal resources increased in a way that can be consistent with an identity or workload reaching resources it does not normally use."
++    how_it_shows_up: "Selected when the versioned cross-resource access signature (east-west connections increasing, optionally with security-group changes) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "A compromised workload or credential may be used to reach adjacent resources."
++      - "A new service dependency, migration, or batch job may legitimately open new internal paths."
++      - "A network or security-group change may alter normal traffic routes."
++    why_it_matters: "Unexpected internal reach can widen the impact of a single compromised resource, but new internal traffic is also a normal part of change."
++    recommended_checks:
++      - check: "Compare the new internal connection pairs with the approved service dependency map for ${entity_id}."
++        why: "Known dependencies explain most new east-west traffic."
++        expected_result: "Each new path maps to an approved dependency or is listed for review."
++        risk: "LOW"
++      - check: "Review recent security-group and network-policy changes in ${region}."
++        why: "A policy change can open paths that were previously blocked."
++        expected_result: "Changes are linked to an approved request or flagged as unexplained."
++        risk: "LOW"
++    limitations: "Flow sampling and NAT can hide the true source; connection counts alone do not show which identity initiated the traffic."
++    further_reading: "Use read-only VPC or NSG flow logs and the service dependency inventory to corroborate."
++  - cause_category: "UNUSUAL_DATA_TRANSFER"
++    title: "Possible unusual data transfer"
++    definition: "Storage reads and outbound network volume rose together, which can be consistent with data being collected and moved out of its usual location."
++    how_it_shows_up: "Selected when the versioned data-transfer signature (storage reads and egress bytes increasing) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "An identity or workload may be copying data to an unapproved destination."
++      - "A backup, replication, analytics export, or migration job may move large volumes legitimately."
++      - "A CDN, cache, or client behaviour change may raise egress without a data-handling concern."
++    why_it_matters: "Large unexplained outbound transfers can indicate data exposure; confirming the destination and the actor is the deciding evidence."
++    recommended_checks:
++      - check: "Identify the destinations of outbound traffic from ${entity_id} during the alert window."
++        why: "Known backup or partner destinations explain most large transfers."
++        expected_result: "Destinations match approved endpoints, or unknown destinations are listed for review."
++        risk: "LOW"
++      - check: "Review storage access logs for the principals reading data in the same window."
++        why: "Matching the reader to the transfer distinguishes routine jobs from unexpected access."
++        expected_result: "Reads are attributed to an approved job or principal."
++        risk: "LOW"
++    limitations: "Volume metrics do not show content or destination; confirmation requires flow and storage access records."
++    further_reading: "Use cloud storage access logs and egress flow records to attribute the transfer."
++  - cause_category: "RESOURCE_ABUSE"
++    title: "Possible compute or service abuse"
++    definition: "Compute, function, or resource-creation activity rose in a way that can be consistent with resources being used for an unapproved purpose."
++    how_it_shows_up: "Selected when a versioned resource-abuse signature (for example CPU with unusual egress, serverless invocations and duration, or new resource creation) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "Malware, cryptomining, or a compromised function may consume capacity."
++      - "A new workload, load test, or scheduled batch job may raise usage legitimately."
++      - "An autoscaling or deployment change may create resources as designed."
++    why_it_matters: "Abused resources raise cost and can be a foothold for further activity; usage alone does not show intent."
++    recommended_checks:
++      - check: "List processes, functions, or resources created or started on ${entity_id} around the alert window."
++        why: "An unknown process or resource is the clearest indicator of misuse."
++        expected_result: "All activity maps to known workloads or deployments."
++        risk: "LOW"
++      - check: "Compare the usage increase with recent deployments and scaling events."
++        why: "Planned changes explain most capacity increases."
++        expected_result: "A deployment or scaling event accounts for the change, or the gap is documented."
++        risk: "LOW"
++    limitations: "Utilization metrics cannot identify the process or actor responsible."
++    further_reading: "Use cloud audit logs, instance inventory, and function invocation logs to attribute usage."
++  - cause_category: "DESTRUCTIVE_ACTIVITY"
++    title: "Possible destructive storage activity"
++    definition: "Storage writes increased in a pattern that can be consistent with bulk modification, encryption, or deletion of data."
++    how_it_shows_up: "Selected when the versioned destructive-storage signature (write operations increasing, optionally with deletes rising or object counts falling) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "Ransomware or a compromised identity may be rewriting or deleting data."
++      - "A data migration, compaction, or retention job may rewrite data legitimately."
++      - "A faulty deployment may write or delete data unexpectedly."
++    why_it_matters: "Bulk destructive changes can be hard to reverse; confirming recoverability early limits impact."
++    recommended_checks:
++      - check: "Confirm that recent backups or snapshots of the affected storage on ${entity_id} exist and are intact."
++        why: "Recovery options determine how urgent containment is."
++        expected_result: "A recent restorable backup is confirmed, or the gap is escalated."
++        risk: "LOW"
++      - check: "Review the principals and jobs writing to the storage during the alert window."
++        why: "Attribution separates scheduled jobs from unexpected writers."
++        expected_result: "Writers are approved jobs, or unknown writers are listed for review."
++        risk: "LOW"
++    limitations: "Write volume does not show whether data was encrypted or deleted; object-level audit records are needed."
++    further_reading: "Use storage access logs and backup inventory to confirm scope and recoverability."
++  - cause_category: "SERVICE_DISRUPTION"
++    title: "Possible volumetric service disruption"
++    definition: "Request volume, inbound traffic, and latency rose together, which can be consistent with a service being overwhelmed."
++    how_it_shows_up: "Selected when the versioned volumetric-disruption signature (requests, ingress, and latency increasing) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "A denial-of-service attempt may be flooding the service."
++      - "A marketing event, retry storm, or client bug may raise legitimate load."
++      - "An upstream dependency slowdown may raise latency and trigger retries."
++    why_it_matters: "Sustained overload affects availability; the source distribution of requests separates attacks from organic surges."
++    recommended_checks:
++      - check: "Review the distribution of request sources and user agents for ${entity_id}."
++        why: "Concentrated or unusual sources suggest abuse; broad organic sources suggest real demand."
++        expected_result: "Traffic sources are characterized as organic or concentrated."
++        risk: "LOW"
++      - check: "Check dependency health and error rates in ${region} for the same window."
++        why: "Upstream issues can produce the same latency pattern."
++        expected_result: "Dependencies are healthy, or a dependency issue explains the latency."
++        risk: "LOW"
++    limitations: "Aggregate volume metrics cannot distinguish malicious from legitimate clients."
++    further_reading: "Use load-balancer access logs and provider DDoS protection reports to corroborate."
++  - cause_category: "CONFIGURATION_CHANGE"
++    title: "Possible security-relevant configuration change"
++    definition: "Configuration, exposure, or logging behaviour changed in a way that can affect the resource's security posture or visibility."
++    how_it_shows_up: "Selected when a versioned configuration signature (for example configuration changes with anonymous requests, or a drop in audit log volume) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "A resource may have been made public or had logging reduced, accidentally or deliberately."
++      - "An approved change window may include configuration and logging updates."
++      - "A logging pipeline fault may reduce audit volume without any configuration change."
++    why_it_matters: "Exposure and reduced logging both make later incidents harder to detect and investigate."
++    recommended_checks:
++      - check: "Review configuration and access-policy changes for ${entity_id} in the alert window."
++        why: "The change record shows who changed what and whether it was approved."
++        expected_result: "Changes map to an approved request, or are flagged as unexplained."
++        risk: "LOW"
++      - check: "Confirm audit logging is enabled and delivering for the resource."
++        why: "A logging gap would hide other activity."
++        expected_result: "Audit logs are complete for the window, or the gap is documented."
++        risk: "LOW"
++    limitations: "Metric-level evidence cannot show the exact setting that changed; configuration history is required."
++    further_reading: "Use the provider's configuration history and audit trail to identify the change."
++  - cause_category: "DEPLOYMENT_CHANGE"
++    title: "Likely deployment-related change"
++    definition: "Compute and write activity changed in a pattern consistent with a software rollout or configuration deployment."
++    how_it_shows_up: "Selected when the versioned planned-deployment signature (CPU and disk writes rising together) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "A planned release or configuration rollout."
++      - "An unannounced deployment or hotfix."
++      - "A deployment that triggered unexpected resource use."
++    why_it_matters: "Linking an alert to a deployment usually resolves it quickly; an unexplained deployment is itself worth reviewing."
++    recommended_checks:
++      - check: "Match the alert window against the deployment log for ${entity_id}."
++        why: "A matching deployment is the most likely explanation."
++        expected_result: "A deployment record covers the window, or none exists and the change is reviewed."
++        risk: "LOW"
++    limitations: "The pattern resembles a deployment; it does not confirm that one happened."
++    further_reading: "Use CI/CD history and change-management records."
++  - cause_category: "TRAFFIC_CHANGE"
++    title: "Gradual workload growth"
++    definition: "Request and write volume grew in a gradual pattern consistent with organic demand."
++    how_it_shows_up: "Selected when the versioned workload-growth signature matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "Organic user or customer growth."
++      - "A new client or integration adding load."
++      - "Seasonal demand."
++    why_it_matters: "Growth is usually benign but can approach capacity limits; it may justify re-baselining."
++    recommended_checks:
++      - check: "Compare the growth rate with business metrics and capacity limits for ${entity_id}."
++        why: "Organic growth tracks business activity; capacity headroom determines urgency."
++        expected_result: "Growth is explained by demand and capacity is sufficient, or a capacity action is planned."
++        risk: "LOW"
++    limitations: "A slow ramp can also hide gradual abuse; review sources if growth is unexplained."
++    further_reading: "Use traffic analytics and capacity dashboards."
++  - cause_category: "CLOUD_PROVIDER_EVENT"
++    title: "Possible provider or regional event"
++    definition: "Errors and latency rose in a pattern consistent with a provider-side or regional service issue rather than a change in this resource."
++    how_it_shows_up: "Selected when the versioned provider-regional-event signature (regional error rate and latency increasing) matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "A cloud provider incident in ${region}."
++      - "A regional network issue between services."
++      - "A shared dependency outage."
++    why_it_matters: "Provider events need tracking and communication rather than changes to the resource itself."
++    recommended_checks:
++      - check: "Check the ${cloud_provider} service health dashboard for ${region}."
++        why: "A published incident confirms the cause."
++        expected_result: "A provider incident matches the window, or none is reported."
++        risk: "LOW"
++    limitations: "Provider status pages can lag; absence of a posted incident does not rule one out."
++    further_reading: "Use the provider's service health history for the region."
++  - cause_category: "BASELINE_ACTIVITY"
++    title: "Activity consistent with the baseline"
++    definition: "The observed signals resemble the resource's normal operating pattern."
++    how_it_shows_up: "Selected when the versioned stable-baseline signature matches the case evidence with MEDIUM or HIGH confidence."
++    common_causes:
++      - "Normal operation that crossed a low alerting threshold."
++      - "Minor noise in telemetry."
++    why_it_matters: "Recognising normal activity avoids unnecessary investigation and supports tuning thresholds."
++    recommended_checks:
++      - check: "Confirm the alert score is low and no related incidents are open for ${entity_id}."
++        why: "Low scores with no related activity rarely need action."
++        expected_result: "The alert can be resolved as expected behaviour, or a related signal is found."
++        risk: "LOW"
++    limitations: "A baseline-like pattern does not rule out slow changes outside the observed metrics."
++    further_reading: "Review entity history before closing repeated low-score alerts."
+   - cause_category: "UNKNOWN"
+     title: "Unknown or insufficient evidence"
+     definition: "The case does not yet match a confident rule and needs a manual review."
+diff --git a/phase3/rca/hypothesis_engine.py b/phase3/rca/hypothesis_engine.py
+index 4375ab1..eeb7900 100644
+--- a/phase3/rca/hypothesis_engine.py
++++ b/phase3/rca/hypothesis_engine.py
+@@ -10,17 +10,45 @@ import yaml
+ from phase3.rca.confidence_scorer import ConfidenceScorer
+ from phase3.rca.types import CandidateCause, RCACase
+ 
++# Score-only categories that a matched threat signature should outrank.
++_GENERIC_CATEGORIES = {"BEHAVIOR_CHANGE", "DRIFT", "RESOURCE_CHANGE", "UNKNOWN"}
++# Signature keys look like "changed_features.api_calls.increase"; the prefix is
++# the RCACase field that holds the supporting evidence.
++_EVIDENCE_FIELDS = (
++    "changed_features",
++    "component_scores",
++    "observed_window",
++    "similar_episodes",
++    "cloud_provider",
++)
++
+ 
+ class HypothesisEngine:
+     """First-match-wins hypothesis engine mirroring the escalation rule pattern."""
+ 
+-    def __init__(self, rules_path: str | Path | None = None):
++    def __init__(self, rules_path: str | Path | None = None, threat_matcher: Any = None):
+         self._rules_path = (
+             Path(rules_path)
+             if rules_path is not None
+             else Path(__file__).with_name("hypothesis_rules.yaml")
+         )
+         self._rules = self._load_rules(self._rules_path)
++        self._threat_categories = self._load_threat_categories(self._rules_path)
++        # Optional ThreatSignatureMatcher. Without one, only score rules apply.
++        self._threat_matcher = threat_matcher
++
++    @property
++    def threat_categories(self) -> dict[str, str]:
++        return dict(self._threat_categories)
++
++    @staticmethod
++    def _load_threat_categories(path: str | Path) -> dict[str, str]:
++        with open(path, "r", encoding="utf-8") as handle:
++            data = yaml.safe_load(handle) or {}
++        mapping = data.get("threat_categories") or {}
++        if not isinstance(mapping, dict):
++            raise ValueError("threat_categories must map threat ids to cause categories")
++        return {str(key): str(value).upper() for key, value in mapping.items()}
+ 
+     @staticmethod
+     def _load_rules(path: str | Path) -> list[dict[str, Any]]:
+@@ -32,8 +60,56 @@ class HypothesisEngine:
+         return rules
+ 
+     def generate(self, rca_case: RCACase) -> list[CandidateCause]:
++        """Rank candidate causes: a matched threat signature, then the score rule."""
++        return self.rank([self._rule_candidate(rca_case)], self.threat_candidate(rca_case))
++
++    @staticmethod
++    def rank(
++        existing: list[CandidateCause], threat_candidate: CandidateCause | None
++    ) -> list[CandidateCause]:
++        """Merge a signature-based candidate into score-rule candidates."""
++        if threat_candidate is None or not existing:
++            return list(existing) or ([threat_candidate] if threat_candidate else [])
++        top = existing[0]
++        if top.cause_category == threat_candidate.cause_category:
++            return list(existing)
++        if top.cause_category not in _GENERIC_CATEGORIES:
++            # A named-indicator rule fired; it stays first.
++            return [*existing, threat_candidate]
++        rest = [item for item in existing if item.cause_category != "UNKNOWN"]
++        return [threat_candidate, *rest]
++
++    def threat_candidate(self, rca_case: RCACase) -> CandidateCause | None:
++        if self._threat_matcher is None or not self._threat_categories:
++            return None
++        match = next(
++            (
++                item
++                for item in self._threat_matcher.match(rca_case)
++                if item.match_confidence in {"HIGH", "MEDIUM"}
++            ),
++            None,
++        )
++        if match is None or match.threat_id not in self._threat_categories:
++            return None
++        supporting = []
++        for key in match.matched_signal_keys:
++            field = str(key).split(".", 1)[0]
++            if field in _EVIDENCE_FIELDS and field not in supporting:
++                supporting.append(field)
++        return CandidateCause(
++            cause_category=self._threat_categories[match.threat_id],
++            confidence=match.match_confidence,
++            # Named after the category, never the internal signature id, so
++            # responses cannot echo the scenario that generated the data.
++            rule_id=f"rca.threat_signature.{self._threat_categories[match.threat_id].lower()}",
++            supporting_evidence_keys=supporting,
++            contradicting_evidence_keys=[],
++        )
++
++    def _rule_candidate(self, rca_case: RCACase) -> CandidateCause:
+         if not self._rules:
+-            return [self._unknown_candidate()]
++            return self._unknown_candidate()
+ 
+         component_scores = rca_case.component_scores or {}
+         scope = {"case": rca_case, "scores": component_scores}
+@@ -54,9 +130,9 @@ class HypothesisEngine:
+                     contradicting_evidence_keys=list(rule.get("contradicting_evidence_keys") or []),
+                 )
+                 candidate.confidence = ConfidenceScorer.score(candidate, rca_case)
+-                return [candidate]
++                return candidate
+ 
+-        return [self._unknown_candidate()]
++        return self._unknown_candidate()
+ 
+     @staticmethod
+     def _unknown_candidate() -> CandidateCause:
+diff --git a/phase3/rca/hypothesis_rules.yaml b/phase3/rca/hypothesis_rules.yaml
+index 8d2e280..b2dce15 100644
+--- a/phase3/rca/hypothesis_rules.yaml
++++ b/phase3/rca/hypothesis_rules.yaml
+@@ -42,3 +42,26 @@ rules:
+     condition: "True"
+     supporting_evidence_keys: []
+     contradicting_evidence_keys: ["component_scores"]
++# Threat-signature evidence (phase3/knowledge/threat_signatures.yaml) maps to a
++# cause category. When a signature matches with MEDIUM or HIGH confidence the
++# engine adds a candidate with that category, ranked ahead of the generic
++# score-based categories (BEHAVIOR_CHANGE, DRIFT, RESOURCE_CHANGE, UNKNOWN).
++# Signatures without an entry here (e.g. ambiguous_change) add no candidate.
++threat_categories:
++  credential_theft: "IDENTITY_MISUSE"
++  brute_force_login: "IDENTITY_MISUSE"
++  insider_threat: "PRIVILEGE_ESCALATION"
++  network_scan: "NETWORK_RECONNAISSANCE"
++  lateral_movement: "CROSS_RESOURCE_ACCESS"
++  data_exfiltration: "UNUSUAL_DATA_TRANSFER"
++  malware_execution: "RESOURCE_ABUSE"
++  function_abuse: "RESOURCE_ABUSE"
++  rogue_resources: "RESOURCE_ABUSE"
++  ransomware: "DESTRUCTIVE_ACTIVITY"
++  ddos_volumetric: "SERVICE_DISRUPTION"
++  public_exposure: "CONFIGURATION_CHANGE"
++  log_tampering: "CONFIGURATION_CHANGE"
++  planned_deployment: "DEPLOYMENT_CHANGE"
++  organic_growth: "TRAFFIC_CHANGE"
++  provider_regional_event: "CLOUD_PROVIDER_EVENT"
++  benign_baseline: "BASELINE_ACTIVITY"
+diff --git a/scripts/manage_users.py b/scripts/manage_users.py
+new file mode 100644
+index 0000000..ae5bdd0
+--- /dev/null
++++ b/scripts/manage_users.py
+@@ -0,0 +1,116 @@
++"""Manage dashboard accounts from the terminal.
++
++Run from the repository root with the same environment as the API (in
++particular the same CAPSTONE_DATABASE_URL), e.g.:
++
++    python -m scripts.manage_users list
++    python -m scripts.manage_users promote you@example.com            # make admin
++    python -m scripts.manage_users promote you@example.com --role OPERATOR
++    python -m scripts.manage_users create-admin admin@example.com     # prompts for a password
++    python -m scripts.manage_users reset-password you@example.com     # prompts for a new password
++
++"Admin" means OWNER of every demo workspace: it unlocks the Admin console,
++member management, and every operator action.
++"""
++
++from __future__ import annotations
++
++import argparse
++import getpass
++import os
++import sys
++
++import bcrypt
++from fastapi import HTTPException
++
++from phase3.api.routers import _support
++from phase3.api.routers.auth import (
++    _account_rows,
++    _normalize_email,
++    _validate_password,
++    ensure_admin_account,
++    set_workspace_access,
++)
++from phase3.db.models import UserRow
++
++
++def _prompt_password(confirm: bool = True) -> str:
++    password = getpass.getpass("Password: ")
++    if confirm and getpass.getpass("Repeat password: ") != password:
++        raise SystemExit("Passwords do not match.")
++    return password
++
++
++def _user_id_for(email: str) -> str:
++    with _support.platform_session_factory.session_scope() as session:
++        row = session.query(UserRow).filter_by(email=_normalize_email(email)).one_or_none()
++        if row is None:
++            raise SystemExit(f"No account uses {email}. Register it in the dashboard first.")
++        return row.user_id
++
++
++def cmd_list(_args: argparse.Namespace) -> None:
++    rows = _account_rows()
++    if not rows:
++        print("No accounts yet. Register one in the dashboard.")
++        return
++    for row in rows:
++        roles = ", ".join(f"{item['tenant_name']}={item['role'].lower()}" for item in row["memberships"]) or "no access"
++        print(f"{row['email']:<40} {'ADMIN' if row['is_admin'] else '':<6} {roles}")
++
++
++def cmd_promote(args: argparse.Namespace) -> None:
++    user_id = _user_id_for(args.email)
++    set_workspace_access(user_id, args.role)
++    label = "an admin (owner of every workspace)" if args.role == "OWNER" else f"{args.role.lower()} in every workspace"
++    print(f"{args.email} is now {label}. Sign out and back in to refresh the dashboard.")
++
++
++def cmd_create_admin(args: argparse.Namespace) -> None:
++    password = os.getenv(args.password_env, "") if args.password_env else ""
++    with _support.platform_session_factory.session_scope() as session:
++        exists = session.query(UserRow).filter_by(email=_normalize_email(args.email)).one_or_none() is not None
++    if not exists and not password:
++        password = _prompt_password()
++    _, created = ensure_admin_account(args.email, password or None)
++    print(f"{'Created' if created else 'Promoted existing account'} {args.email} as admin.")
++
++
++def cmd_reset_password(args: argparse.Namespace) -> None:
++    user_id = _user_id_for(args.email)
++    password = _prompt_password()
++    _validate_password(password)
++    rounds = int(os.getenv("PLATFORM_BCRYPT_ROUNDS", "12"))
++    digest = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=rounds)).decode("utf-8")
++    with _support.platform_session_factory.session_scope() as session:
++        session.get(UserRow, user_id).password_hash = digest
++    print(f"Password updated for {args.email}.")
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description="Manage CAPSTONE-189 dashboard accounts.")
++    sub = parser.add_subparsers(dest="command", required=True)
++    sub.add_parser("list", help="List accounts and their roles").set_defaults(func=cmd_list)
++    promote = sub.add_parser("promote", help="Set an account's role in every workspace (default: admin)")
++    promote.add_argument("email")
++    promote.add_argument("--role", choices=["OWNER", "OPERATOR", "VIEWER"], default="OWNER")
++    promote.set_defaults(func=cmd_promote)
++    create = sub.add_parser("create-admin", help="Create an admin account (or promote an existing one)")
++    create.add_argument("email")
++    create.add_argument("--password-env", help="Read the password from this environment variable instead of prompting")
++    create.set_defaults(func=cmd_create_admin)
++    reset = sub.add_parser("reset-password", help="Set a new password for an account")
++    reset.add_argument("email")
++    reset.set_defaults(func=cmd_reset_password)
++
++    args = parser.parse_args(argv)
++    try:
++        args.func(args)
++    except HTTPException as exc:
++        print(f"Error: {exc.detail}", file=sys.stderr)
++        return 1
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/tests/integration/phase3/test_alert_notifications.py b/tests/integration/phase3/test_alert_notifications.py
+index 89c5b39..2ae338b 100644
+--- a/tests/integration/phase3/test_alert_notifications.py
++++ b/tests/integration/phase3/test_alert_notifications.py
+@@ -104,23 +104,142 @@ def test_slack_webhook_receives_alert_and_http_errors_surface(client, monkeypatc
+     assert "HTTP 403" in failed["message"]
+ 
+ 
+-def test_email_goes_to_every_member_of_the_workspace(client, monkeypatch):
+-    owner = _session(client, "owner@example.com")
+-    _session(client, "teammate@example.com")
++class _FakeSMTP:
++    """Stands in for smtplib.SMTP / SMTP_SSL and records what would be sent."""
++
+     sent = []
+ 
+-    async def fake_send(recipient, alert_data, subject_override=None):
+-        sent.append((recipient, subject_override))
+-        return {"sent": True}
++    def __init__(self, host, port, timeout=None, context=None):
++        self.host, self.port, self.tls, self.login_as = host, port, False, None
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *exc):
++        return False
++
++    def starttls(self, context=None):
++        self.tls = True
++
++    def login(self, username, password):
++        if password != "app-password-1234":
++            import smtplib
++
++            raise smtplib.SMTPAuthenticationError(535, b"bad credentials")
++        self.login_as = username
++
++    def send_message(self, message):
++        _FakeSMTP.sent.append(
++            {"host": self.host, "port": self.port, "tls": self.tls, "login": self.login_as,
++             "to": message["To"], "from": message["From"], "subject": message["Subject"]}
++        )
+ 
++
++@pytest.fixture
++def fake_smtp(monkeypatch):
++    from phase3.api import email_service
++
++    _FakeSMTP.sent = []
++    monkeypatch.setattr(email_service.smtplib, "SMTP", _FakeSMTP)
++    monkeypatch.setattr(email_service.smtplib, "SMTP_SSL", _FakeSMTP)
++    return _FakeSMTP
++
++
++def test_test_email_goes_only_to_the_requester_and_alerts_to_every_member(client, monkeypatch, fake_smtp):
++    owner = {**_session(client, "owner@example.com"), "X-Tenant-Id": "acme"}
++    _session(client, "teammate@example.com")
+     monkeypatch.setenv("DEMO_EMAIL_SENDER", "alerts@example.com")
+-    monkeypatch.setenv("DEMO_EMAIL_PASSWORD", "abcd efgh ijkl mnop")
+-    monkeypatch.setattr(EmailService, "send_alert_email_result", staticmethod(fake_send))
++    monkeypatch.setenv("DEMO_EMAIL_PASSWORD", "app-password-1234")
+ 
+     result = client.post("/notifications/test", headers=owner, json={"channel": "EMAIL"}).json()
++    assert result["status"] == "sent", result
++    assert fake_smtp.sent[-1]["to"] == "owner@example.com"
++    assert fake_smtp.sent[-1]["subject"].startswith("[TEST]")
++    assert fake_smtp.sent[-1]["host"] == "smtp.gmail.com" and fake_smtp.sent[-1]["tls"] is True
+ 
+-    assert result["status"] == "sent"
+-    assert sent == [("owner@example.com, teammate@example.com", "[TEST] CAPSTONE-189 notification channel check")]
++    try:
++        alert = client.post(
++            "/demo/generate/alert",
++            headers=owner,
++            json={"tenant_id": "acme", "scenario": "credential_theft", "notify_method": "EMAIL"},
++        )
++        assert alert.status_code == 200, alert.text
++        assert alert.json()["notification"]["status"] == "sent"
++        assert fake_smtp.sent[-1]["to"] == "owner@example.com, teammate@example.com"
++    finally:
++        assert client.post("/demo/reset", headers=owner).status_code == 200
++
++
++def test_workspace_email_settings_are_owner_only_and_never_reveal_the_password(client, fake_smtp):
++    from phase3.api.alert_notifications import load_workspace_email_settings
++
++    owner = _session(client, "owner@example.com")
++    viewer = _session(client, "viewer@example.com")
++    body = {
++        "host": "smtp.office365.com", "port": 587, "security": "starttls",
++        "username": "alerts@contoso.example", "password": "app-password-1234",
++        "recipients": ["soc@contoso.example"],
++    }
++
++    assert client.put("/notifications/email-settings", headers=viewer, json=body).status_code == 403
++    saved = client.put("/notifications/email-settings", headers=owner, json=body)
++    assert saved.status_code == 200, saved.text
++    summary = saved.json()
++    assert summary["source"] == "workspace" and summary["ready"] is True
++    assert summary["password_set"] is True
++    assert "app-password-1234" not in saved.text
++    stored = load_workspace_email_settings("google")
++    assert "app-password-1234" not in str(stored)
++    assert stored["password_ciphertext"]
++
++    # Viewers can read the (password-free) summary.
++    assert client.get("/notifications/email-settings", headers=viewer).json()["host"] == "smtp.office365.com"
++
++    # A blank password keeps the saved one; other fields update.
++    updated = client.put(
++        "/notifications/email-settings", headers=owner,
++        json={**body, "password": "", "port": 465, "security": "ssl"},
++    ).json()
++    assert updated["port"] == 465 and updated["password_set"] is True
++
++    statuses = {item["channel"]: item for item in client.get("/notifications/channels", headers=owner).json()}
++    assert statuses["EMAIL"]["status"] == "ready"
++    assert "smtp.office365.com" in statuses["EMAIL"]["detail"]
++
++    result = client.post("/notifications/test", headers=owner, json={"channel": "EMAIL"}).json()
++    assert result["status"] == "sent", result
++    assert fake_smtp.sent[-1]["host"] == "smtp.office365.com" and fake_smtp.sent[-1]["port"] == 465
++    assert fake_smtp.sent[-1]["login"] == "alerts@contoso.example"
++
++    cleared = client.delete("/notifications/email-settings", headers=owner).json()
++    assert cleared["source"] == "none" and cleared["ready"] is False
++
++
++def test_wrong_smtp_password_is_reported_with_a_hint(client, fake_smtp):
++    owner = _session(client, "owner@example.com")
++    client.put(
++        "/notifications/email-settings", headers=owner,
++        json={"host": "smtp.gmail.com", "port": 587, "security": "starttls",
++              "username": "me@gmail.com", "password": "my-normal-password"},
++    )
++    result = client.post("/notifications/test", headers=owner, json={"channel": "EMAIL"}).json()
++    assert result["status"] == "failed"
++    assert "App Password" in result["message"]
++
++
++def test_email_settings_validation(client):
++    owner = _session(client, "owner@example.com")
++    missing_password = client.put(
++        "/notifications/email-settings", headers=owner,
++        json={"host": "smtp.example.com", "username": "alerts@example.com"},
++    )
++    bad_recipient = client.put(
++        "/notifications/email-settings", headers=owner,
++        json={"host": "smtp.example.com", "username": "alerts@example.com", "password": "x" * 12,
++              "recipients": ["not-an-email"]},
++    )
++    assert missing_password.status_code == 422
++    assert bad_recipient.status_code == 422
+ 
+ 
+ def test_signed_webhook_and_viewer_cannot_send_tests(client, monkeypatch):
+diff --git a/tests/integration/phase3/test_auth_flow.py b/tests/integration/phase3/test_auth_flow.py
+index dc12ed5..4881a78 100644
+--- a/tests/integration/phase3/test_auth_flow.py
++++ b/tests/integration/phase3/test_auth_flow.py
+@@ -266,3 +266,82 @@ def test_alert_stream_only_delivers_alerts_for_the_users_tenants(client):
+     assert [m["type"] for m in owner_ws.messages] == ["alert", "stage_heartbeat"]
+     assert [m["type"] for m in viewer_ws.messages] == ["stage_heartbeat"]
+     assert [m["type"] for m in anonymous_ws.messages] == ["stage_heartbeat"]
++
++
++def test_env_admin_is_created_at_startup_and_can_sign_in(tmp_path, monkeypatch):
++    from phase3.api.routers.auth import bootstrap_admin_from_env
++
++    factory = PlatformSessionFactory({"database_url": f"sqlite:///{tmp_path / 'admin.db'}"})
++    Base.metadata.create_all(factory.build_engine())
++    monkeypatch.setattr(_support, "platform_session_factory", factory)
++    monkeypatch.setenv("CAPSTONE_AUTH_REQUIRED", "true")
++    monkeypatch.setenv("PLATFORM_JWT_SECRET", SECRET)
++    monkeypatch.setenv("PLATFORM_BCRYPT_ROUNDS", "4")
++    monkeypatch.setenv("CAPSTONE_ADMIN_EMAIL", "Admin@Example.com")
++    monkeypatch.setenv("CAPSTONE_ADMIN_PASSWORD", "admin-pass-2026")
++    _support.reset_auth_service()
++    with TestClient(app) as test_client:  # startup hook runs here
++        login = test_client.post(
++            "/auth/login", json={"email": "admin@example.com", "password": "admin-pass-2026"}
++        )
++        assert login.status_code == 200, login.text
++        assert login.json()["user"]["is_admin"] is True
++        # Registering afterwards does not make anyone else an owner.
++        other = _register(test_client, "first.user@example.com")
++        assert other["user"]["is_admin"] is False
++        assert {m["role"] for m in other["memberships"]} == {"VIEWER"}
++    # Running the bootstrap again is idempotent and keeps the password.
++    monkeypatch.setenv("CAPSTONE_ADMIN_PASSWORD", "a-different-password")
++    assert bootstrap_admin_from_env() == login.json()["user"]["user_id"]
++    _support.reset_auth_service()
++
++
++def test_admin_console_manages_access_across_all_workspaces(client):
++    test_client, _ = client
++    admin = _register(test_client, "admin@example.com")
++    member = _register(test_client, "member@example.com")
++    member_id = member["user"]["user_id"]
++    assert admin["user"]["is_admin"] is True
++
++    assert test_client.get("/admin/users", headers=_headers(member)).status_code == 403
++    listing = test_client.get("/admin/users", headers=_headers(admin))
++    assert listing.status_code == 200
++    assert {row["email"]: row["is_admin"] for row in listing.json()} == {
++        "admin@example.com": True,
++        "member@example.com": False,
++    }
++
++    promoted = test_client.put(
++        f"/admin/users/{member_id}/access", headers=_headers(admin), json={"role": "OWNER"}
++    )
++    assert promoted.status_code == 200 and promoted.json()["is_admin"] is True
++    assert test_client.get("/auth/me", headers=_headers(member)).json()["user"]["is_admin"] is True
++
++    removed = test_client.put(
++        f"/admin/users/{member_id}/access", headers=_headers(admin), json={"role": "NONE"}
++    )
++    assert removed.status_code == 200 and removed.json()["memberships"] == []
++    assert test_client.get("/tenants", headers=_headers(member)).json() == []
++
++    self_demote = test_client.put(
++        f"/admin/users/{admin['user']['user_id']}/access", headers=_headers(admin), json={"role": "VIEWER"}
++    )
++    assert self_demote.status_code == 409
++
++
++def test_cli_promotes_an_existing_account_to_admin(client, capsys):
++    from scripts.manage_users import main
++
++    test_client, _ = client
++    _register(test_client, "owner@example.com")
++    viewer = _register(test_client, "swathi@example.com")
++    assert viewer["user"]["is_admin"] is False
++
++    assert main(["promote", "Swathi@Example.com"]) == 0
++    assert "now an admin" in capsys.readouterr().out
++    me = test_client.get("/auth/me", headers=_headers(viewer)).json()
++    assert me["user"]["is_admin"] is True
++    assert {m["role"] for m in me["memberships"]} == {"OWNER"}
++
++    assert main(["list"]) == 0
++    assert "swathi@example.com" in capsys.readouterr().out
+diff --git a/tests/test_demo_scenarios.py b/tests/test_demo_scenarios.py
+index 76200a2..d2bd6f1 100644
+--- a/tests/test_demo_scenarios.py
++++ b/tests/test_demo_scenarios.py
+@@ -121,3 +121,25 @@ def test_demo_injection_requires_matching_tenant_membership():
+         },
+     )
+     assert response.status_code == 403
++
++
++def test_malicious_scenarios_get_a_concrete_rca_category():
++    """RCA should not fall back to UNKNOWN when the threat signature matched."""
++    _support.provision_demo_identity()
++    unknown = []
++    for scenario in ("credential_theft", "insider_threat", "network_scan", "data_exfiltration"):
++        DEMO_STATE.clear()
++        alerts_by_tenant.clear()
++        response = client.post(
++            "/demo/generate/alert",
++            headers={"X-Tenant-Id": "google", "X-User-Id": "demo-user"},
++            json={"tenant_id": "google", "scenario": scenario, "seed": 7},
++        )
++        assert response.status_code == 200, response.text
++        phase3 = response.json()["phase3"]
++        if phase3["explanation"]["mitigation_mode"] == "threat_specific":
++            top = phase3["candidate_causes"][0]["cause_category"]
++            if top == "UNKNOWN":
++                unknown.append(scenario)
++            assert top == phase3["explanation"]["cause_category"]
++    assert unknown == []
+diff --git a/tests/unit/phase3/knowledge/test_threat_knowledge_coverage.py b/tests/unit/phase3/knowledge/test_threat_knowledge_coverage.py
+index 746842a..405141b 100644
+--- a/tests/unit/phase3/knowledge/test_threat_knowledge_coverage.py
++++ b/tests/unit/phase3/knowledge/test_threat_knowledge_coverage.py
+@@ -41,7 +41,7 @@ def test_signature_and_scenario_catalog_have_complete_threat_knowledge():
+     signature_ids = {signature["threat_id"] for signature in signatures}
+     cause_ids = {cause["cause_category"] for cause in knowledge["causes"]}
+ 
+-    assert knowledge["kb_version"] == "2.1.0"
++    assert knowledge["kb_version"] == "2.2.0"
+     assert {scenario_id for scenario_id in DemoGenerator().scenarios} <= threats.keys()
+     assert signature_ids <= threats.keys()
+     assert {rule["cause_category"] for rule in rules} <= cause_ids
+diff --git a/tests/unit/phase3/knowledge/test_threat_signature_matcher.py b/tests/unit/phase3/knowledge/test_threat_signature_matcher.py
+index 49eb53c..1efab19 100644
+--- a/tests/unit/phase3/knowledge/test_threat_signature_matcher.py
++++ b/tests/unit/phase3/knowledge/test_threat_signature_matcher.py
+@@ -184,7 +184,7 @@ def test_matched_threat_drives_hedged_explanation_and_targeted_checks():
+     checks = RecommendationEngine(loader, matcher).recommend(case)
+ 
+     assert explanation.headline == "Possible cloud credential misuse"
+-    assert explanation.kb_version == "2.1.0"
++    assert explanation.kb_version == "2.2.0"
+     assert "credential_theft" not in explanation.headline
+     assert any(section.heading == "MITRE ATT&CK context" for section in explanation.sections)
+     assert checks
+diff --git a/tests/unit/phase3/rca/test_threat_informed_hypotheses.py b/tests/unit/phase3/rca/test_threat_informed_hypotheses.py
+new file mode 100644
+index 0000000..3bc0a4e
+--- /dev/null
++++ b/tests/unit/phase3/rca/test_threat_informed_hypotheses.py
+@@ -0,0 +1,126 @@
++"""Threat-signature evidence turns into a ranked, knowledge-backed RCA category."""
++
++from datetime import datetime, timezone
++
++from phase3.knowledge.knowledge_loader import KnowledgeLoader
++from phase3.knowledge.threat_signature_matcher import ThreatSignatureMatcher
++from phase3.knowledge.types import ThreatMatch
++from phase3.rca.hypothesis_engine import HypothesisEngine
++from phase3.rca.types import RCACase
++
++
++class _Matcher:
++    def __init__(self, *matches):
++        self._matches = list(matches)
++
++    def match(self, _case):
++        return self._matches
++
++
++def _match(threat_id, confidence="HIGH"):
++    return ThreatMatch(
++        threat_id=threat_id,
++        match_confidence=confidence,
++        matched_signal_keys=["changed_features.api_calls.increase", "component_scores.deviation"],
++        unmatched_signal_keys=["similar_episodes.severity"],
++    )
++
++
++def _case(final_score=0.57, deviation=0.59, drift=0.54, similarity=0.4):
++    return RCACase(
++        rca_case_id="rca-1",
++        incident_id="incident-1",
++        tenant_id="acme",
++        entity_id="vol-acme",
++        batch_ts=datetime(2026, 10, 26, tzinfo=timezone.utc),
++        cloud_provider="AWS",
++        region="us-west-2",
++        final_score=final_score,
++        severity="MEDIUM",
++        component_scores={"deviation": deviation, "drift": drift, "similarity": similarity},
++        changed_features=["metric_family:api_calls"],
++        behavioral_deviation={},
++        drift_evidence={},
++        similar_episodes=[],
++        related_incidents=[],
++        timeline=[],
++        observed_window={},
++        baseline_window={},
++        unknowns=[],
++        candidate_causes=[],
++        confidence="LOW",
++    )
++
++
++def test_matched_signature_replaces_unknown_with_a_real_category():
++    candidates = HypothesisEngine(threat_matcher=_Matcher(_match("credential_theft"))).generate(_case())
++
++    assert [c.cause_category for c in candidates] == ["IDENTITY_MISUSE"]
++    assert candidates[0].confidence == "HIGH"
++    assert candidates[0].rule_id == "rca.threat_signature.identity_misuse"
++    assert candidates[0].supporting_evidence_keys == ["changed_features", "component_scores"]
++
++
++def test_signature_ranks_ahead_of_generic_score_rule_which_is_kept():
++    candidates = HypothesisEngine(threat_matcher=_Matcher(_match("ransomware"))).generate(
++        _case(final_score=0.86, deviation=0.9)
++    )
++
++    assert [c.cause_category for c in candidates] == ["DESTRUCTIVE_ACTIVITY", "BEHAVIOR_CHANGE"]
++
++
++def test_low_confidence_or_unmapped_matches_are_ignored():
++    low = HypothesisEngine(threat_matcher=_Matcher(_match("credential_theft", "LOW"))).generate(_case())
++    unmapped = HypothesisEngine(threat_matcher=_Matcher(_match("ambiguous_change"))).generate(_case())
++    no_matcher = HypothesisEngine().generate(_case())
++
++    assert [c.cause_category for c in low] == ["UNKNOWN"]
++    assert [c.cause_category for c in unmapped] == ["UNKNOWN"]
++    assert [c.cause_category for c in no_matcher] == ["UNKNOWN"]
++
++
++def test_every_mapped_category_and_signature_exists():
++    engine = HypothesisEngine()
++    knowledge = set(KnowledgeLoader()._cache)
++    signatures = set(ThreatSignatureMatcher()._signatures)
++
++    assert set(engine.threat_categories.values()) <= knowledge
++    assert set(engine.threat_categories) <= signatures
++
++
++def _stored_case(changed, directions):
++    return {
++        "rca_case_id": "rca-old", "incident_id": "old", "tenant_id": "acme", "entity_id": "vol-acme",
++        "batch_ts": "2026-10-26T17:00:00+00:00", "cloud_provider": "AWS", "region": "us-west-2",
++        "final_score": 0.57, "severity": "MEDIUM",
++        "component_scores": {"deviation": 0.59, "drift": 0.54, "similarity": 0.4},
++        "changed_features": changed, "behavioral_deviation": {}, "drift_evidence": {},
++        "similar_episodes": [], "related_incidents": [], "timeline": [],
++        "observed_window": {"entity_types": ["Instances"], "namespaces": ["CWAgent"], "metric_directions": directions},
++        "baseline_window": {}, "unknowns": [], "confidence": "LOW",
++        "candidate_causes": [{
++            "cause_category": "UNKNOWN", "confidence": "LOW", "rule_id": "rca.unknown",
++            "supporting_evidence_keys": [], "contradicting_evidence_keys": ["component_scores"],
++        }],
++    }
++
++
++def test_stored_unknown_incident_is_backfilled_from_signature_evidence():
++    from phase3.api.routers._support import refresh_case_hypotheses
++
++    stored = _stored_case(
++        ["metric_family:api_calls", "metric_family:auth_failures"],
++        {"api_calls": "increase", "auth_failures": "increase"},
++    )
++    refreshed = refresh_case_hypotheses(stored)
++
++    assert refreshed["candidate_causes"][0]["cause_category"] == "IDENTITY_MISUSE"
++    assert refreshed["confidence"] == "HIGH"
++    assert stored["candidate_causes"][0]["cause_category"] == "UNKNOWN", "input is not mutated"
++
++
++def test_stored_case_without_signature_evidence_is_unchanged():
++    from phase3.api.routers._support import refresh_case_hypotheses
++
++    stored = _stored_case(["entity_behavior"], {})
++    assert refresh_case_hypotheses(stored) is stored

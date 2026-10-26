@@ -22,7 +22,9 @@ const routes = [
 
 const screenshotDirectory = resolve(process.env.UI_SCREENSHOT_DIR || 'artifacts/ui-smoke');
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  // Signed-out flows must start without a stored session.
+  if (testInfo.title.includes('/login') || testInfo.title.startsWith('account:')) return;
   await page.addInitScript(() => {
     localStorage.setItem('capstone.userId', 'mock-operator');
     localStorage.setItem('capstone.activeTenantId', 'google');
@@ -71,4 +73,45 @@ test('completes synthetic onboarding and opens the demo control panel', async ({
   await demoLink.click();
   await expect(page.getByRole('heading', { name: 'Live demo control' })).toBeVisible();
   expect(pageErrors).toEqual([]);
+});
+
+test('account: registers, sees itself as owner, and signs out', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.goto('/users');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByRole('tab', { name: 'Create account' }).click();
+  await page.getByLabel(/^Email/).fill('first.user@example.com');
+  await page.getByLabel(/^Password/).fill('a-strong-pass');
+  await page.getByLabel(/^Confirm password/).fill('a-strong-pass');
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Role for first.user@example.com')).toHaveValue('OWNER');
+  await page.getByRole('link', { name: /Admin console/ }).click();
+  await expect(page.getByLabel('Access for first.user@example.com')).toHaveValue('OWNER');
+  await expect(page.getByText('first.user@example.com').first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login$/);
+
+  await page.getByLabel(/^Email/).fill('first.user@example.com');
+  await page.getByLabel(/^Password/).fill('wrong-password');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('Invalid email or password')).toBeVisible();
+  await page.getByLabel(/^Password/).fill('a-strong-pass');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'SOC overview' })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('injecting a demo scenario raises an in-app notification', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: 'Inject scenario' }).click();
+  await expect(page.getByText(/^New (LOW|MEDIUM|HIGH|CRITICAL) alert$/)).toBeVisible();
+  await page.getByRole('button', { name: /Notifications, 1 unread/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Notifications' })).toContainText('vol-g00g');
+  await page.screenshot({ path: resolve(screenshotDirectory, 'notifications.png') });
 });

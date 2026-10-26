@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -33,6 +34,10 @@ class AuthService:
             self._cfg.get("bcrypt_rounds", self._cfg.get("BCRYPT_ROUNDS", 12))
         )
 
+    @property
+    def token_ttl_seconds(self) -> int:
+        return self._jwt_ttl_seconds
+
     @staticmethod
     def normalize_email(email: str) -> str:
         return email.strip().lower()
@@ -46,14 +51,24 @@ class AuthService:
             password.encode("utf-8"),
             bcrypt.gensalt(rounds=self._bcrypt_rounds),
         ).decode("utf-8")
-        repository_size = len(self._user_repository.__dict__.get("_users", {}))
         user = User(
-            user_id=f"user-{repository_size + 1}",
+            user_id=self._next_user_id(),
             email=normalized_email,
             password_hash=password_hash,
             created_at=datetime.now(timezone.utc),
         )
         return self._user_repository.save(user)
+
+    def _next_user_id(self) -> str:
+        # Durable repositories supply their own collision-free ids; counting an
+        # in-memory dict only works for the simple fakes used in unit tests.
+        next_id = getattr(self._user_repository, "next_user_id", None)
+        if callable(next_id):
+            return str(next_id())
+        users = self._user_repository.__dict__.get("_users")
+        if isinstance(users, dict):
+            return f"user-{len(users) + 1}"
+        return f"user-{uuid.uuid4().hex[:12]}"
 
     def login(self, email: str, password: str) -> str:
         normalized_email = self.normalize_email(email)
@@ -61,10 +76,16 @@ class AuthService:
         if user is None:
             raise InvalidCredentialsError("invalid credentials")
 
-        if not bcrypt.checkpw(
-            password.encode("utf-8"),
-            user.password_hash.encode("utf-8"),
-        ):
+        try:
+            password_matches = bcrypt.checkpw(
+                password.encode("utf-8"),
+                user.password_hash.encode("utf-8"),
+            )
+        except ValueError:
+            # Rows created outside this service (for example the legacy demo
+            # identity) carry a non-bcrypt placeholder hash; treat as no match.
+            password_matches = False
+        if not password_matches:
             raise InvalidCredentialsError("invalid credentials")
 
         return self.issue_token(user.user_id)

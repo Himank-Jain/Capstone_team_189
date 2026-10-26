@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ConnectionSummary, getConnections } from '../../services/phase3Api';
-import { Badge, Card, EmptyState, PageHeader, Skeleton, StatusBadge, Toast } from '../../components/ui';
+import { useAuth } from '../../auth/authContext';
+import NotificationChannelsPanel from '../../components/NotificationChannelsPanel';
+import { Card, EmptyState, PageHeader, Skeleton, StatusBadge, Toast } from '../../components/ui';
 
 export default function ConnectionsPage() {
   const [data, setData] = useState<ConnectionSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { role, activeTenantId } = useAuth();
 
   useEffect(() => {
     getConnections()
@@ -35,14 +38,7 @@ export default function ConnectionsPage() {
           </article>)}
         </section>
         {!data.connections.length ? <Card><EmptyState title="No cloud connections" description="Connect a cloud provider during onboarding. Connections remain read-only and dry-run by default." action={<Link className="p3-button p3-button-primary" to="/onboarding">Continue onboarding</Link>} /></Card> : null}
-        <Card className="connections-notifications">
-          <h2>Notification channels</h2>
-          <p>Endpoint readiness is shown without exposing provider secrets.</p>
-          <div className="p3-grid">{data.notification_channels.map(({ channel, status, detail }) => <div className="p3-row" key={channel}>
-            <div><strong>{channel}</strong><div className="p3-footer">{detail}</div></div>
-            <Badge className={status === 'ready' ? 'ui-confidence-high' : status === 'simulated' ? 'ui-confidence-medium' : 'ui-confidence-low'}>{status.replace('_', ' ')}</Badge>
-          </div>)}</div>
-        </Card>
+        <NotificationChannelsPanel canSendTest={role === 'OWNER' || role === 'OPERATOR'} tenantId={activeTenantId} />
       </> : <Card><EmptyState title="Connection status unavailable" description="We could not load this tenant’s connection details. Try again after confirming the selected workspace." /></Card>}
     </div></main>
   );

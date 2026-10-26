@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, EmptyState, PageHeader, Skeleton, Toast } from '../../components/ui';
-import { getTenants } from '../../services/tenantsApi';
-import { setActiveTenantId } from '../../services/apiClient';
+import { getTenants, type TenantSummary } from '../../services/tenantsApi';
+import { useAuth } from '../../auth/authContext';
 import { getErrorMessage } from '../../services/errors';
-
-interface TenantChoice {
-  id: string;
-  name: string;
-  live_alert_count: number;
-  health: string;
-}
 
 export default function SelectOrgPage() {
   const navigate = useNavigate();
-  const [tenants, setTenants] = useState<TenantChoice[]>([]);
+  const { switchTenant, activeTenantId } = useAuth();
+  const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +26,7 @@ export default function SelectOrgPage() {
   }, []);
 
   const handleSelect = (tenantId: string) => {
-    setActiveTenantId(tenantId);
+    switchTenant(tenantId);
     navigate('/');
   };
 
@@ -42,7 +36,7 @@ export default function SelectOrgPage() {
         <PageHeader
           eyebrow="Workspace"
           title="Select your organization"
-          description="Choose a tenant to view its isolated multi-cloud alerts and demonstration controls."
+          description="Workspaces you are a member of. Each one keeps its alerts, incidents, and members separate."
         />
         {error ? <Toast message={error} tone="error" /> : null}
         {loading ? <Card><Skeleton rows={4} /></Card> : tenants.length ? (
@@ -58,9 +52,9 @@ export default function SelectOrgPage() {
                     {tenant.health}
                   </span>
                 </div>
-                <p>{tenant.live_alert_count} recent alerts</p>
-                <Button variant="primary" type="button" onClick={() => handleSelect(tenant.id)}>
-                  Open workspace
+                <p>Your role: {tenant.role ? tenant.role.toLowerCase() : 'member'}</p>
+                <Button variant="primary" type="button" onClick={() => handleSelect(tenant.id)} disabled={tenant.id === activeTenantId}>
+                  {tenant.id === activeTenantId ? 'Current workspace' : 'Open workspace'}
                 </Button>
               </Card>
             ))}

@@ -33,7 +33,7 @@ def _rca_record(tenant_id: Optional[str], incident_id: str) -> Dict[str, Any]:
         )
         if row is None or not row.body:
             raise HTTPException(status_code=404, detail="Incident not found")
-        return row.body
+        return {**row.body, "case": _support.refresh_case_hypotheses(row.body["case"])}
 
 
 def _typed_case(record: Dict[str, Any]) -> RCACase:

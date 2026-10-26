@@ -1,12 +1,12 @@
-import { getActiveTenantId, getTenantHeaders, isMockMode } from './apiClient';
+import { fetchJson, getActiveTenantId, getApiBase, isMockMode } from './apiClient';
 import type { AlertPayload } from '../types/contracts';
 import { getIncidentInvestigation } from './phase3Api';
 import type { IncidentExplanation, RecommendedCheck } from './phase3Api';
 import { MOCK_TENANTS } from './mockData';
+import { publishLocalAlert } from './notificationBus';
+import { getTenants } from './tenantsApi';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8001";
-// expose for debugging in the browser console
-console.info('[demoApi] API_BASE =', API_BASE);
+const API_BASE = getApiBase();
 let mockDemoPaused = false;
 let mockActiveAlerts = 1;
 
@@ -115,9 +115,8 @@ export interface SummaryPayload {
 
 export async function getDemoTenants(): Promise<DemoTenant[]> {
   if (isMockMode()) return MOCK_TENANTS;
-  const res = await fetch(`${API_BASE}/tenants`);
-  if (!res.ok) throw new Error(`Tenants API error: ${res.status}`);
-  return res.json();
+  // Only the workspaces the signed-in user belongs to.
+  return getTenants();
 }
 
 export async function getSummary(): Promise<SummaryPayload> {
@@ -132,25 +131,17 @@ export async function getSummary(): Promise<SummaryPayload> {
       resolved_today: 2,
     };
   }
-  const res = await fetch(`${API_BASE}/stats/summary`, {
-    headers: getTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`Stats API error: ${res.status}`);
-  return res.json();
+  return fetchJson<SummaryPayload>(`${API_BASE}/stats/summary`);
 }
 
 export async function getDemoScenarios(): Promise<DemoScenario[]> {
   if (isMockMode()) return MOCK_SCENARIOS;
-  const res = await fetch(`${API_BASE}/demo/scenarios`);
-  if (!res.ok) throw new Error(`Scenarios API error: ${res.status}`);
-  return res.json();
+  return fetchJson<DemoScenario[]>(`${API_BASE}/demo/scenarios`);
 }
 
 export async function getNotifyMethods(): Promise<NotifyMethod[]> {
   if (isMockMode()) return ['PAGE', 'SLACK', 'EMAIL'];
-  const res = await fetch(`${API_BASE}/demo/notify-methods`);
-  if (!res.ok) throw new Error(`Notify methods API error: ${res.status}`);
-  return res.json();
+  return fetchJson<NotifyMethod[]>(`${API_BASE}/demo/notify-methods`);
 }
 
 export async function triggerDemoAlert(
@@ -182,6 +173,7 @@ export async function triggerDemoAlert(
       region: investigation.case.region,
     };
     mockActiveAlerts += 1;
+    publishLocalAlert({ type: 'alert', tenant_id, payload: alertPayload });
     return {
       status: 'success',
       tenant_id,
@@ -208,23 +200,17 @@ export async function triggerDemoAlert(
       },
     };
   }
-  const res = await fetch(`${API_BASE}/demo/generate/alert`, {
+  return fetchJson<DemoAlertResponse>(`${API_BASE}/demo/generate/alert`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getTenantHeaders() },
     body: JSON.stringify({ tenant_id, scenario, notify_method, cloud_provider, intensity }),
   });
-  if (!res.ok) throw new Error(`Demo API error: ${res.status}`);
-  return res.json();
 }
 
 export async function triggerDemoScenario(tenant_id: string, scenario: string) {
-  const res = await fetch(`${API_BASE}/demo/generate/attack`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...getTenantHeaders() },
+  return fetchJson<DemoAlertResponse>(`${API_BASE}/demo/generate/attack`, {
+    method: 'POST',
     body: JSON.stringify({ tenant_id, scenario }),
   });
-  if (!res.ok) throw new Error(`Demo API error: ${res.status}`);
-  return res.json();
 }
 
 export async function getDemoStatus(): Promise<DemoStatusResponse> {
@@ -235,11 +221,7 @@ export async function getDemoStatus(): Promise<DemoStatusResponse> {
       active_alerts: mockActiveAlerts,
     };
   }
-  const res = await fetch(`${API_BASE}/demo/status`, {
-    headers: getTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`Demo status API error: ${res.status}`);
-  return res.json();
+  return fetchJson<DemoStatusResponse>(`${API_BASE}/demo/status`);
 }
 
 export async function pauseDemo(): Promise<DemoStatusResponse> {
@@ -247,12 +229,7 @@ export async function pauseDemo(): Promise<DemoStatusResponse> {
     mockDemoPaused = true;
     return getDemoStatus();
   }
-  const res = await fetch(`${API_BASE}/demo/pause`, {
-    method: 'POST',
-    headers: getTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`Demo pause API error: ${res.status}`);
-  return res.json();
+  return fetchJson<DemoStatusResponse>(`${API_BASE}/demo/pause`, { method: 'POST' });
 }
 
 export async function resumeDemo(): Promise<DemoStatusResponse> {
@@ -260,12 +237,7 @@ export async function resumeDemo(): Promise<DemoStatusResponse> {
     mockDemoPaused = false;
     return getDemoStatus();
   }
-  const res = await fetch(`${API_BASE}/demo/resume`, {
-    method: 'POST',
-    headers: getTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`Demo resume API error: ${res.status}`);
-  return res.json();
+  return fetchJson<DemoStatusResponse>(`${API_BASE}/demo/resume`, { method: 'POST' });
 }
 
 export async function resetDemo(): Promise<DemoStatusResponse> {
@@ -274,10 +246,5 @@ export async function resetDemo(): Promise<DemoStatusResponse> {
     mockDemoPaused = false;
     return getDemoStatus();
   }
-  const res = await fetch(`${API_BASE}/demo/reset`, {
-    method: 'POST',
-    headers: getTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`Demo reset API error: ${res.status}`);
-  return res.json();
+  return fetchJson<DemoStatusResponse>(`${API_BASE}/demo/reset`, { method: 'POST' });
 }

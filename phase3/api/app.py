@@ -1,5 +1,5 @@
-import json
 import random
+from contextlib import asynccontextmanager
 import copy
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -28,7 +28,8 @@ from phase2.encoding.record_encoder import RecordEncoder
 from phase2.encoding.reference_encoder_service import load_inference_encoder_from_manifest
 from demo_generator.generator import DemoGenerator, metric_family_matches
 from phase3.api.routers import _support, router as phase3_router
-from phase3.api.routers._support import provision_demo_identity, require_tenant_membership
+from phase3.api.routers.auth import bootstrap_admin_from_env
+from phase3.api.routers._support import require_tenant_membership
 from phase3.db.models import IncidentRow, RcaCaseRow, TenantRow
 from phase3.lifecycle.incident_resolution_service import IncidentResolutionService
 from phase3.api.routers.rca import process_demo_alert
@@ -44,14 +45,19 @@ from shared.types import (
 )
 
 from .analytics import build_summary_payload
-from .auth import build_login_response
-from .email_service import EmailService
-from .tenants import get_demo_tenants
+from .alert_notifications import send_alert_notification
 from .ws_common import broadcast_alert
 from .ws_heartbeat import build_stage_heartbeat
 from .ws_router import router as ws_router
 
-app = FastAPI(title="CAPSTONE-189 Demo API")
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    # Creates/promotes the CAPSTONE_ADMIN_EMAIL account when set; no-op otherwise.
+    bootstrap_admin_from_env()
+    yield
+
+
+app = FastAPI(title="CAPSTONE-189 Demo API", lifespan=_lifespan)
 
 alerts_by_tenant: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -244,81 +250,12 @@ def _store_alert(tenant_id: str, payload: Dict[str, Any]) -> None:
 
 
 async def _send_notifications(payload: Dict[str, Any], notify_method: str) -> Dict[str, Any]:
-    """Send notifications based on notify method."""
+    """Deliver the alert through the operator's chosen channel and report the outcome."""
     tenant_id = (
         str(payload.get("tenant_id") or payload.get("tenant", "default")).strip().lower()
         or "default"
     )
-    notification_result = {
-        "notify_method": notify_method,
-        "status": "failed",
-        "sent": False,
-        "message": "Notification not sent",
-    }
-
-    try:
-        if notify_method == "EMAIL":
-            demo_email = EmailService.resolve_recipient_email(tenant_id)
-
-            email_result = await EmailService.send_alert_email_result(demo_email, payload)
-
-            if email_result["sent"]:
-                notification_result["sent"] = True
-                notification_result["status"] = "sent"
-                notification_result["message"] = email_result.get(
-                    "detail", f"Email sent to {demo_email}"
-                )
-                notification_result["email_to"] = demo_email
-                print(f"✓ Email notification sent to {demo_email}")
-            else:
-                log_dir = Path(__file__).parent / "email_logs"
-                log_dir.mkdir(exist_ok=True)
-                log_file = log_dir / f"email_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-
-                email_log = {
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                    "to": demo_email,
-                    "subject": (
-                        f"[{payload.get('severity', 'UNKNOWN')}] Security Alert - "
-                        f"{payload.get('entity_id', 'unknown')}"
-                    ),
-                    "alert_id": payload.get("alert_id"),
-                    "severity": payload.get("severity"),
-                    "entity_id": payload.get("entity_id"),
-                    "error": email_result.get("error", "Unknown email delivery failure"),
-                    "note": (
-                        "Email delivery failed. Check DEMO_EMAIL_SENDER and "
-                        "DEMO_EMAIL_PASSWORD, then retry."
-                    ),
-                }
-
-                with open(log_file, "w") as f:
-                    json.dump(email_log, f, indent=2)
-
-                notification_result["status"] = "failed"
-                notification_result["message"] = (
-                    f"Email delivery failed: {email_result.get('error', 'unknown error')}"
-                )
-                notification_result["email_to"] = demo_email
-                notification_result["log_path"] = str(log_file)
-                print(f"⚠ Email notification logged (delivery failed): {log_file}")
-
-        elif notify_method == "SLACK":
-            notification_result["sent"] = True
-            notification_result["status"] = "sent"
-            notification_result["message"] = "Slack notification posted to #security-alerts"
-
-        elif notify_method == "PAGE":
-            notification_result["sent"] = True
-            notification_result["status"] = "displayed"
-            notification_result["message"] = "Alert displayed on dashboard"
-
-    except Exception as e:
-        notification_result["status"] = "failed"
-        notification_result["message"] = f"Notification failed: {str(e)}"
-        print(f"✗ Notification error: {str(e)}")
-
-    return notification_result
+    return await send_alert_notification(notify_method, payload, tenant_id)
 
 
 async def _dispatch_alert(tenant_id: str, payload: Dict[str, Any]) -> None:
@@ -347,11 +284,6 @@ app.add_middleware(
 
 app.include_router(ws_router)
 app.include_router(phase3_router)
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
 
 
 class DemoScenario(BaseModel):
@@ -1028,17 +960,6 @@ def _build_demo_alert_payload(
     return payload_dict
 
 
-@app.post("/auth/login")
-def login(payload: LoginRequest):
-    provision_demo_identity()
-    return build_login_response()
-
-
-@app.get("/tenants")
-def tenants():
-    return get_demo_tenants()
-
-
 @app.get("/demo/scenarios")
 def demo_scenarios():
     return [DemoScenario(**scenario).model_dump() for scenario in SCENARIOS]
@@ -1050,7 +971,10 @@ def demo_notify_methods():
 
 
 @app.get("/stats/summary")
-def summary(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
+def summary(
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
+):
     resolved_tenant = _resolve_tenant_header(tenant_id)
     with _support.platform_session_factory.session_scope() as session:
         incidents = session.query(IncidentRow).filter_by(tenant_id=resolved_tenant).all()
@@ -1093,7 +1017,10 @@ def summary(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
 
 
 @app.get("/alerts/recent")
-def recent_alerts(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
+def recent_alerts(
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
+):
     tenant_id = _resolve_tenant_header(tenant_id)
     with _support.platform_session_factory.session_scope() as session:
         resolved_ids = {
@@ -1142,6 +1069,11 @@ async def _run_demo_alert(
     phase3_result = await process_demo_alert(
         alert_payload, payload.tenant_id, case_evidence=case_evidence
     )
+    if notify_method != NotifyMethod.PAGE.value:
+        delivery = _support.record_channel_delivery(
+            payload.tenant_id, str(alert_payload["alert_id"]), notification_response
+        )
+        phase3_result["notification_deliveries"].append(delivery)
     await _auto_resolve_recovered_incident(payload.tenant_id, str(alert_payload["alert_id"]))
 
     return {
@@ -1166,7 +1098,10 @@ async def generate_attack(
 
 
 @app.post("/demo/pause")
-def demo_pause(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
+def demo_pause(
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
+):
     tenant_id = _resolve_tenant_header(tenant_id)
     DEMO_STATE.setdefault(tenant_id, {})["paused"] = True
     return {
@@ -1178,7 +1113,10 @@ def demo_pause(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
 
 
 @app.post("/demo/resume")
-def demo_resume(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
+def demo_resume(
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
+):
     tenant_id = _resolve_tenant_header(tenant_id)
     DEMO_STATE.setdefault(tenant_id, {})["paused"] = False
     return {
@@ -1224,7 +1162,10 @@ def demo_reset(
 
 
 @app.get("/demo/status")
-def demo_status(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
+def demo_status(
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
+):
     tenant_id = _resolve_tenant_header(tenant_id)
     return {
         "tenant_id": tenant_id,
@@ -1235,7 +1176,9 @@ def demo_status(tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")):
 
 @app.post("/phase2/alerting/api/alert_api")
 def explain_alert(
-    payload: Dict[str, Any], tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id")
+    payload: Dict[str, Any],
+    _authorized: bool = Depends(require_tenant_membership),
+    tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
 ):
     """Generate explainability insights for an alert."""
     tenant_id = _resolve_tenant_header(tenant_id)

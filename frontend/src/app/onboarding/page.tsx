@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../auth/authContext';
+import NotificationChannelsPanel from '../../components/NotificationChannelsPanel';
 import {
   Button,
   Badge,
@@ -32,6 +34,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { role, activeTenantId } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -184,6 +187,16 @@ export default function OnboardingPage() {
                   ? 'Monitoring is only enabled after an explicit confirmation.'
                   : 'Record this setup step to save progress and continue later.'}
               </p>
+              {currentStep[0] === 'notification_setup' || currentStep[0] === 'test_notification' ? (
+                <NotificationChannelsPanel
+                  canSendTest={currentStep[0] === 'test_notification' && (role === 'OWNER' || role === 'OPERATOR')}
+                  tenantId={activeTenantId}
+                  title={currentStep[0] === 'test_notification' ? 'Send a test notification' : 'Configure channels'}
+                  description={currentStep[0] === 'test_notification'
+                    ? 'Send a test through a ready channel and confirm it arrives before you continue.'
+                    : 'Channels are configured with server environment variables (see the notifications guide). Ready channels can deliver alerts now.'}
+                />
+              ) : null}
               {currentStep[0] === 'enable_monitoring' && session.source_mode === 'live' ? (
                 <label className="onboarding-confirm-row">
                   <input

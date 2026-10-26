@@ -184,7 +184,7 @@ def test_matched_threat_drives_hedged_explanation_and_targeted_checks():
     checks = RecommendationEngine(loader, matcher).recommend(case)
 
     assert explanation.headline == "Possible cloud credential misuse"
-    assert explanation.kb_version == "2.1.0"
+    assert explanation.kb_version == "2.2.0"
     assert "credential_theft" not in explanation.headline
     assert any(section.heading == "MITRE ATT&CK context" for section in explanation.sections)
     assert checks

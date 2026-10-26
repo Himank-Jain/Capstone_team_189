@@ -68,7 +68,7 @@ def list_incidents(
         for row in rows:
             if not row.body or not row.body.get("case"):
                 continue
-            case = dict(row.body["case"])
+            case = _support.refresh_case_hypotheses(dict(row.body["case"]))
             incident = incidents.get(row.incident_id)
             if incident is not None:
                 case.update(

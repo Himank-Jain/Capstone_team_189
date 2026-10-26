@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getAccessToken } from '../services/apiClient';
 
 const DEFAULT_API_BASE = 'http://127.0.0.1:8001';
 const MAX_RECONNECT_ATTEMPTS = 15; // Stop trying after 15 attempts
@@ -7,7 +8,11 @@ const HEARTBEAT_STALE_MS = 90000;
 
 export type AlertStreamConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
-export default function useAlertStream(onMessage: (msg: unknown) => void) {
+export default function useAlertStream(
+  onMessage: (msg: unknown) => void,
+  options: { enabled?: boolean } = {},
+) {
+  const enabled = options.enabled ?? true;
   const wsRef = useRef<WebSocket | null>(null);
   const onMessageRef = useRef(onMessage);
   const [connectionState, setConnectionState] = useState<AlertStreamConnectionState>('connecting');
@@ -22,9 +27,12 @@ export default function useAlertStream(onMessage: (msg: unknown) => void) {
   }, [onMessage]);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     mountedRef.current = true;
     const base = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
-    const wsUrl = base.replace(/^http/, 'ws') + '/ws/heartbeat';
+    // The token scopes the stream to the signed-in user's workspaces.
+    const token = getAccessToken();
+    const wsUrl = base.replace(/^http/, 'ws') + '/ws/heartbeat' + (token ? `?token=${encodeURIComponent(token)}` : '');
 
     function connect() {
       if (!mountedRef.current) return;
@@ -133,11 +141,12 @@ export default function useAlertStream(onMessage: (msg: unknown) => void) {
       }
       wsRef.current = null;
     };
-  }, []);
+  }, [enabled]);
 
+  const effectiveState: AlertStreamConnectionState = enabled ? connectionState : 'disconnected';
   return {
-    connected: connectionState === 'connected',
-    connectionState,
-    error,
+    connected: effectiveState === 'connected',
+    connectionState: effectiveState,
+    error: enabled ? error : null,
   };
 }

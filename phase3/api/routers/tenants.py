@@ -9,6 +9,7 @@ from phase3.db.models import TenantMembershipRow
 from . import _support
 from ._support import (
     ONBOARDING_STEPS,
+    current_user_id,
     OnboardingStartRequest,
     OnboardingStepRequest,
     onboarding_service,
@@ -24,11 +25,9 @@ router = APIRouter(
 @router.get("/membership/role")
 def get_membership_role(
     tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
-    user_id: Optional[str] = Header(None, alias="X-User-Id"),
+    user_id: str = Depends(current_user_id),
 ) -> Dict[str, str]:
     resolved_tenant = _support._tenant_header(tenant_id)
-    if not user_id:
-        raise HTTPException(status_code=403, detail="Missing X-User-Id header")
     with _support.platform_session_factory.session_scope() as session:
         membership = (
             session.query(TenantMembershipRow)
@@ -44,7 +43,7 @@ def get_membership_role(
 def start_onboarding(
     payload: OnboardingStartRequest,
     tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
-    user_id: Optional[str] = Header(None, alias="X-User-Id"),
+    user_id: str = Depends(current_user_id),
 ) -> Dict[str, Any]:
     if payload.source_mode not in {"synthetic", "live"}:
         raise HTTPException(status_code=422, detail="source_mode must be synthetic or live")

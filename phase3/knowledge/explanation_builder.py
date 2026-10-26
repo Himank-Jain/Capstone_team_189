@@ -9,6 +9,40 @@ from phase3.knowledge.threat_signature_matcher import ThreatSignatureMatcher
 from phase3.knowledge.types import Explanation, ExplanationSection, MatchedThreat
 from phase3.rca.types import RCACase
 
+_SIGNAL_LABELS = {
+    "observed_window.entity_types": "resource type fits the pattern",
+    "observed_window.namespaces": "telemetry namespace fits the pattern",
+    "cloud_provider": "cloud provider is in scope for the pattern",
+    "similar_episodes.severity": "similar past episodes with a matching severity",
+}
+
+
+def _fmt(value: Any) -> str:
+    """Render scores the way an analyst reads them (two decimals, no float noise)."""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        return f"{float(value):.2f}"
+    return str(value)
+
+
+def describe_signal(key: str) -> str:
+    """Turn a signature key such as changed_features.api_calls.increase into prose."""
+    parts = str(key).split(".")
+    if len(parts) == 3 and parts[0] == "changed_features":
+        direction = "increased" if parts[2] == "increase" else "decreased"
+        return f"{parts[1].replace('_', ' ')} {direction}"
+    if len(parts) == 2 and parts[0] == "component_scores":
+        return f"{parts[1]} score is in the pattern's range"
+    return _SIGNAL_LABELS.get(key, str(key).replace("_", " ").replace(".", " "))
+
+
+def _lines(items: list[str], numbered: bool = False) -> str:
+    cleaned = [str(item).strip() for item in items if str(item).strip()]
+    if numbered:
+        return "\n".join(f"{index}. {item}" for index, item in enumerate(cleaned, start=1))
+    return "\n".join(cleaned)
+
 
 class ExplanationBuilder:
     """Creates a consistent explanation for the currently top-ranked cause."""
@@ -55,7 +89,7 @@ class ExplanationBuilder:
             ExplanationSection("How it was detected", entry.how_it_shows_up),
             ExplanationSection(
                 "Common causes",
-                "; ".join(entry.common_causes) if entry.common_causes else entry.definition,
+                _lines(entry.common_causes) if entry.common_causes else entry.definition,
             ),
             ExplanationSection("Why it matters", entry.why_it_matters),
             ExplanationSection(
@@ -82,24 +116,35 @@ class ExplanationBuilder:
         context = self._template_context(rca_case)
         mitigation = threat["mitigation"]
         controls = self._provider_controls(mitigation, rca_case.cloud_provider)
-        check_text = "\n".join(
-            f"{index}. {self._render(check['check'], context)} "
-            f"(Expected: {self._render(check['expected_result'], context)})"
-            for index, check in enumerate(threat["investigative_checks"], start=1)
+        check_text = _lines(
+            [
+                f"{self._render(check['check'], context)} "
+                f"(Expected: {self._render(check['expected_result'], context)})"
+                for check in threat["investigative_checks"]
+            ],
+            numbered=True,
         )
-        mitigation_text = "\n".join(
-            f"{phase.replace('_', ' ').title()}: "
-            + "; ".join(self._render(step, context) for step in steps)
-            for phase, steps in controls.items()
+        mitigation_text = _lines(
+            [
+                f"{phase.replace('_', ' ').title()}: {self._render(step, context)}"
+                for phase, steps in controls.items()
+                for step in steps
+            ]
         )
-        mitre_text = "; ".join(
-            f"{item['id']} — {item['name']}" for item in threat["mitre_attack"]
+        mitre_text = _lines(
+            [f"{item['id']} — {item['name']}" for item in threat["mitre_attack"]]
         ) or (
             "No technique mapping is included because the evidence does not support "
             "a verified mapping."
         )
-        indicators = ", ".join(threat["indicators_in_this_case"])
-        evidence = self._collect_case_evidence(rca_case, candidate)
+        observed = [describe_signal(key) for key in match.matched_signal_keys]
+        missing = [describe_signal(key) for key in match.unmatched_signal_keys]
+        evidence_lines = [
+            f"Pattern match confidence: {match.match_confidence}",
+            "Observed: " + ("; ".join(observed) or "none"),
+            "Not observed: " + ("; ".join(missing) or "none"),
+            self._collect_case_evidence(rca_case, candidate),
+        ]
         sections = [
             ExplanationSection("What this means", self._render(threat["definition"], context)),
             ExplanationSection(
@@ -108,15 +153,9 @@ class ExplanationBuilder:
             ),
             ExplanationSection(
                 "Typical stages",
-                "; ".join(self._render(stage, context) for stage in threat["typical_stages"]),
+                _lines([self._render(stage, context) for stage in threat["typical_stages"]], numbered=True),
             ),
-            ExplanationSection(
-                "Evidence for this case",
-                f"Signature match confidence: {match.match_confidence}. "
-                f"Signals: {', '.join(match.matched_signal_keys) or 'none'}; "
-                f"not observed: {', '.join(match.unmatched_signal_keys) or 'none'}. "
-                f"Relevant RCACase fields: {indicators}. {evidence}",
-            ),
+            ExplanationSection("Evidence for this case", _lines(evidence_lines)),
             ExplanationSection("Investigative checks", check_text),
             ExplanationSection("Read-only mitigation guidance", mitigation_text),
             ExplanationSection("MITRE ATT&CK context", mitre_text),
@@ -127,15 +166,16 @@ class ExplanationBuilder:
             ExplanationSection("Limitations", self._render(threat["limitations"], context)),
             ExplanationSection(
                 "Resolution criteria",
-                "; ".join(
-                    self._render(item, context) for item in threat["resolution_criteria"]
-                ),
+                _lines([self._render(item, context) for item in threat["resolution_criteria"]]),
             ),
             ExplanationSection(
                 "Further reading",
-                "; ".join(
-                    self._render(item["url"], context)
-                    for item in threat["further_reading"]
+                _lines(
+                    [
+                        f"{self._render(item.get('title') or 'Reference', context)} — "
+                        f"{self._render(item['url'], context)}"
+                        for item in threat["further_reading"]
+                    ]
                 ),
             ),
         ]
@@ -162,8 +202,10 @@ class ExplanationBuilder:
                     if threat
                     else "Unclassified threat pattern",
                     match_confidence=match.match_confidence,
-                    matched_signals=list(match.matched_signal_keys),
-                    unmatched_signals=list(match.unmatched_signal_keys),
+                    matched_signals=[describe_signal(key) for key in match.matched_signal_keys],
+                    unmatched_signals=[
+                        describe_signal(key) for key in match.unmatched_signal_keys
+                    ],
                 )
             )
         return result
@@ -206,11 +248,11 @@ class ExplanationBuilder:
             "entity_id": rca_case.entity_id,
             "cloud_provider": rca_case.cloud_provider,
             "region": rca_case.region,
-            "final_score": rca_case.final_score,
+            "final_score": _fmt(rca_case.final_score),
             "severity": rca_case.severity,
-            "deviation_score": rca_case.component_scores.get("deviation", ""),
-            "drift_score": rca_case.component_scores.get("drift", ""),
-            "similarity_score": rca_case.component_scores.get("similarity", ""),
+            "deviation_score": _fmt(rca_case.component_scores.get("deviation", "")),
+            "drift_score": _fmt(rca_case.component_scores.get("drift", "")),
+            "similarity_score": _fmt(rca_case.component_scores.get("similarity", "")),
             "group_size": len(rca_case.similar_episodes),
             "top_changed_feature": parts[1] if len(parts) > 1 else top_feature,
             "top_changed_direction": parts[2] if len(parts) > 2 else "",
@@ -236,30 +278,40 @@ class ExplanationBuilder:
 
     @staticmethod
     def _collect_case_evidence(rca_case: RCACase, candidate: Any) -> str:
-        details = []
-        details.append(
-            f"final_score={rca_case.final_score}; severity={rca_case.severity}; "
-            f"confidence={rca_case.confidence}"
-        )
+        details = [
+            f"Final score {_fmt(rca_case.final_score)} ({rca_case.severity}); "
+            f"RCA confidence {rca_case.confidence}"
+        ]
+        directions = (rca_case.observed_window or {}).get("metric_directions") or {}
         for key in candidate.supporting_evidence_keys:
             if key == "component_scores":
                 scores = ", ".join(
-                    f"{name}={value:.2f}" for name, value in rca_case.component_scores.items()
+                    f"{name} {_fmt(value)}" for name, value in rca_case.component_scores.items()
                 )
-                details.append(f"component_scores: {scores or 'none recorded'}")
+                details.append(f"Component scores: {scores or 'none recorded'}")
             elif key == "changed_features":
-                details.append(
-                    "changed_features: " + (", ".join(rca_case.changed_features) or "none")
-                )
+                features = []
+                for feature in rca_case.changed_features:
+                    parts = str(feature).split(":")
+                    name = parts[1] if len(parts) > 1 and parts[0] == "metric_family" else str(feature)
+                    direction = parts[2] if len(parts) > 2 else directions.get(name, "")
+                    label = name.replace("_", " ")
+                    features.append(f"{label} ({direction})" if direction else label)
+                details.append("Changed features: " + (", ".join(features) or "none"))
             elif key == "behavioral_deviation":
-                details.append(f"behavioral_deviation={rca_case.behavioral_deviation}")
+                score = (rca_case.behavioral_deviation or {}).get("score")
+                details.append(f"Behavioral deviation score {_fmt(score) if score is not None else 'not recorded'}")
             elif key == "drift_evidence":
-                details.append(f"drift_evidence={rca_case.drift_evidence}")
+                drift = rca_case.drift_evidence or {}
+                group = drift.get("group_type")
+                score = drift.get("score")
+                text = f"Drift score {_fmt(score) if score is not None else 'not recorded'}"
+                details.append(f"{text} (correlation group {group})" if group else text)
             elif key == "similar_episodes":
-                details.append(f"similar_episodes={rca_case.similar_episodes}")
+                details.append(f"{len(rca_case.similar_episodes)} similar past episode(s)")
             elif key == "related_incidents":
-                details.append(f"related_incidents={rca_case.related_incidents}")
-        return "; ".join(details)
+                details.append(f"{len(rca_case.related_incidents)} related incident(s)")
+        return "\n".join(details)
 
 
 __all__ = ["ExplanationBuilder"]

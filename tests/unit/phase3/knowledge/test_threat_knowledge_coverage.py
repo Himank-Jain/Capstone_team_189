@@ -41,7 +41,7 @@ def test_signature_and_scenario_catalog_have_complete_threat_knowledge():
     signature_ids = {signature["threat_id"] for signature in signatures}
     cause_ids = {cause["cause_category"] for cause in knowledge["causes"]}
 
-    assert knowledge["kb_version"] == "2.1.0"
+    assert knowledge["kb_version"] == "2.2.0"
     assert {scenario_id for scenario_id in DemoGenerator().scenarios} <= threats.keys()
     assert signature_ids <= threats.keys()
     assert {rule["cause_category"] for rule in rules} <= cause_ids

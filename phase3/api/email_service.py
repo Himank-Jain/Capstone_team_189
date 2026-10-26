@@ -1,10 +1,51 @@
 """Email notification service for demo alerts."""
 
+import asyncio
 import os
 import smtplib
+import ssl
+from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from typing import Any, Dict, Optional
+
+SMTP_SECURITY_MODES = ("starttls", "ssl", "none")
+_DEFAULT_PORTS = {"starttls": 587, "ssl": 465, "none": 25}
+
+
+@dataclass(frozen=True)
+class SmtpSettings:
+    """Where and how alert email is sent. ``password`` is never logged or returned."""
+
+    host: str
+    port: int
+    security: str  # starttls | ssl | none
+    username: str
+    password: str
+    sender: str
+    source: str = "environment"  # environment | workspace
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.host and self.username and self.password and "@" in self.sender)
+
+    @classmethod
+    def from_env(cls) -> "SmtpSettings":
+        security = os.getenv("SMTP_SECURITY", "starttls").strip().lower()
+        if security not in SMTP_SECURITY_MODES:
+            security = "starttls"
+        port_text = os.getenv("SMTP_PORT", "").strip()
+        sender = EmailService.resolve_sender_email().strip()
+        return cls(
+            host=os.getenv("SMTP_HOST", "smtp.gmail.com").strip(),
+            port=int(port_text) if port_text.isdigit() else _DEFAULT_PORTS[security],
+            security=security,
+            username=os.getenv("SMTP_USERNAME", "").strip() or sender,
+            password=EmailService.resolve_sender_password(),
+            sender=sender,
+            source="environment",
+        )
 
 _TENANT_EMAIL_DEFAULTS = {
     "google": "ops@google-demo.internal",
@@ -63,6 +104,8 @@ class EmailService:
         cloud_provider = alert_data.get("cloud_provider", "AWS")
         region = alert_data.get("region", "unknown")
         target_team = alert_data.get("target_team", "Security Team")
+        dashboard_base = os.getenv("CAPSTONE_DASHBOARD_URL", "http://127.0.0.1:5173").rstrip("/")
+        dashboard_link = f"{dashboard_base}/incidents/{alert_id}"
 
         # Severity color mapping
         severity_colors = {
@@ -198,7 +241,7 @@ class EmailService:
                             </p>
                         </div>
 
-                        <a href="http://127.0.0.1:5173/" class="button">Review in Dashboard</a>
+                        <a href="{dashboard_link}" class="button">Review in Dashboard</a>
 
                         <p style="margin-top: 20px; color: #6b7280; font-size: 13px;">
                             This is an automated alert from the CAPSTONE-189 Demo System.
@@ -206,7 +249,7 @@ class EmailService:
                         </p>
                     </div>
                     <div class="footer">
-                        <p>© 2024 CAPSTONE-189 Security Operations Center</p>
+                        <p>© 2026 CAPSTONE-189 Security Operations Center</p>
                     </div>
                 </div>
             </body>
@@ -233,12 +276,12 @@ class EmailService:
         Review this alert immediately in the dashboard. The system has identified
         potential security concerns that require investigation.
 
-        Dashboard: http://127.0.0.1:5173/
+        Dashboard: {dashboard_link}
 
         This is an automated alert from the CAPSTONE-189 Demo System.
         For testing purposes, alerts are generated synthetically.
 
-        © 2024 CAPSTONE-189 Security Operations Center
+        © 2026 CAPSTONE-189 Security Operations Center
         """
 
         return html, text
@@ -256,25 +299,27 @@ class EmailService:
 
     @staticmethod
     async def send_alert_email_result(
-        recipient_email: str, alert_data: Dict[str, Any], subject_override: Optional[str] = None
+        recipient_email: str,
+        alert_data: Dict[str, Any],
+        subject_override: Optional[str] = None,
+        settings: Optional[SmtpSettings] = None,
     ) -> Dict[str, Any]:
         """
-        Send alert email asynchronously.
+        Send an alert email.
 
         Args:
-            recipient_email: Email address to send to
+            recipient_email: One address, or several separated by commas
             alert_data: Alert payload dictionary
             subject_override: Optional custom subject line
+            settings: SMTP account to use; defaults to the environment settings
 
         Returns:
             Delivery result with success and error details.
         """
+        settings = settings or SmtpSettings.from_env()
         try:
-            sender_email = EmailService.resolve_sender_email()
-            sender_password = EmailService.resolve_sender_password()
-
-            if not sender_password:
-                error_message = "DEMO_EMAIL_PASSWORD is not configured"
+            if not settings.password:
+                error_message = "No SMTP password is configured"
                 print(f"✗ Failed to send email: {error_message}")
                 return {"sent": False, "error": error_message}
 
@@ -285,37 +330,53 @@ class EmailService:
 
             html, text = EmailService.build_alert_html(alert_data, recipient_email)
 
-            # Create message
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
-            message["From"] = sender_email
+            message["From"] = formataddr(("CAPSTONE-189 Alerts", settings.sender))
             message["To"] = recipient_email
+            message.attach(MIMEText(text, "plain"))
+            message.attach(MIMEText(html, "html"))
 
-            # Attach both plain text and HTML versions
-            part1 = MIMEText(text, "plain")
-            part2 = MIMEText(html, "html")
-            message.attach(part1)
-            message.attach(part2)
+            # smtplib is blocking; run it in a worker thread so a slow SMTP
+            # handshake does not stall every other request on the event loop.
+            def _deliver() -> None:
+                context = ssl.create_default_context()
+                if settings.security == "ssl":
+                    server = smtplib.SMTP_SSL(settings.host, settings.port, timeout=20, context=context)
+                else:
+                    server = smtplib.SMTP(settings.host, settings.port, timeout=20)
+                with server:
+                    if settings.security == "starttls":
+                        server.starttls(context=context)
+                    server.login(settings.username, settings.password)
+                    server.send_message(message)
 
-            # Send email via SMTP
-            # Note: This is a synchronous operation wrapped in async
-            # For production, consider using an async email library
-            with smtplib.SMTP(EmailService.SMTP_SERVER, EmailService.SMTP_PORT) as server:
-                server.starttls()
-                server.login(sender_email, sender_password)
-                server.send_message(message)
+            await asyncio.to_thread(_deliver)
 
             print(f"✓ Email sent to {recipient_email}")
             return {"sent": True, "detail": f"Email sent to {recipient_email}"}
 
         except smtplib.SMTPAuthenticationError as e:
-            auth_hint = (
-                "Gmail authentication failed. Verify DEMO_EMAIL_SENDER is the same Gmail account "
-                "that generated the App Password, ensure 2-Step Verification is enabled, and paste "
-                "the 16-character App Password (spaces allowed; backend normalizes them)."
-            )
+            if "gmail" in settings.host.lower():
+                auth_hint = (
+                    "Gmail rejected the login. Use the Gmail address that created the App "
+                    "Password as the username, make sure 2-Step Verification is on, and paste "
+                    "the 16-character App Password (not your normal Gmail password)."
+                )
+            else:
+                auth_hint = "The SMTP server rejected the username or password."
             print(f"✗ Failed to send email to {recipient_email}: {str(e)}")
             return {"sent": False, "error": f"{auth_hint} SMTP says: {str(e)}"}
+
+        except (OSError, smtplib.SMTPException) as e:
+            print(f"✗ Failed to send email to {recipient_email}: {str(e)}")
+            return {
+                "sent": False,
+                "error": (
+                    f"Could not deliver through {settings.host}:{settings.port} "
+                    f"({settings.security}): {e}"
+                ),
+            }
 
         except Exception as e:
             print(f"✗ Failed to send email to {recipient_email}: {str(e)}")

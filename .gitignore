@@ -47,3 +47,9 @@ frontend/build/
 frontend/test-results/
 dist/
 build/
+# Locally generated JWT signing secret (created when PLATFORM_JWT_SECRET is unset)
+.capstone_dev_jwt_secret
+
+# Local secrets: SMTP passwords, webhooks, JWT secret
+.env
+.env.local

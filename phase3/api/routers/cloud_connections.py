@@ -1,10 +1,10 @@
 """Cloud connection endpoints."""
 
-import os
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Header
 
+from ..alert_notifications import channel_statuses
 from ._support import TENANT_CONNECTIONS, _tenant_header, require_tenant_membership
 
 router = APIRouter(
@@ -19,9 +19,6 @@ def list_connections(
 ) -> Dict[str, Any]:
     resolved_tenant = _tenant_header(tenant_id)
     provider, region = TENANT_CONNECTIONS.get(resolved_tenant, ("unknown", "unknown"))
-    email_status = (
-        "ready" if os.getenv("DEMO_EMAIL_PASSWORD", "").strip() else "credentials_required"
-    )
     return {
         "tenant_id": resolved_tenant,
         "source_mode": "synthetic",
@@ -33,26 +30,7 @@ def list_connections(
                 "dry_run": True,
             }
         ],
-        "notification_channels": [
-            {"channel": "PAGE", "status": "ready", "detail": "In-dashboard delivery"},
-            {"channel": "EMAIL", "status": email_status, "detail": "Gmail SMTP"},
-            {"channel": "SLACK", "status": "simulated", "detail": "Demo response only"},
-            {
-                "channel": "SMS",
-                "status": "credentials_required",
-                "detail": "SMS provider credentials",
-            },
-            {
-                "channel": "WEBHOOK",
-                "status": "credentials_required",
-                "detail": "Endpoint URL and signing secret",
-            },
-            {
-                "channel": "PAGERDUTY",
-                "status": "credentials_required",
-                "detail": "PagerDuty routing key",
-            },
-        ],
+        "notification_channels": channel_statuses(resolved_tenant),
     }
 
 

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi.testclient import TestClient
 
 from phase3.api.app import DEMO_STATE, alerts_by_tenant, app
@@ -45,30 +47,37 @@ def _tenant_headers(tenant_id: str) -> dict[str, str]:
     return {"X-Tenant-Id": tenant_id, "X-User-Id": user_id}
 
 
-def test_login_and_tenants_and_summary():
-    login_res = client.post(
-        "/auth/login",
-        json={"email": "demo@capstone189.local", "password": "demo"},
-    )
+def test_login_and_tenants_and_summary(monkeypatch):
+    monkeypatch.setenv("CAPSTONE_AUTH_REQUIRED", "true")
+    monkeypatch.setenv("PLATFORM_JWT_SECRET", "demo-api-test-secret-longer-than-32-bytes")
+    monkeypatch.setenv("PLATFORM_BCRYPT_ROUNDS", "4")
+    _support.reset_auth_service()
+    email = f"analyst-{uuid.uuid4().hex[:8]}@example.test"
+    register_res = client.post("/auth/register", json={"email": email, "password": "Str0ngPass!"})
+    assert register_res.status_code == 201, register_res.text
+    assert register_res.json()["access_token"]
+
+    bad_login = client.post("/auth/login", json={"email": email, "password": "wrong-pass"})
+    assert bad_login.status_code == 401
+
+    login_res = client.post("/auth/login", json={"email": email, "password": "Str0ngPass!"})
     assert login_res.status_code == 200
     body = login_res.json()
     assert body["access_token"]
-    assert body["user"]["role"] == "Admin"
-    assert body["user"]["user_id"] == "demo-user"
+    assert body["user"]["email"] == email
+    assert {item["tenant_id"] for item in body["memberships"]} >= {"google", "amazon"}
+    auth = {"Authorization": f"Bearer {body['access_token']}"}
 
-    tenants_res = client.get("/tenants")
+    tenants_res = client.get("/tenants", headers=auth)
     assert tenants_res.status_code == 200
-    tenants = tenants_res.json()
-    assert len(tenants) == 5
+    assert len(tenants_res.json()) == 5
 
-    summary_res = client.get("/stats/summary", headers={"X-Tenant-Id": "google"})
+    assert client.get("/stats/summary", headers={"X-Tenant-Id": "google"}).status_code == 401
+    summary_res = client.get("/stats/summary", headers={"X-Tenant-Id": "google", **auth})
     assert summary_res.status_code == 200
     summary = summary_res.json()
     assert summary["active_alerts"] == summary["active_incidents"]
-    authorized_incidents = client.get(
-        "/incidents",
-        headers={"X-Tenant-Id": "google", "X-User-Id": body["user"]["user_id"]},
-    )
+    authorized_incidents = client.get("/incidents", headers={"X-Tenant-Id": "google", **auth})
     assert authorized_incidents.status_code == 200
 
 
@@ -111,7 +120,8 @@ def test_demo_email_uses_configured_recipient(monkeypatch):
     assert body["notification"]["email_to"] == "demo.recipient@example.com"
 
 
-def test_demo_email_uses_tenant_default_recipient_when_available():
+def test_demo_email_goes_to_tenant_members_when_no_override(monkeypatch):
+    monkeypatch.delenv("DEMO_EMAIL_RECIPIENT", raising=False)
     DEMO_STATE.clear()
     alerts_by_tenant.clear()
 
@@ -129,7 +139,8 @@ def test_demo_email_uses_tenant_default_recipient_when_available():
     assert email_res.status_code == 200
     body = email_res.json()
     assert body["notify_method"] == "EMAIL"
-    assert body["notification"]["email_to"] == "security@microsoft-demo.internal"
+    assert "demo-api-test@example.test" in body["notification"]["email_to"].split(", ")
+    assert ".internal" not in body["notification"]["email_to"]
 
 
 def test_repeated_attack_increases_demo_score():
@@ -275,7 +286,8 @@ def test_phase3_demo_flow_covers_unknown_and_confident_rca(monkeypatch):
         for section in explanation.json()["sections"]
         if section["heading"] == "Evidence for this case"
     )
-    assert "final_score=" in evidence_section["body"]
+    assert "Final score" in evidence_section["body"]
+    assert "{'" not in evidence_section["body"], "no raw Python dicts in analyst text"
     assert recommendations.status_code == 200
     assert recommendations.json()
     assert investigation.status_code == 200
@@ -334,7 +346,8 @@ def test_phase3_connections_report_channel_readiness_by_tenant():
     assert body["connections"][0]["provider"] == "GCP"
     channels = {item["channel"]: item["status"] for item in body["notification_channels"]}
     assert channels["PAGE"] == "ready"
-    assert channels["SLACK"] == "simulated"
+    assert channels["SLACK"] in {"ready", "credentials_required"}
+    assert "simulated" not in channels.values()
     assert channels["SMS"] == "credentials_required"
     assert channels["WEBHOOK"] == "credentials_required"
     assert channels["PAGERDUTY"] == "credentials_required"

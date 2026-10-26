@@ -121,3 +121,25 @@ def test_demo_injection_requires_matching_tenant_membership():
         },
     )
     assert response.status_code == 403
+
+
+def test_malicious_scenarios_get_a_concrete_rca_category():
+    """RCA should not fall back to UNKNOWN when the threat signature matched."""
+    _support.provision_demo_identity()
+    unknown = []
+    for scenario in ("credential_theft", "insider_threat", "network_scan", "data_exfiltration"):
+        DEMO_STATE.clear()
+        alerts_by_tenant.clear()
+        response = client.post(
+            "/demo/generate/alert",
+            headers={"X-Tenant-Id": "google", "X-User-Id": "demo-user"},
+            json={"tenant_id": "google", "scenario": scenario, "seed": 7},
+        )
+        assert response.status_code == 200, response.text
+        phase3 = response.json()["phase3"]
+        if phase3["explanation"]["mitigation_mode"] == "threat_specific":
+            top = phase3["candidate_causes"][0]["cause_category"]
+            if top == "UNKNOWN":
+                unknown.append(scenario)
+            assert top == phase3["explanation"]["cause_category"]
+    assert unknown == []

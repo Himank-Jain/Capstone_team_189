@@ -133,10 +133,10 @@ def test_lifecycle_transitions_are_tenant_scoped_role_checked_and_audited(lifecy
     assert DEMO_DEDUP_REDIS.get("dedup:entity-a:123") is None
     assert ("tenant-a", "entity-a") not in _DRIFT_SCORE_CACHE
     assert _BASELINE_LIFECYCLE[("tenant-a", "entity-a")]["frozen"] is False
-    resolved_summary = client.get("/stats/summary", headers={"X-Tenant-Id": "tenant-a"}).json()
+    resolved_summary = client.get("/stats/summary", headers=operator_headers).json()
     assert resolved_summary["active_incidents"] == 0
     assert resolved_summary["resolved_today"] == 1
-    assert client.get("/alerts/recent", headers={"X-Tenant-Id": "tenant-a"}).json() == []
+    assert client.get("/alerts/recent", headers=operator_headers).json() == []
     assert resolved.json()["resolved_by"] == "operator-a"
     assert client.post(
         "/incidents/incident-a/resolve",
@@ -202,10 +202,10 @@ def test_fixed_resolution_reinjection_creates_fresh_linked_incident(lifecycle_cl
     assert second_payload["history_context"]["duplicate"] is False
     assert second_payload["regression_of"] == first_id
     assert second_payload["sev_level"] == first_payload["sev_level"]
-    active_summary = client.get("/stats/summary", headers={"X-Tenant-Id": "google"}).json()
+    active_summary = client.get("/stats/summary", headers=headers).json()
     assert active_summary["active_incidents"] == 1
     assert active_summary["mean_time_to_resolve_minutes"] >= 0
-    recent = client.get("/alerts/recent", headers={"X-Tenant-Id": "google"}).json()
+    recent = client.get("/alerts/recent", headers=headers).json()
     assert [row["alert_id"] for row in recent] == [second_payload["alert_id"]]
 
     with factory.session_scope() as session:

@@ -42,3 +42,26 @@ rules:
     condition: "True"
     supporting_evidence_keys: []
     contradicting_evidence_keys: ["component_scores"]
+# Threat-signature evidence (phase3/knowledge/threat_signatures.yaml) maps to a
+# cause category. When a signature matches with MEDIUM or HIGH confidence the
+# engine adds a candidate with that category, ranked ahead of the generic
+# score-based categories (BEHAVIOR_CHANGE, DRIFT, RESOURCE_CHANGE, UNKNOWN).
+# Signatures without an entry here (e.g. ambiguous_change) add no candidate.
+threat_categories:
+  credential_theft: "IDENTITY_MISUSE"
+  brute_force_login: "IDENTITY_MISUSE"
+  insider_threat: "PRIVILEGE_ESCALATION"
+  network_scan: "NETWORK_RECONNAISSANCE"
+  lateral_movement: "CROSS_RESOURCE_ACCESS"
+  data_exfiltration: "UNUSUAL_DATA_TRANSFER"
+  malware_execution: "RESOURCE_ABUSE"
+  function_abuse: "RESOURCE_ABUSE"
+  rogue_resources: "RESOURCE_ABUSE"
+  ransomware: "DESTRUCTIVE_ACTIVITY"
+  ddos_volumetric: "SERVICE_DISRUPTION"
+  public_exposure: "CONFIGURATION_CHANGE"
+  log_tampering: "CONFIGURATION_CHANGE"
+  planned_deployment: "DEPLOYMENT_CHANGE"
+  organic_growth: "TRAFFIC_CHANGE"
+  provider_regional_event: "CLOUD_PROVIDER_EVENT"
+  benign_baseline: "BASELINE_ACTIVITY"
