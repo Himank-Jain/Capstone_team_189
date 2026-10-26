@@ -705,7 +705,130 @@
       "time2vec_params_dict": {},
       "training_timestamp": "2026-07-07T07:41:22.646926+00:00",
       "val_loss_float": 0.0
+    },
+    "0.2.0": {
+      "version_str": "0.2.0",
+      "encoder_path": "C:\\Users\\Himank\\Desktop\\Capstone\\Capstone_team_189\\model_registry\\synthetic_32\\tstcc_encoder_final.pt",
+      "faiss_index_path": "C:\\Users\\Himank\\Desktop\\Capstone\\Capstone_team_189\\model_registry\\synthetic_32\\behavioral_space_0_2_0",
+      "config_dict": {
+        "model_name": "TSTCC",
+        "embedding_dim": 128,
+        "sequence_length": 32,
+        "batch_size": 256,
+        "faiss_index_type": "IndexIVFFlat",
+        "faiss_nlist": 100,
+        "projection_head": false,
+        "training_epochs": 20,
+        "learning_rate": 0.0001,
+        "temperature": 0.07,
+        "resumed_from_epoch": 15,
+        "device": "cpu",
+        "source_parquet": "C:\\Users\\Himank\\Desktop\\Capstone\\Capstone_team_189\\corpus_output\\synthetic_32\\aug_pairs.parquet",
+        "checkpoint_dir": "C:\\Users\\Himank\\Desktop\\Capstone\\Capstone_team_189\\model_registry\\synthetic_32",
+        "sequence_stride": 16
+      },
+      "feature_meta_dict": {
+        "vocab_maps": {
+          "cloud": {
+            "AWS": 1,
+            "Azure": 2,
+            "OCI": 3
+          },
+          "entity_type": {
+            "Instances": 1,
+            "Private_Endpoint": 2,
+            "Security_Groups": 3,
+            "Virtual_Machines": 4,
+            "oci_connector": 5
+          },
+          "namespace": {
+            "AWS/EC2": 1,
+            "Microsoft.Compute": 2,
+            "Microsoft.Network": 3,
+            "oci_service_connector_hub": 4
+          },
+          "metric_name": {
+            "BytesReadFromSource": 1,
+            "BytesWrittenToTarget": 2,
+            "CPUUtilization": 3,
+            "Network In": 4,
+            "NetworkIn": 5,
+            "NetworkOut": 6,
+            "NetworkPackets": 7,
+            "PEBytesIn": 8,
+            "Percentage CPU": 9
+          }
+        },
+        "metric_value_stats": {
+          "NetworkIn": {
+            "mean": 66317.9786832626,
+            "std": 50254.267264694754
+          },
+          "CPUUtilization": {
+            "mean": 24.895633611056773,
+            "std": 19.814743783389634
+          },
+          "NetworkOut": {
+            "mean": 45649.504193453766,
+            "std": 34978.41523178132
+          },
+          "Network In": {
+            "mean": 37139.462979914984,
+            "std": 32782.203800055046
+          },
+          "Percentage CPU": {
+            "mean": 31.969575607793136,
+            "std": 24.640169162945153
+          },
+          "PEBytesIn": {
+            "mean": 5850.334310672195,
+            "std": 2261.8591708442627
+          },
+          "BytesReadFromSource": {
+            "mean": 217.78227413822103,
+            "std": 80.513316757899
+          },
+          "BytesWrittenToTarget": {
+            "mean": 140.37581067793164,
+            "std": 54.51428376932311
+          },
+          "NetworkPackets": {
+            "mean": 1077.6888196022128,
+            "std": 547.1295224821706
+          }
+        },
+        "source_parquet": "C:\\Users\\Himank\\Desktop\\Capstone\\Capstone_team_189\\corpus_output\\synthetic_32\\aug_pairs.parquet",
+        "generated_at": "2026-10-11T16:05:04.484840+00:00"
+      },
+      "time2vec_params_dict": {
+        "linear_w": [
+          0.024970069527626038
+        ],
+        "linear_phi": [
+          -0.0019167878199368715
+        ],
+        "sine_w": [
+          0.01915275864303112,
+          0.033954765647649765,
+          0.01925872266292572,
+          0.04967118054628372,
+          0.05337735638022423,
+          0.04653628543019295,
+          -0.025393271818757057
+        ],
+        "sine_phi": [
+          -0.00115023844409734,
+          -0.0037301743868738413,
+          0.0013220561668276787,
+          0.0034536367747932673,
+          -0.0009997986489906907,
+          0.004478713031858206,
+          0.00281548616476357
+        ]
+      },
+      "training_timestamp": "2026-10-11T22:40:04.748353+00:00",
+      "val_loss_float": 0.3569
     }
   },
-  "latest_version": "0.1.0"
+  "latest_version": "0.2.0"
 }

@@ -1,19 +1,14 @@
 import { useState } from 'react';
-
-const DEMO_AUTH = {
-  access_token: 'demo-access-token',
-  refresh_token: 'demo-refresh-token',
-};
-
-function setAuthTokens(tokens: typeof DEMO_AUTH) {
-  localStorage.setItem('capstone.accessToken', tokens.access_token);
-  localStorage.setItem('capstone.refreshToken', tokens.refresh_token);
-}
+import { useNavigate } from 'react-router-dom';
+import { getApiBase, isMockMode } from '../../services/apiClient';
+import { Button, Card, FormField, PageHeader, Toast } from '../../components/ui';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -22,40 +17,66 @@ export default function LoginPage() {
       return;
     }
     setError(null);
-    setAuthTokens(DEMO_AUTH);
-    window.location.href = '/select-org';
+    setSubmitting(true);
+    try {
+      if (isMockMode()) {
+        localStorage.setItem('capstone.userId', 'mock-operator');
+        localStorage.setItem('capstone.activeTenantId', 'google');
+        localStorage.setItem('capstone.role', 'OPERATOR');
+        navigate('/');
+        return;
+      }
+      const response = await fetch(`${getApiBase()}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        throw new Error(`Login failed with HTTP ${response.status}`);
+      }
+      const result = await response.json();
+      localStorage.setItem('capstone.accessToken', result.access_token);
+      localStorage.setItem('capstone.refreshToken', result.refresh_token);
+      localStorage.setItem('capstone.userId', result.user.user_id);
+      if (result.user.role) localStorage.setItem('capstone.role', result.user.role.toUpperCase());
+      navigate('/');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to start the demo session');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <main style={{ minHeight: '100vh', background: '#0b0f17', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ width: '100%', maxWidth: '420px', background: '#111827', border: '1px solid #1f2937', borderRadius: '24px', padding: '32px' }}>
-        <h1 style={{ margin: 0, marginBottom: '16px', fontSize: '28px' }}>CAPSTONE-189</h1>
-        <p style={{ color: '#94a3b8', marginBottom: '24px' }}>Behavioral anomaly detection SOC dashboard demo.</p>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
-          <label style={{ display: 'grid', gap: '8px', color: '#cbd5e1' }}>
-            Email
+    <main className="login-page">
+      <Card className="login-card">
+        <p className="ui-eyebrow">Cloud behavior platform</p>
+        <PageHeader title="CAPSTONE-189" description="Behavioral anomaly detection for multi-cloud operations. This local demo login is not production authentication." />
+        <form className="login-form" onSubmit={handleSubmit}>
+          <FormField label="Email">
             <input
               type="email"
+              autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              style={{ padding: '12px', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+              required
             />
-          </label>
-          <label style={{ display: 'grid', gap: '8px', color: '#cbd5e1' }}>
-            Password
+          </FormField>
+          <FormField label="Password">
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              style={{ padding: '12px', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a', color: '#f8fafc' }}
+              required
             />
-          </label>
-          {error ? <p style={{ color: '#fca5a5', margin: 0 }}>{error}</p> : null}
-          <button type="submit" style={{ padding: '14px 18px', borderRadius: '14px', border: 'none', background: '#2563eb', color: 'white', cursor: 'pointer' }}>
-            Continue
-          </button>
+          </FormField>
+          {error ? <Toast message={error} tone="error" /> : null}
+          <Button variant="primary" type="submit" disabled={submitting}>
+            {submitting ? 'Starting demo…' : 'Continue'}
+          </Button>
         </form>
-      </div>
+      </Card>
     </main>
   );
 }

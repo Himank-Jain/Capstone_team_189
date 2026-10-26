@@ -28,7 +28,7 @@ import hashlib
 import json
 import os
 import warnings
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -283,7 +283,7 @@ def pull_alert_anchors(db, cfg: dict) -> dict:
         "raw_data.severity": 1,
     }
 
-    print(f"\n[STEP 3] Querying alerts collection for anomaly anchors...")
+    print("\n[STEP 3] Querying alerts collection for anomaly anchors...")
     cursor = col.find(query, projection, limit=50000)
 
     anchors = {}
@@ -435,7 +435,7 @@ def build_corpus(seed_df: pd.DataFrame, alert_anchors: dict, cfg: dict) -> pd.Da
     rng = np.random.default_rng(seed=42)
     all_chunks = []
 
-    print(f"\n[STEP 5] Generating minute-wise corpus...")
+    print("\n[STEP 5] Generating minute-wise corpus...")
     print(f"  Seed rows to expand: {len(seed_df):,}")
     print(f"  Expected output rows: ~{len(seed_df) * 1440:,}")
 

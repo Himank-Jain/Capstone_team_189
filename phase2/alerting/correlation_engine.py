@@ -86,7 +86,7 @@ import hashlib
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 import networkx as nx
 
@@ -191,6 +191,11 @@ class AlertGraph:
         back as a related incident."""
         if entity_id in self._graph:
             self._graph.nodes[entity_id]["incident_id"] = incident_id
+
+    def remove_entity(self, entity_id: str) -> None:
+        """Remove one tenant-owned entity and its graph edges."""
+        if entity_id in self._graph:
+            self._graph.remove_node(entity_id)
 
     # ── Queries ──────────────────────────────────────────────────────────────
 
@@ -339,6 +344,10 @@ class CorrelationEngine:
             group_size=group_size,
             group_type=group_type,
         )
+
+    def forget_entity(self, entity_id: str) -> None:
+        """Remove one entity's in-memory correlation state."""
+        self._graph.remove_entity(entity_id)
 
     # ── Internal helpers ─────────────────────────────────────────────────────
 

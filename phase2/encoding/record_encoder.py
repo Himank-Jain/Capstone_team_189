@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -72,7 +72,7 @@ class RecordEncoder:
         self._numerical_encoder = NumericalEncoder(feature_meta.metric_value_stats_dict)
         self._context_encoder = ContextEncoder()
 
-    # â”€â”€ Single-entity encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Single-entity encodingâ”€
 
     def encode_entity_records(self, records: List[RawRecord]) -> Dict[str, torch.Tensor]:
         """
@@ -123,7 +123,7 @@ class RecordEncoder:
             "timestamps": torch.tensor(timestamp_rows, dtype=torch.float32),
         }
 
-    # â”€â”€ Batch encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Batch encoding
 
     def encode_event_batch(self, batch: EventBatch) -> Dict[str, Dict[str, torch.Tensor]]:
         """

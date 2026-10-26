@@ -1,0 +1,76 @@
+cases:
+  - name: credential misuse evidence
+    rca_case:
+      rca_case_id: rca-credential
+      incident_id: incident-credential
+      tenant_id: tenant-a
+      entity_id: entity-credential
+      batch_ts: "2026-01-01T00:00:00+00:00"
+      cloud_provider: AWS
+      region: us-east-1
+      final_score: 0.82
+      severity: HIGH
+      component_scores: {deviation: 0.8, drift: 0.2, similarity: 0.2}
+      changed_features:
+        - "metric_family:api_calls:increase"
+        - "metric_family:auth_failures:increase"
+      similar_episodes: []
+      observed_window:
+        entity_types: [Instances]
+        namespaces: [AWS/EC2]
+    expected:
+      - threat_id: credential_theft
+        match_confidence: HIGH
+        matched_signal_keys:
+          - changed_features.api_calls.increase
+          - changed_features.auth_failures.increase
+          - observed_window.entity_types
+          - observed_window.namespaces
+          - cloud_provider
+          - component_scores.deviation
+          - component_scores.similarity
+        unmatched_signal_keys: [similar_episodes.severity]
+  - name: destructive storage evidence
+    rca_case:
+      rca_case_id: rca-storage
+      incident_id: incident-storage
+      tenant_id: tenant-a
+      entity_id: bucket-a
+      batch_ts: "2026-01-01T00:00:00+00:00"
+      cloud_provider: AWS
+      region: us-east-1
+      final_score: 0.9
+      severity: CRITICAL
+      component_scores: {deviation: 0.8, drift: 0.7, similarity: 0.1}
+      changed_features:
+        - "metric_family:storage_write_ops:increase"
+        - "metric_family:storage_delete_ops:increase"
+        - "metric_family:object_count:decrease"
+      similar_episodes: []
+      observed_window:
+        entity_types: [Buckets]
+        namespaces: [AWS/EBS]
+    expected:
+      - threat_id: ransomware
+        match_confidence: HIGH
+        matched_signal_keys:
+          - changed_features.storage_write_ops.increase
+          - changed_features.storage_delete_ops.increase
+          - changed_features.object_count.decrease
+          - observed_window.entity_types
+          - observed_window.namespaces
+          - cloud_provider
+          - component_scores.deviation
+          - component_scores.drift
+          - component_scores.similarity
+        unmatched_signal_keys: []
+      - threat_id: organic_growth
+        match_confidence: MEDIUM
+        matched_signal_keys:
+          - changed_features.storage_write_ops.increase
+          - cloud_provider
+          - component_scores.drift
+        unmatched_signal_keys:
+          - changed_features.normal_requests.increase
+          - observed_window.entity_types
+          - observed_window.namespaces

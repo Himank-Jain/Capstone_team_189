@@ -7,8 +7,8 @@ def test_required_scaffold_directories_exist():
     required_dirs = [
         ROOT / "frontend" / "src" / "app" / "dashboard",
         ROOT / "frontend" / "src" / "components" / "widgets",
-        ROOT / "backend" / "api_demo_ext",
-        ROOT / "demo-generator" / "scenarios",
+        ROOT / "phase3" / "api",
+        ROOT / "demo_generator" / "scenarios",
         ROOT / "docs" / "guides",
     ]
     for path in required_dirs:
@@ -22,9 +22,9 @@ def test_required_guidance_documents_exist():
         ROOT / "docs" / "guides" / "PROJECT_DIRECTORY_STRUCTURE_GUIDE.md",
         ROOT / "docs" / "guides" / "TESTING_AND_VERIFICATION_GUIDE.md",
         ROOT / "frontend" / "package.json",
-        ROOT / "backend" / "api_demo_ext" / "__init__.py",
-        ROOT / "demo-generator" / "main.py",
-        ROOT / "demo-generator" / "generator.py",
+        ROOT / "phase3" / "api" / "app.py",
+        ROOT / "demo_generator" / "main.py",
+        ROOT / "demo_generator" / "generator.py",
     ]
     for path in required_files:
         assert path.exists(), f"Missing required file: {path}"

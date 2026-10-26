@@ -1,5 +1,6 @@
 # Virtual environment
 venv/
+.venv*/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -9,13 +10,26 @@ __pycache__/
 # (https://git-lfs.github.com) if these need version control, or share via
 # separate storage (S3, shared drive) and reference the path in docs.
 pretrain_corpus.parquet
+*.parquet
+*.faiss
+model_registry/*.pt
+model_registry/*.pkl
+*.meta.pkl
+*_meta.pkl
 model_registry/behavioral_space.faiss
 model_registry/behavioral_space_meta.pkl
 model_registry/behavioral_space.meta.pkl
+model_registry/*
+!model_registry/README.md
+corpus_output/
+model_registry/synthetic_32/
 
 # Local test/debug output
 dead_letter_queue*.jsonl
 model_registry_test/
+*.log
+logs/
+email_logs/
 
 # OS / editor cruft
 .DS_Store
@@ -29,4 +43,7 @@ capstone_phase3_*.db
 frontend/.env
 frontend/node_modules/
 frontend/dist/
-backend/api_demo_ext/email_logs/
+frontend/build/
+frontend/test-results/
+dist/
+build/

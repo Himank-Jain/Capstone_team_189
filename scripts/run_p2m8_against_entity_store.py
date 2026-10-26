@@ -107,7 +107,10 @@ def main():
     parser.add_argument(
         "--seed-demo-drift",
         action="store_true",
-        help="write a synthetic drifted history for entity_id before scoring, via the real P2-M6 writer",
+        help=(
+            "write a synthetic drifted history for entity_id before scoring, "
+            "via the real P2-M6 writer"
+        ),
     )
     args = parser.parse_args()
 
@@ -146,7 +149,8 @@ def main():
     assert cached is not None, "expected a cached DriftScore immediately after compute"
     print(
         f"  re-read from Redis cache (TTL={drift_worker._cache_ttl_sec}s): "
-        f"drift_score={cached.drift_score:.4f} matches={abs(cached.drift_score - drift_result.drift_score) < 1e-9}"
+        f"drift_score={cached.drift_score:.4f} "
+        f"matches={abs(cached.drift_score - drift_result.drift_score) < 1e-9}"
     )
 
     # ── P2-M7 preview, for context: the two real P2-M10 inputs side by side ─
@@ -164,10 +168,12 @@ def main():
         deviation_result = scorer.compute_scores(current_emb, profile)
         print("\nDeviationResult (P2-M7, for context -- P2-M10's other real input):")
         print(
-            f"  global_score: {deviation_result.global_score:.4f}  (flag={deviation_result.global_flag})"
+            f"  global_score: {deviation_result.global_score:.4f}  "
+            f"(flag={deviation_result.global_flag})"
         )
         print(
-            f"  local_score:  {deviation_result.local_score:.4f}  (flag={deviation_result.local_flag})"
+            f"  local_score:  {deviation_result.local_score:.4f}  "
+            f"(flag={deviation_result.local_flag})"
         )
 
     drift_worker.shutdown()

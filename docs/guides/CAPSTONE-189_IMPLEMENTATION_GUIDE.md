@@ -4,7 +4,7 @@ This guide captures the additive frontend/demo layer requested for the SOC dashb
 
 ## Scope
 - Preserve the frozen backend contracts in shared/types.py and shared/constants.py.
-- Build new surface area only in frontend/, backend/api_demo_ext/, and demo-generator/.
+- Build new surface area only in frontend/, phase3/api/, and demo_generator/.
 - Keep all new routes and demo helpers isolated from the Phase 1/Phase 2 modules.
 
 ## Delivery Goals

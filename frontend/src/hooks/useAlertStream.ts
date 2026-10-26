@@ -7,7 +7,7 @@ const HEARTBEAT_STALE_MS = 90000;
 
 export type AlertStreamConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
-export default function useAlertStream(onMessage: (msg: any) => void) {
+export default function useAlertStream(onMessage: (msg: unknown) => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const onMessageRef = useRef(onMessage);
   const [connectionState, setConnectionState] = useState<AlertStreamConnectionState>('connecting');
@@ -53,7 +53,7 @@ export default function useAlertStream(onMessage: (msg: any) => void) {
           lastHeartbeatAtRef.current = Date.now();
           setConnectionState('connected');
           try {
-            const payload = JSON.parse(event.data);
+            const payload: unknown = JSON.parse(event.data);
             onMessageRef.current(payload);
           } catch {
             onMessageRef.current(event.data);
@@ -129,9 +129,7 @@ export default function useAlertStream(onMessage: (msg: any) => void) {
       clearInterval(staleHeartbeatTimer);
       if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
       if (wsRef.current) {
-        try {
-          wsRef.current.close();
-        } catch {}
+        wsRef.current.close();
       }
       wsRef.current = null;
     };

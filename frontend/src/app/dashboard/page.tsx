@@ -1,11 +1,31 @@
 import { useEffect, useState } from 'react';
-import { getSummary } from '../../services/demoApi';
+import { Link } from 'react-router-dom';
+import { Card, EmptyState, PageHeader, SeverityBadge, Skeleton, StatCard, Toast } from '../../components/ui';
 import { getRecentAlerts } from '../../services/alertsApi';
+import { getSummary } from '../../services/demoApi';
+import { getErrorMessage } from '../../services/errors';
+
+interface DashboardSummary {
+  active_alerts?: number;
+  critical_alerts?: number;
+  event_volume?: number;
+  model_confidence?: number;
+  mean_time_to_resolve_minutes?: number;
+  resolved_today?: number;
+}
+
+interface DashboardAlert {
+  alert_id: string;
+  entity_id: string;
+  final_score: number;
+  severity: string;
+}
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<{ active_alerts?: number; critical_alerts?: number; event_volume?: number; model_confidence?: number } | null>(null);
-  const [alerts, setAlerts] = useState<Array<{ alert_id: string; entity_id: string; final_score: number; severity: string }>>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [alerts, setAlerts] = useState<DashboardAlert[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -13,69 +33,92 @@ export default function DashboardPage() {
         const [summaryData, alertsData] = await Promise.all([getSummary(), getRecentAlerts()]);
         setSummary(summaryData);
         setAlerts(alertsData.slice(0, 5));
-      } catch (err: any) {
-        setError(err?.message || 'Unable to load dashboard data');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Unable to load dashboard data'));
+      } finally {
+        setLoading(false);
       }
     }
 
-    loadData();
+    void loadData();
   }, []);
 
   return (
-    <main style={{ padding: '24px', color: '#f3f4f6', background: '#0b0f17', minHeight: '100vh' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '32px', marginBottom: '8px' }}>CAPSTONE-189 · SOC Overview</h1>
-          <p style={{ color: '#94a3b8', margin: 0 }}>Live multi-tenant anomaly dashboard with synthetic demo generation.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <a href="/demo" style={{ padding: '10px 16px', borderRadius: '14px', background: '#2563eb', color: 'white', textDecoration: 'none' }}>Open Live Demo</a>
-          <a href="/alerts" style={{ padding: '10px 16px', borderRadius: '14px', background: '#111827', color: '#f8fafc', border: '1px solid #1f2937', textDecoration: 'none' }}>View Alert Feed</a>
-        </div>
-      </div>
+    <main className="app-page">
+      <div className="app-page-content">
+        <PageHeader
+          eyebrow="Security operations"
+          title="SOC overview"
+          description="A focused view of tenant activity, detection health, and incidents requiring investigation."
+          actions={
+            <>
+              <Link className="p3-link-button" to="/demo">Open live demo</Link>
+              <Link className="p3-button p3-button-primary" to="/incidents">Investigate RCA</Link>
+            </>
+          }
+        />
 
-      {error ? <p style={{ color: '#fca5a5' }}>{error}</p> : null}
+        {error ? <Toast message={error} tone="error" /> : null}
 
-      <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: '24px' }}>
-        <div style={{ padding: '20px', borderRadius: '18px', background: '#111827', border: '1px solid #1f2937' }}>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Active Alerts</p>
-          <h2 style={{ margin: '12px 0 0', fontSize: '28px' }}>{summary?.active_alerts ?? '--'}</h2>
-        </div>
-        <div style={{ padding: '20px', borderRadius: '18px', background: '#111827', border: '1px solid #1f2937' }}>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Critical Alerts</p>
-          <h2 style={{ margin: '12px 0 0', fontSize: '28px' }}>{summary?.critical_alerts ?? '--'}</h2>
-        </div>
-        <div style={{ padding: '20px', borderRadius: '18px', background: '#111827', border: '1px solid #1f2937' }}>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Event Volume</p>
-          <h2 style={{ margin: '12px 0 0', fontSize: '28px' }}>{summary?.event_volume ?? '--'}</h2>
-        </div>
-        <div style={{ padding: '20px', borderRadius: '18px', background: '#111827', border: '1px solid #1f2937' }}>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Model Confidence</p>
-          <h2 style={{ margin: '12px 0 0', fontSize: '28px' }}>{summary?.model_confidence ? `${Math.round(summary.model_confidence * 100)}%` : '--'}</h2>
-        </div>
-      </div>
-
-      <section style={{ padding: '20px', borderRadius: '18px', background: '#111827', border: '1px solid #1f2937' }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: '22px' }}>Recent alerts</h2>
-        {alerts.length === 0 ? (
-          <p style={{ margin: 0, color: '#94a3b8' }}>No recent alerts for this tenant. Trigger a demo scenario from the Live Demo page.</p>
+        {loading ? (
+          <Card><Skeleton rows={4} /></Card>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
-            {alerts.map((alert) => (
-              <div key={alert.alert_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '14px', background: '#0f172a' }}>
+          <>
+            <section className="p3-grid dashboard-stats" aria-label="Security metrics">
+              <StatCard label="Active incidents" value={summary?.active_alerts ?? 0} detail="Open or acknowledged" />
+              <StatCard label="Critical alerts" value={summary?.critical_alerts ?? 0} tone="critical" />
+              <StatCard label="Event volume" value={summary?.event_volume ?? 0} tone="neutral" />
+              <StatCard
+                label="Model confidence"
+                value={summary?.model_confidence ? `${Math.round(summary.model_confidence * 100)}%` : '—'}
+                tone="success"
+              />
+              <StatCard
+                label="Mean time to resolve"
+                value={`${summary?.mean_time_to_resolve_minutes ?? 0} min`}
+                tone="neutral"
+              />
+              <StatCard label="Resolved today" value={summary?.resolved_today ?? 0} tone="success" />
+            </section>
+
+            <Card className="dashboard-alerts">
+              <div className="section-heading">
                 <div>
-                  <p style={{ margin: 0, color: '#94a3b8' }}>{alert.entity_id}</p>
-                  <strong style={{ fontSize: '16px' }}>{alert.alert_id}</strong>
+                  <p className="ui-eyebrow">Latest activity</p>
+                  <h2>Recent alerts</h2>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, color: '#94a3b8' }}>{alert.severity}</p>
-                  <strong>{alert.final_score.toFixed(2)}</strong>
-                </div>
+                <Link className="ui-link" to="/alerts">View alert feed</Link>
               </div>
-            ))}
-          </div>
+              {alerts.length === 0 ? (
+                <EmptyState
+                  title="No recent alerts"
+                  description="No alerts are available for this tenant. Trigger a synthetic scenario to populate the investigation feed."
+                  action={<Link className="p3-button p3-button-primary" to="/demo">Open live demo</Link>}
+                />
+              ) : (
+                <div className="dashboard-alert-list">
+                  {alerts.map((alert) => (
+                    <Link
+                      to={`/incidents/${encodeURIComponent(alert.alert_id)}`}
+                      key={alert.alert_id}
+                      className="dashboard-alert-row"
+                    >
+                      <div>
+                        <span className="dashboard-alert-entity">{alert.entity_id}</span>
+                        <strong>{alert.alert_id}</strong>
+                      </div>
+                      <div className="dashboard-alert-score">
+                        <SeverityBadge severity={alert.severity} />
+                        <strong>{alert.final_score.toFixed(2)}</strong>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </>
         )}
-      </section>
+      </div>
     </main>
   );
 }

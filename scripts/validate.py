@@ -1,4 +1,3 @@
-import pandas as pd
 import pyarrow.parquet as pq
 
 # Sample only 2 row groups instead of loading all 17M rows

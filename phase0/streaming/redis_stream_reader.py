@@ -55,7 +55,12 @@ class RedisStreamReader(BaseStreamReader):
         if self._started:
             return
         try:
-            self._redis.xgroup_create(self._stream_name, self._consumer_group, id="0", mkstream=True)
+            self._redis.xgroup_create(
+                self._stream_name,
+                self._consumer_group,
+                id="0",
+                mkstream=True,
+            )
         except Exception as exc:
             if "BUSYGROUP" not in str(exc):  # group already exists — fine, idempotent
                 raise

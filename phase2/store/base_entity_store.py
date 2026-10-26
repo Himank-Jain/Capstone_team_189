@@ -218,3 +218,40 @@ class BaseEntityStoreWriter(ABC):
         centroid/variance themselves.
         """
         raise NotImplementedError
+
+    def is_baseline_frozen(self, entity_id: str, tenant_id: Optional[str] = None) -> bool:
+        """Return whether baseline updates are paused for this entity."""
+        return False
+
+    def set_baseline_frozen(
+        self, entity_id: str, frozen: bool, tenant_id: Optional[str] = None
+    ) -> None:
+        """Additive lifecycle hook; writers may persist an entity freeze flag."""
+        raise NotImplementedError
+
+    def record_frozen_embeddings(
+        self,
+        entity_id: str,
+        embeddings: list[np.ndarray],
+        tenant_id: Optional[str] = None,
+    ) -> None:
+        """Retain observations made while frozen for an operator-approved reseed."""
+        raise NotImplementedError
+
+    def resolve_frozen_baseline(
+        self,
+        entity_id: str,
+        resolution_type: str,
+        adaptation_alpha: float,
+        adaptation_window: int,
+        adaptation_batches: int,
+        tenant_id: Optional[str] = None,
+    ) -> None:
+        """Apply FIXED/ AUTO_RECOVERED purge or benign-change adaptation."""
+        raise NotImplementedError
+
+    def next_baseline_alpha(
+        self, entity_id: str, default_alpha: float, tenant_id: Optional[str] = None
+    ) -> float:
+        """Return a temporarily elevated alpha and consume one adaptation batch."""
+        return default_alpha

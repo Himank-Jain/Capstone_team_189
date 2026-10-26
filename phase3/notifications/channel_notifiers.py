@@ -150,7 +150,10 @@ class PagerDutyNotifier(BaseNotifier):
             "event_action": "trigger",
             "dedup_key": f"pd:{payload.entity_id}",
             "payload": {
-                "summary": f"{payload.severity.value} anomaly on {payload.entity_id} (score={payload.final_score:.3f})",
+                "summary": (
+                    f"{payload.severity.value} anomaly on {payload.entity_id} "
+                    f"(score={payload.final_score:.3f})"
+                ),
                 "source": payload.entity_id,
                 "severity": self._SEVERITY_MAP.get(payload.severity.value, "warning"),
                 "timestamp": payload.batch_ts.isoformat(),

@@ -372,6 +372,10 @@ class SuppressionTracker:
         self._last_sev3_ts[incident_group_id] = alert_ts
         return should_suppress
 
+    def clear_group(self, incident_group_id: str) -> None:
+        """Forget suppression history for a closed incident group."""
+        self._last_sev3_ts.pop(incident_group_id, None)
+
 
 # =========================================================================
 # EscalationEngine (Controller, GRASP)
@@ -513,3 +517,6 @@ class EscalationEngine:
             policy_applied=policy_applied,
             business_hours_flag=is_business_hours,
         )
+
+    def clear_suppression_memory(self, incident_group_id: str) -> None:
+        self._suppression_tracker.clear_group(incident_group_id)

@@ -49,7 +49,6 @@ Naming conventions  (CAPSTONE-189)
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -691,8 +690,6 @@ class TstccEncoder(nn.Module):
             L2-normalised embeddings.  Shape ``(batch, embed_dim=128)``.
             Every row lies on the unit sphere: ``||z||₂ = 1``.
         """
-        batch_size_int: int = numeric_input_tensor.size(0)
-
         # ── Step 1: Feature embedding  ────────────────────────────────────────
         # (batch, seq_len, num_numeric+num_cat) → (batch, seq_len, ENC_FEATURE_DIM=256)
         features_tensor: torch.Tensor = self.embedding_layer_module(
@@ -1387,9 +1384,10 @@ def _run_cli() -> None:
 
     if not seq_a_list:
         print(
-            f"\n  ERROR: no entity had >= {args.seq_len} reading events for both view='a' and view='b'."
+            f"\n  ERROR: no entity had >= {args.seq_len} reading events for "
+            "both view='a' and view='b'."
         )
-        print(f"  Try a smaller --seq-len or a larger --row-groups.")
+        print("  Try a smaller --seq-len or a larger --row-groups.")
         sys.exit(1)
 
     print(f"      Built {len(seq_a_list)} matched pairs from entities: {used_entities}")
@@ -1421,10 +1419,12 @@ def _run_cli() -> None:
     neg_mask = ~torch.eye(len(z_a), dtype=torch.bool)
     neg_sim = sim_matrix[neg_mask]
     print(
-        f"      Positive-pair cosine sim:  mean={pos_sim.mean():.4f}  (untrained encoder — not meaningful yet)"
+        f"      Positive-pair cosine sim:  mean={pos_sim.mean():.4f}  "
+        "(untrained encoder — not meaningful yet)"
     )
     print(
-        f"      Negative-pair cosine sim:  mean={neg_sim.mean():.4f}  (untrained encoder — not meaningful yet)"
+        f"      Negative-pair cosine sim:  mean={neg_sim.mean():.4f}  "
+        "(untrained encoder — not meaningful yet)"
     )
 
     # ── Step 5: Optionally save a checkpoint to verify save/load works ────

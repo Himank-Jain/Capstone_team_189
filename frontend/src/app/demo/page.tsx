@@ -1,144 +1,115 @@
-'use client';
-
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useAlertStream from '../../hooks/useAlertStream';
-import {
-  getDemoTenants,
-  getSummary,
-  getDemoScenarios,
-  getNotifyMethods,
-  triggerDemoAlert,
-  getDemoStatus,
-  pauseDemo,
-  resumeDemo,
-  resetDemo,
-  callExplainableApi,
-  DemoTenant,
-  SummaryPayload,
-  DemoScenario,
-  NotifyMethod,
-} from '../../services/demoApi';
-import { getActiveTenantId, setActiveTenantId } from '../../services/apiClient';
-import DemoStatusCard from '../../components/DemoStatusCard';
+import { Link, useNavigate } from 'react-router-dom';
 import AlertResponseCard from '../../components/AlertResponseCard';
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  FormField,
+  PageHeader,
+  SeverityBadge,
+  Skeleton,
+  StatCard,
+  Stepper,
+  Toast,
+} from '../../components/ui';
+import useAlertStream from '../../hooks/useAlertStream';
+import { getActiveTenantId, setActiveTenantId } from '../../services/apiClient';
+import {
+  DemoAlertResponse,
+  DemoNotification,
+  DemoScenario,
+  DemoTenant,
+  getDemoScenarios,
+  getDemoStatus,
+  getDemoTenants,
+  getNotifyMethods,
+  getSummary,
+  NotifyMethod,
+  pauseDemo,
+  resetDemo,
+  resumeDemo,
+  SummaryPayload,
+  triggerDemoAlert,
+} from '../../services/demoApi';
+import { getErrorMessage } from '../../services/errors';
 
-const MODES = [
-  { value: 'attack', label: 'Attack' },
-  { value: 'normal', label: 'Normal baseline' },
-];
+const PROVIDERS = ['AWS', 'Azure', 'GCP', 'OCI'];
+const TENANT_PROVIDERS: Record<string, string> = {
+  amazon: 'AWS',
+  microsoft: 'Azure',
+  google: 'GCP',
+  oracle: 'OCI',
+  acme: 'AWS',
+};
+
+interface TenantScorePoint {
+  ts: string;
+  score: number;
+  severity: string;
+}
 
 export default function DemoPage() {
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<DemoTenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState(getActiveTenantId() || 'google');
   const [selectedScenario, setSelectedScenario] = useState('credential_theft');
+  const [selectedProvider, setSelectedProvider] = useState(
+    TENANT_PROVIDERS[getActiveTenantId() || 'google'] || 'AWS',
+  );
+  const [selectedIntensity, setSelectedIntensity] = useState<'low' | 'medium' | 'high'>('medium');
   const [scenarios, setScenarios] = useState<DemoScenario[]>([]);
-  const [status, setStatus] = useState('idle');
   const [summary, setSummary] = useState<SummaryPayload | null>(null);
-  const [parsedResult, setParsedResult] = useState<any | null>(null);
+  const [parsedResult, setParsedResult] = useState<DemoAlertResponse | null>(null);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
   const [heartbeatCount, setHeartbeatCount] = useState(0);
-  const [explainData, setExplainData] = useState<any | null>(null);
-  const [explainLoading, setExplainLoading] = useState(false);
-  const [explainError, setExplainError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState('idle');
+  const [statusMessage, setStatusMessage] = useState('Ready');
   const [demoPaused, setDemoPaused] = useState(false);
-  const [activeAlerts, setActiveAlerts] = useState<number>(0);
+  const [activeAlerts, setActiveAlerts] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [selectedNotifyMethod, setSelectedNotifyMethod] = useState<NotifyMethod>('PAGE');
   const [notifyMethods, setNotifyMethods] = useState<NotifyMethod[]>([]);
-  const [mode, setMode] = useState<'attack' | 'normal'>('attack');
-  const [notificationData, setNotificationData] = useState<any | null>(null);
-  const [tenantScoreHistory, setTenantScoreHistory] = useState<Record<string, Array<{
-    ts: string;
-    scenario: string;
-    mode: 'attack' | 'normal';
-    score: number;
-    severity: string;
-  }>>>({});
+  const [notificationData, setNotificationData] = useState<DemoNotification | undefined>();
+  const [tenantScoreHistory, setTenantScoreHistory] = useState<Record<string, TenantScorePoint[]>>({});
+  const [confirmReset, setConfirmReset] = useState(false);
 
-  const { connectionState, error: wsError } = useAlertStream((_message) => {
+  const { connectionState, error: wsError } = useAlertStream(() => {
     setLastHeartbeat(new Date());
-    setHeartbeatCount((c) => c + 1);
+    setHeartbeatCount((count) => count + 1);
   });
-
-  const heartbeatPresentation = useMemo(() => {
-    if (connectionState === 'connected') {
-      return {
-        label: 'Live',
-        color: '#22c55e',
-        detail: 'Heartbeat stream is healthy',
-      };
-    }
-
-    if (connectionState === 'reconnecting' || connectionState === 'connecting') {
-      return {
-        label: 'Reconnecting',
-        color: '#f59e0b',
-        detail: 'Recovering the live stream',
-      };
-    }
-
-    return {
-      label: 'Offline',
-      color: '#ef4444',
-      detail: 'Backend heartbeat is unavailable',
-    };
-  }, [connectionState]);
 
   const selectedTenantTrend = useMemo(
     () => tenantScoreHistory[selectedTenant] ?? [],
-    [tenantScoreHistory, selectedTenant]
+    [tenantScoreHistory, selectedTenant],
   );
-
-  const latestTrendPoint = selectedTenantTrend.length > 0
-    ? selectedTenantTrend[selectedTenantTrend.length - 1]
-    : null;
-
-  const previousTrendPoint = selectedTenantTrend.length > 1
-    ? selectedTenantTrend[selectedTenantTrend.length - 2]
-    : null;
-
+  const selectedScenarioSpec = useMemo(
+    () => scenarios.find((scenario) => scenario.value === selectedScenario) ?? null,
+    [scenarios, selectedScenario],
+  );
+  const latestTrendPoint = selectedTenantTrend[selectedTenantTrend.length - 1] || null;
+  const previousTrendPoint = selectedTenantTrend[selectedTenantTrend.length - 2] || null;
   const scoreDelta = latestTrendPoint && previousTrendPoint
     ? latestTrendPoint.score - previousTrendPoint.score
     : 0;
-
-  const emailChannelPresentation = useMemo(() => {
-    if (notificationData?.notify_method === 'EMAIL') {
-      if (notificationData.status === 'sent') {
-        return {
-          label: 'Ready',
-          color: '#22c55e',
-          detail: 'Latest email delivery succeeded',
-        };
-      }
-
-      if (notificationData.status === 'failed') {
-        return {
-          label: 'Auth / Delivery Error',
-          color: '#ef4444',
-          detail: notificationData.message || 'Latest email delivery failed',
-        };
-      }
-
-      return {
-        label: 'Pending',
-        color: '#f59e0b',
-        detail: 'Waiting for delivery confirmation',
-      };
-    }
-
-    return {
-      label: 'Untested',
-      color: '#64748b',
-      detail: 'Trigger an EMAIL alert to verify channel health',
-    };
-  }, [notificationData]);
+  const stepIndex = parsedResult ? 2 : loading ? 1 : 0;
+  const heartbeatLabel = connectionState === 'connected'
+    ? 'Live'
+    : connectionState === 'connecting' || connectionState === 'reconnecting'
+      ? 'Reconnecting'
+      : 'Offline';
+  const emailStatus = notificationData?.notify_method === 'EMAIL'
+    ? notificationData.status === 'sent'
+      ? 'Email delivered'
+      : notificationData.status === 'failed'
+        ? 'Email delivery failed'
+        : 'Email pending'
+    : 'Email not tested';
 
   useEffect(() => {
-    setStatus('ready');
+    let cancelled = false;
     async function loadData() {
       try {
         const [tenantData, summaryData, scenarioData, notifyData] = await Promise.all([
@@ -147,28 +118,36 @@ export default function DemoPage() {
           getDemoScenarios(),
           getNotifyMethods(),
         ]);
+        if (cancelled) return;
         setTenants(tenantData);
         setScenarios(scenarioData);
         setNotifyMethods(notifyData);
         setSummary(summaryData);
         const storedTenant = getActiveTenantId();
-        if (storedTenant && tenantData.some((t) => t.id === storedTenant)) {
-          setSelectedTenant(storedTenant);
-        } else if (tenantData.length) {
-          setSelectedTenant(tenantData[0].id);
-          setActiveTenantId(tenantData[0].id);
+        const initialTenant = tenantData.find((tenant) => tenant.id === storedTenant)?.id
+          || tenantData[0]?.id;
+        if (initialTenant) {
+          setSelectedTenant(initialTenant);
+          setActiveTenantId(initialTenant);
         }
-        if (scenarioData.length) {
-          setSelectedScenario(scenarioData[0].value);
+        const initialScenario = scenarioData[0];
+        if (initialScenario) {
+          setSelectedScenario(initialScenario.value);
+          setSelectedProvider((current) => (
+            (initialScenario.providers || []).includes(current)
+              ? current
+              : initialScenario.providers?.[0] || 'AWS'
+          ));
         }
-        if (notifyData.length) {
-          setSelectedNotifyMethod(notifyData[0]);
-        }
-      } catch (err: any) {
-        setError(err?.message || 'Unable to load demo data');
+        if (notifyData[0]) setSelectedNotifyMethod(notifyData[0]);
+      } catch (err: unknown) {
+        if (!cancelled) setError(getErrorMessage(err, 'Unable to load demo data'));
+      } finally {
+        if (!cancelled) setLoadingData(false);
       }
     }
-    loadData();
+    void loadData();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -180,448 +159,342 @@ export default function DemoPage() {
         setSummary(summaryData);
         setDemoPaused(statusData.paused);
         setActiveAlerts(statusData.active_alerts ?? 0);
-      } catch (err: any) {
-        setError(err?.message || 'Unable to refresh demo status');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Unable to refresh demo status'));
       }
     }
-    refreshSummaryAndStatus();
+    void refreshSummaryAndStatus();
   }, [selectedTenant]);
 
   const handleTenantChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const tenantId = event.target.value;
     setSelectedTenant(tenantId);
     setActiveTenantId(tenantId);
+    setSelectedProvider(TENANT_PROVIDERS[tenantId] || 'AWS');
   };
 
   const handleScenarioChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedScenario(event.target.value);
-  };
-
-  const handleNotifyMethodChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedNotifyMethod(event.target.value as NotifyMethod);
-  };
-
-  const handleModeChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setMode(event.target.value as 'attack' | 'normal');
+    const scenarioId = event.target.value;
+    setSelectedScenario(scenarioId);
+    const scenario = scenarios.find((item) => item.value === scenarioId);
+    if (scenario && !(scenario.providers || []).includes(selectedProvider)) {
+      setSelectedProvider(scenario.providers?.[0] || 'AWS');
+    }
   };
 
   const runDemo = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await triggerDemoAlert(selectedTenant, selectedScenario, selectedNotifyMethod, mode);
+      const data = await triggerDemoAlert(
+        selectedTenant,
+        selectedScenario,
+        selectedNotifyMethod,
+        selectedProvider,
+        selectedIntensity,
+      );
+      if (!data.phase3?.explanation || !Array.isArray(data.phase3.recommendations)) {
+        throw new Error('Demo response did not include the Phase 3 RCA explanation and checks.');
+      }
       setParsedResult(data);
       setNotificationData(data.notification);
-      setStatusMessage('attack submitted');
-      const alertPayload = data.alert_payload as any;
-      if (alertPayload?.final_score !== undefined) {
-        setTenantScoreHistory((prev) => {
-          const existing = prev[selectedTenant] ?? [];
-          const nextPoint = {
-            ts: String(alertPayload.batch_ts || new Date().toISOString()),
-            scenario: data.scenario,
-            mode: data.mode as 'attack' | 'normal',
-            score: Number(alertPayload.final_score),
-            severity: String(alertPayload.severity ?? 'UNKNOWN'),
+      setStatusMessage('Scenario injected');
+      const payload = data.alert_payload;
+      if (Number.isFinite(payload.final_score)) {
+        setTenantScoreHistory((previous) => {
+          const existing = previous[selectedTenant] ?? [];
+          const nextPoint: TenantScorePoint = {
+            ts: payload.batch_ts || new Date().toISOString(),
+            score: payload.final_score,
+            severity: payload.severity || 'UNKNOWN',
           };
-          const nextHistory = [...existing, nextPoint].slice(-12);
-          return {
-            ...prev,
-            [selectedTenant]: nextHistory,
-          };
+          return { ...previous, [selectedTenant]: [...existing, nextPoint].slice(-12) };
         });
       }
       const statusData = await getDemoStatus();
       setDemoPaused(statusData.paused);
       setActiveAlerts(statusData.active_alerts ?? 0);
-    } catch (err: any) {
-      setError(err?.message || 'Demo generation failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Demo generation failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchExplainability = async () => {
-    setExplainError(null);
-    setExplainData(null);
-    if (!parsedResult) {
-      setExplainError('No demo response available to explain');
-      return;
-    }
-    const apiPath = parsedResult.explainable_api || '/phase2/alerting/api/alert_api';
-    setExplainLoading(true);
+  const togglePause = async (action: 'pause' | 'resume') => {
     try {
-      const resp = await callExplainableApi(apiPath, parsedResult.alert_payload || parsedResult.alert);
-      setExplainData(resp);
-    } catch (err: any) {
-      setExplainError(err?.message || 'Explainability request failed');
-    } finally {
-      setExplainLoading(false);
+      const result = action === 'pause' ? await pauseDemo() : await resumeDemo();
+      setDemoPaused(result.paused);
+      setStatusMessage(action === 'pause' ? 'Demo paused' : 'Demo resumed');
+      setError(null);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, `Failed to ${action} demo`));
+    }
+  };
+
+  const clearDemo = async () => {
+    try {
+      const result = await resetDemo();
+      setActiveAlerts(result.active_alerts ?? 0);
+      setDemoPaused(result.paused);
+      setStatusMessage('Tenant reset to baseline');
+      setParsedResult(null);
+      setNotificationData(undefined);
+      setTenantScoreHistory((previous) => ({ ...previous, [selectedTenant]: [] }));
+      setConfirmReset(false);
+      setError(null);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to reset demo tenant'));
     }
   };
 
   return (
-    <main style={{ padding: '0', minHeight: '100vh', background: '#0b0f17', color: '#f3f4f6' }}>
-      {/* Breadcrumb Navigation */}
-      <nav style={{ padding: '16px 24px', background: '#111827', borderBottom: '1px solid #1f2937' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              color: '#60a5fa',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            ← Back to Dashboard
-          </button>
-          <span style={{ color: '#4b5563' }}>/</span>
-          <span style={{ fontSize: '14px', color: '#9ca3af' }}>Live Demo</span>
-        </div>
-      </nav>
+    <main className="p3-shell">
+      <div className="p3-content">
+        <PageHeader
+          eyebrow="Guided simulation"
+          title="Live demo control"
+          description="Inject a reproducible synthetic scenario and inspect its alert, evidence, and knowledge-based investigation."
+          actions={<Link className="p3-link-button" to="/incidents">Browse incidents</Link>}
+        />
+        <Card className="demo-stepper-card">
+          <Stepper items={['Configure', 'Inject', 'Investigate']} activeIndex={stepIndex} />
+        </Card>
 
-      {/* Main Content */}
-      <section style={{ padding: '24px', maxWidth: '1280px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: 'bold' }}>Live Demo Control</h1>
-        <p style={{ color: '#9ca3af', marginBottom: '24px', fontSize: '15px' }}>
-          Select a tenant, choose an attack scenario, and dispatch synthetic events to visualize the system response in real-time.
-        </p>
-
-        <div style={{ display: 'grid', gap: '20px' }}>
-          {/* Configuration Card */}
-          <div style={{ display: 'grid', gap: '14px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-              <div>
-                <p style={{ margin: 0, color: '#9ca3af' }}>Pipeline status</p>
-                <strong>{status}</strong>
-              </div>
-              <div>
-                <p style={{ margin: 0, color: '#9ca3af' }}>Heartbeat stream</p>
-                <strong>{heartbeatPresentation.label}</strong>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1fr 1fr' }}>
-              <label style={{ display: 'grid', gap: '8px' }}>
-                Tenant
-                <select value={selectedTenant} onChange={handleTenantChange} style={{ padding: '10px', borderRadius: '10px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }}>
-                  {tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={{ display: 'grid', gap: '8px' }}>
-                Scenario
-                <select value={selectedScenario} onChange={handleScenarioChange} style={{ padding: '10px', borderRadius: '10px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }}>
-                  {scenarios.map((scenario) => (
-                    <option key={scenario.value} value={scenario.value}>{scenario.label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1fr 1fr' }}>
-              <label style={{ display: 'grid', gap: '8px' }}>
-                Notify Method
-                <select value={selectedNotifyMethod} onChange={handleNotifyMethodChange} style={{ padding: '10px', borderRadius: '10px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }}>
-                  {notifyMethods.map((method) => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={{ display: 'grid', gap: '8px' }}>
-                Mode
-                <select value={mode} onChange={handleModeChange} style={{ padding: '10px', borderRadius: '10px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }}>
-                  {MODES.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <button
-              type="button"
-              onClick={runDemo}
-              disabled={loading || !selectedTenant}
-              style={{ padding: '14px 18px', borderRadius: '12px', border: 'none', background: '#2563eb', color: 'white', cursor: 'pointer', maxWidth: '240px' }}
-            >
-              {loading ? 'Dispatching...' : mode === 'normal' ? 'Dispatch Normal Baseline' : 'Dispatch Demo Attack'}
-            </button>
-
-            {error ? <p style={{ color: '#fca5a5' }}>{error}</p> : null}
-          </div>
-
-          {/* Demo Controls Card */}
-          <div style={{ display: 'grid', gap: '14px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Demo controls</h2>
-            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <DemoStatusCard title="Tenant status" value={demoPaused ? 'Paused' : 'Running'} accent="#f59e0b" />
-              <DemoStatusCard title="Active alerts" value={activeAlerts} accent="#2563eb" />
-              <DemoStatusCard title="Last action" value={statusMessage} accent="#22c55e" />
-            </div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const data = await pauseDemo();
-                    setDemoPaused(data.paused);
-                    setStatusMessage('paused');
-                  } catch (err: any) {
-                    setError(err?.message || 'Failed to pause');
-                  }
-                }}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#f97316', color: 'white', cursor: 'pointer' }}
-              >
-                Pause
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const data = await resumeDemo();
-                    setDemoPaused(data.paused);
-                    setStatusMessage('resumed');
-                  } catch (err: any) {
-                    setError(err?.message || 'Failed to resume');
-                  }
-                }}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#22c55e', color: 'white', cursor: 'pointer' }}
-              >
-                Resume
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const data = await resetDemo();
-                    setActiveAlerts(data.active_alerts ?? 0);
-                    setDemoPaused(data.paused);
-                    setStatusMessage('reset');
-                    setParsedResult(null);
-                    setNotificationData(null);
-                    setExplainData(null);
-                    setTenantScoreHistory((prev) => ({
-                      ...prev,
-                      [selectedTenant]: [],
-                    }));
-                  } catch (err: any) {
-                    setError(err?.message || 'Failed to reset');
-                  }
-                }}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer' }}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-
-          {/* Insights Card */}
-          <div style={{ display: 'grid', gap: '14px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Demo insights</h2>
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-              <DemoStatusCard title="Loaded tenants" value={tenants.length} accent="#3b82f6" />
-              <DemoStatusCard title="Model confidence" value={summary?.model_confidence ? `${(summary.model_confidence * 100).toFixed(0)}%` : '--'} accent="#8b5cf6" />
-              <DemoStatusCard title="Critical alerts" value={summary?.critical_alerts ?? '--'} accent="#ef4444" />
-            </div>
-          </div>
-
-          {/* System Status Card */}
-          <div style={{ display: 'grid', gap: '14px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-            <h2 style={{ margin: 0, fontSize: '20px' }}>System Status</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-              {/* WebSocket Connection Status */}
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#0f172a', border: '1px solid #1f2937' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div
-                    style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: heartbeatPresentation.color,
-                      animation: connectionState !== 'disconnected' ? 'pulse 2s infinite' : 'none'
-                    }}
-                  />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: heartbeatPresentation.color }}>
-                    {heartbeatPresentation.label}
-                  </span>
+        {error ? <Toast message={error} tone="error" /> : null}
+        {loadingData ? <Card><Skeleton rows={5} /></Card> : (
+          <div className="demo-layout">
+            <section className="demo-main-column">
+              <Card>
+                <div className="section-heading">
+                  <div>
+                    <p className="ui-eyebrow">Scenario setup</p>
+                    <h2>Configure an injection</h2>
+                  </div>
+                  <span className="ui-badge ui-status-acknowledged">Deterministic demo</span>
                 </div>
-                <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>{heartbeatPresentation.detail}</p>
-              </div>
-
-              {/* Last Heartbeat */}
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#0f172a', border: '1px solid #1f2937' }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f3f4f6' }}>
-                    {lastHeartbeat ? (
-                      <>
-                        {lastHeartbeat.toLocaleTimeString()}
-                      </>
-                    ) : (
-                      'Waiting...'
-                    )}
-                  </p>
-                </div>
-                <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>Last Heartbeat</p>
-              </div>
-
-              {/* Heartbeat Count */}
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#0f172a', border: '1px solid #1f2937' }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#60a5fa' }}>
-                    {heartbeatCount} events
-                  </p>
-                </div>
-                <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>Total Received</p>
-              </div>
-
-              {/* Email Channel Readiness */}
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#0f172a', border: '1px solid #1f2937' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div
-                    style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: emailChannelPresentation.color,
-                    }}
-                  />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: emailChannelPresentation.color }}>
-                    {emailChannelPresentation.label}
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>{emailChannelPresentation.detail}</p>
-              </div>
-            </div>
-            {wsError && (
-              <div style={{ padding: '10px', borderRadius: '8px', background: '#7f1d1d', border: '1px solid #dc2626', color: '#fca5a5', fontSize: '13px' }}>
-                ⚠️ {wsError}
-              </div>
-            )}
-            <style>{`
-              @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-              }
-            `}</style>
-          </div>
-
-          {/* Tenant Trend Panel */}
-          <div style={{ display: 'grid', gap: '14px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>Tenant Score Trend</h2>
-              <span style={{ color: '#9ca3af', fontSize: '12px' }}>{selectedTenantTrend.length} recent points</span>
-            </div>
-
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <DemoStatusCard
-                title="Latest Score"
-                value={latestTrendPoint ? `${(latestTrendPoint.score * 100).toFixed(1)}%` : '--'}
-                accent="#38bdf8"
-              />
-              <DemoStatusCard
-                title="Score Delta"
-                value={latestTrendPoint && previousTrendPoint ? `${scoreDelta >= 0 ? '+' : ''}${(scoreDelta * 100).toFixed(1)}%` : '--'}
-                accent={scoreDelta >= 0 ? '#f97316' : '#22c55e'}
-              />
-              <DemoStatusCard
-                title="Latest Severity"
-                value={latestTrendPoint ? latestTrendPoint.severity : '--'}
-                accent="#a78bfa"
-              />
-            </div>
-
-            {selectedTenantTrend.length > 0 ? (
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {selectedTenantTrend.slice().reverse().map((point, index) => {
-                  const intensity = Math.max(0.12, Math.min(0.95, point.score));
-                  return (
-                    <div
-                      key={`${point.ts}-${index}`}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '140px 1fr 110px',
-                        gap: '10px',
-                        alignItems: 'center',
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        background: '#0f172a',
-                        border: '1px solid #1f2937',
-                      }}
+                <div className="demo-form-grid">
+                  <FormField label="Tenant">
+                    <select value={selectedTenant} onChange={handleTenantChange}>
+                      {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Scenario">
+                    <select value={selectedScenario} onChange={handleScenarioChange}>
+                      {(['malicious', 'benign', 'ambiguous'] as const).map((category) => (
+                        <optgroup key={category} label={category[0].toUpperCase() + category.slice(1)}>
+                          {scenarios.filter((scenario) => scenario.category === category).map((scenario) => (
+                            <option key={scenario.value} value={scenario.value}>{scenario.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Cloud provider">
+                    <select value={selectedProvider} onChange={(event) => setSelectedProvider(event.target.value)}>
+                      {PROVIDERS.map((provider) => <option key={provider} value={provider}>{provider}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Intensity">
+                    <select
+                      value={selectedIntensity}
+                      onChange={(event) => setSelectedIntensity(event.target.value as 'low' | 'medium' | 'high')}
                     >
-                      <span style={{ color: '#94a3b8', fontSize: '12px' }}>
-                        {new Date(point.ts).toLocaleTimeString()}
-                      </span>
-                      <div style={{ height: '10px', borderRadius: '999px', background: '#1e293b', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            width: `${Math.round(point.score * 100)}%`,
-                            height: '100%',
-                            background: `rgba(56, 189, 248, ${intensity})`,
-                          }}
-                        />
-                      </div>
-                      <span style={{ color: '#e2e8f0', fontSize: '12px', textAlign: 'right' }}>
-                        {(point.score * 100).toFixed(1)}%
-                      </span>
+                      {(['low', 'medium', 'high'] as const).map((intensity) => (
+                        <option key={intensity} value={intensity}>{intensity[0].toUpperCase() + intensity.slice(1)}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Notification channel">
+                    <select
+                      value={selectedNotifyMethod}
+                      onChange={(event) => setSelectedNotifyMethod(event.target.value as NotifyMethod)}
+                    >
+                      {notifyMethods.map((method) => <option key={method} value={method}>{method}</option>)}
+                    </select>
+                  </FormField>
+                </div>
+                {selectedScenarioSpec ? (
+                  <div className="demo-scenario-summary">
+                    <div className="demo-scenario-heading">
+                      <h3>{selectedScenarioSpec.label}</h3>
+                      <span className="ui-badge">{selectedScenarioSpec.category}</span>
                     </div>
+                    <p>{selectedScenarioSpec.description}</p>
+                    <small>Minimum severity target: {selectedScenarioSpec.minimum_severity}</small>
+                  </div>
+                ) : <EmptyState title="No scenarios available" description="Scenario definitions have not loaded for this workspace." />}
+                <Button
+                  className="demo-inject-button"
+                  variant="primary"
+                  type="button"
+                  onClick={() => void runDemo()}
+                  disabled={loading || !selectedTenant || !selectedScenarioSpec?.providers?.includes(selectedProvider)}
+                >
+                  {loading ? 'Injecting…' : 'Inject scenario'}
+                </Button>
+              </Card>
+
+              <Card>
+                <div className="section-heading">
+                  <div>
+                    <p className="ui-eyebrow">Live control</p>
+                    <h2>Demo tenant status</h2>
+                  </div>
+                  <span className={`ui-badge ${demoPaused ? 'ui-severity-medium' : 'ui-status-resolved'}`}>
+                    {demoPaused ? 'Paused' : 'Running'}
+                  </span>
+                </div>
+                <div className="demo-stat-grid">
+                  <StatCard label="Active alerts" value={activeAlerts} tone="critical" />
+                  <StatCard label="Last action" value={statusMessage} tone="brand" />
+                  <StatCard label="Heartbeat" value={heartbeatLabel} tone={connectionState === 'connected' ? 'success' : 'warning'} />
+                </div>
+                <div className="demo-control-actions">
+                  <Button type="button" onClick={() => void togglePause('pause')} disabled={demoPaused}>Pause</Button>
+                  <Button type="button" onClick={() => void togglePause('resume')} disabled={!demoPaused}>Resume</Button>
+                  <Button type="button" variant="danger" onClick={() => setConfirmReset(true)}>
+                    Reset demo tenant to baseline
+                  </Button>
+                </div>
+                <p className="demo-system-detail">
+                  {lastHeartbeat ? `Last heartbeat ${lastHeartbeat.toLocaleTimeString()}` : 'Waiting for a backend heartbeat'}
+                  {' · '}{heartbeatCount} events received
+                </p>
+                {wsError ? <Toast message={wsError} tone="error" /> : null}
+                <p className="demo-system-detail">{emailStatus}</p>
+              </Card>
+
+              <Card>
+                <div className="section-heading">
+                  <div>
+                    <p className="ui-eyebrow">Score history</p>
+                    <h2>Tenant trend</h2>
+                  </div>
+                  <span className="ui-badge">{selectedTenantTrend.length} recent points</span>
+                </div>
+                <div className="demo-stat-grid">
+                  <StatCard label="Model confidence" value={summary?.model_confidence ? `${(summary.model_confidence * 100).toFixed(0)}%` : '—'} tone="success" />
+                  <StatCard label="Critical alerts" value={summary?.critical_alerts ?? '—'} tone="critical" />
+                  <StatCard label="Score delta" value={latestTrendPoint && previousTrendPoint ? `${scoreDelta >= 0 ? '+' : ''}${(scoreDelta * 100).toFixed(1)}%` : '—'} tone={scoreDelta >= 0 ? 'warning' : 'success'} />
+                </div>
+                {selectedTenantTrend.length ? (
+                  <div className="demo-trend-list" aria-label="Recent tenant score history">
+                    {selectedTenantTrend.slice().reverse().map((point, index) => (
+                      <div className="demo-trend-row" key={`${point.ts}-${index}`}>
+                        <span>{new Date(point.ts).toLocaleTimeString()}</span>
+                        <meter min="0" max="1" value={point.score} aria-label={`Score ${Math.round(point.score * 100)} percent`} />
+                        <SeverityBadge severity={point.severity} />
+                        <strong>{(point.score * 100).toFixed(1)}%</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No score history yet" description="Inject a scenario to record the first score for this tenant." />
+                )}
+              </Card>
+
+              <Card className="demo-threat-library">
+                <div className="section-heading">
+                  <div>
+                    <p className="ui-eyebrow">Scenario catalog</p>
+                    <h2>Threat library</h2>
+                  </div>
+                  <span className="ui-badge">{scenarios.length} scenarios</span>
+                </div>
+                {(['malicious', 'benign', 'ambiguous'] as const).map((category) => {
+                  const categoryScenarios = scenarios.filter((scenario) => scenario.category === category);
+                  if (!categoryScenarios.length) return null;
+                  return (
+                    <section className="demo-library-group" key={category}>
+                      <h3>{category[0].toUpperCase() + category.slice(1)}</h3>
+                      {categoryScenarios.map((scenario) => (
+                        <button
+                          className="demo-library-item"
+                          type="button"
+                          key={scenario.value}
+                          onClick={() => {
+                            setSelectedScenario(scenario.value);
+                            if (!scenario.providers.includes(selectedProvider)) {
+                              setSelectedProvider(scenario.providers[0] || 'AWS');
+                            }
+                          }}
+                        >
+                          <strong>{scenario.label}</strong>
+                          <span>{scenario.description}</span>
+                        </button>
+                      ))}
+                    </section>
                   );
                 })}
-              </div>
-            ) : (
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
-                Dispatch alerts for this tenant to visualize score progression over time.
-              </p>
-            )}
-          </div>
+                {!scenarios.length ? <EmptyState title="Threat library unavailable" description="Scenario definitions could not be loaded." /> : null}
+              </Card>
+            </section>
 
-          {/* Alert Response & Explainability Card */}
-          {parsedResult && parsedResult.alert_payload ? (
-            <div style={{ display: 'grid', gap: '12px', padding: '18px', borderRadius: '16px', background: '#0b0f17', border: '1px solid #1f2937' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>Alert Details & Analysis</h2>
-                <button
-                  type="button"
-                  onClick={fetchExplainability}
-                  disabled={explainLoading}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#1f2937',
-                    color: '#60a5fa',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                  }}
-                >
-                  {explainLoading ? '🔄 Analyzing...' : '🔍 Get Explainability'}
-                </button>
-              </div>
-              <AlertResponseCard
-                alert={parsedResult.alert_payload}
-                notification={notificationData}
-                explainability={explainData}
-              />
-              {explainError && <p style={{ margin: 0, color: '#fca5a5', fontSize: '13px' }}>⚠️ {explainError}</p>}
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '12px', padding: '18px', borderRadius: '16px', background: '#111827', border: '1px solid #1f2937' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>Alert Details & Analysis</h2>
-              <p style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>
-                🚀 Dispatch a demo attack above to see alert details, analysis, and model explainability insights.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+            <aside className="demo-side-column">
+              {parsedResult ? (
+                <>
+                  <AlertResponseCard alert={parsedResult.alert_payload} notification={notificationData} />
+                  <Card>
+                    <p className="ui-eyebrow">Evidence-based explanation</p>
+                    <h2>{parsedResult.phase3.explanation.headline}</h2>
+                    {parsedResult.phase3.explanation.is_fallback ? (
+                      <Toast message="No confident category. Review the evidence and recommended checks; this is not a diagnosis." />
+                    ) : null}
+                    {parsedResult.phase3.explanation.sections.map((section) => (
+                      <article className="demo-explanation-section" key={section.heading}>
+                        <h3>{section.heading}</h3>
+                        <p>{section.body}</p>
+                      </article>
+                    ))}
+                    <p className="p3-footer">
+                      Knowledge base {parsedResult.phase3.explanation.kb_version}
+                      {' · '}Hypothesis only; unsupervised signals do not establish an attack diagnosis.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => navigate(`/incidents/${encodeURIComponent(parsedResult.alert_payload.alert_id)}`)}
+                    >
+                      View full investigation
+                    </Button>
+                  </Card>
+                  <Card>
+                    <p className="ui-eyebrow">Recommended investigation</p>
+                    {parsedResult.phase3.recommendations.length ? (
+                      <div className="demo-check-list">
+                        {parsedResult.phase3.recommendations.map((check) => (
+                          <article key={`${check.check}-${check.why}`}>
+                            <h3>{check.check}</h3>
+                            <p>{check.why}</p>
+                            <span>Expected: {check.expected_result}</span>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState title="No checks returned" description="The investigation did not produce any recommended checks." />
+                    )}
+                  </Card>
+                </>
+              ) : (
+                <Card>
+                  <EmptyState
+                    title="Ready to investigate"
+                    description="Choose a tenant, scenario, provider, and intensity. After injection, the alert and structured RCA will appear here."
+                  />
+                </Card>
+              )}
+            </aside>
+          </div>
+        )}
+        <ConfirmDialog
+          open={confirmReset}
+          title="Reset this synthetic tenant?"
+          description="This clears the demo tenant’s incidents and local demo state. No cloud resources are changed."
+          confirmLabel="Reset tenant"
+          onConfirm={() => void clearDemo()}
+          onCancel={() => setConfirmReset(false)}
+        />
+      </div>
     </main>
   );
 }

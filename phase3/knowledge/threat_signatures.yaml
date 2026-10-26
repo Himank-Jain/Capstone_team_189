@@ -1,0 +1,360 @@
+signatures:
+  - threat_id: credential_theft
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: api_calls, direction: increase, weight: 2}
+        - {metric_family: auth_failures, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+      similar_episode_severities:
+        any_of: [MEDIUM, HIGH, CRITICAL]
+        weight: 1
+
+  - threat_id: insider_threat
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: policy_changes, direction: increase, weight: 2}
+        - {metric_family: privileged_api_calls, direction: increase, weight: 2}
+        - {metric_family: storage_reads, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: network_scan
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: application_requests, direction: increase, weight: 2}
+        - {metric_family: east_west_connections, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+      similar_episode_severities:
+        any_of: [MEDIUM, HIGH, CRITICAL]
+        weight: 1
+
+  - threat_id: malware_execution
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: cpu_utilization, direction: increase, weight: 2}
+        - {metric_family: unusual_egress, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: drift, minimum: 0.35, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: ransomware
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: storage_write_ops, direction: increase, weight: 2}
+        - {metric_family: storage_delete_ops, direction: increase, weight: 2}
+        - {metric_family: object_count, direction: decrease, weight: 2}
+      entity_types:
+        any_of: [Buckets, Storage_Accounts, Volumes]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EBS, Microsoft.Storage/storageAccounts, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: drift, minimum: 0.35, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: data_exfiltration
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: storage_reads, direction: increase, weight: 2}
+        - {metric_family: network_egress_bytes, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Buckets, Storage_Accounts, Volumes]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EBS, Microsoft.Storage/storageAccounts, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: drift, minimum: 0.35, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: ddos_volumetric
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: request_count, direction: increase, weight: 2}
+        - {metric_family: ingress_bytes, direction: increase, weight: 2}
+        - {metric_family: latency, direction: increase, weight: 2}
+        - {metric_family: http_5xx, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Web_Apps, Instances, VM_Instances]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: public_exposure
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: configuration_changes, direction: increase, weight: 2}
+        - {metric_family: anonymous_requests, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Buckets, Storage_Accounts, Volumes]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EBS, Microsoft.Storage/storageAccounts, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: brute_force_login
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: failed_logins, direction: increase, weight: 2}
+        - {metric_family: successful_logins, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+      similar_episode_severities:
+        any_of: [MEDIUM, HIGH, CRITICAL]
+        weight: 1
+
+  - threat_id: lateral_movement
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: east_west_connections, direction: increase, weight: 2}
+        - {metric_family: security_group_changes, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+      similar_episode_severities:
+        any_of: [MEDIUM, HIGH, CRITICAL]
+        weight: 1
+
+  - threat_id: log_tampering
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: audit_log_volume, direction: decrease, weight: 3}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.5, weight: 2}
+        - {score: drift, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: rogue_resources
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: resource_create_count, direction: increase, weight: 2}
+        - {metric_family: region_activity, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: function_abuse
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: serverless_invocations, direction: increase, weight: 2}
+        - {metric_family: function_duration, direction: increase, weight: 2}
+        - {metric_family: estimated_cost, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Functions, Web_Apps]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, minimum: 0.4, weight: 2}
+        - {score: drift, minimum: 0.35, weight: 2}
+        - {score: similarity, maximum: 0.6, weight: 1}
+
+  - threat_id: benign_baseline
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: normal_cpu, direction: increase, weight: 2}
+        - {metric_family: normal_requests, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, maximum: 0.5, weight: 2}
+        - {score: drift, maximum: 0.5, weight: 2}
+
+  - threat_id: planned_deployment
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: cpu_utilization, direction: increase, weight: 2}
+        - {metric_family: disk_write_ops, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, maximum: 0.6, weight: 2}
+        - {score: drift, maximum: 0.6, weight: 2}
+
+  - threat_id: organic_growth
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: normal_requests, direction: increase, weight: 2}
+        - {metric_family: storage_write_ops, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: drift, minimum: 0.2, maximum: 0.7, weight: 2}
+
+  - threat_id: provider_regional_event
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: regional_error_rate, direction: increase, weight: 2}
+        - {metric_family: latency, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: drift, minimum: 0.2, weight: 2}
+
+  - threat_id: ambiguous_change
+    minimum_score: 4
+    conditions:
+      metric_signals:
+        - {metric_family: cpu_utilization, direction: increase, weight: 2}
+      entity_types:
+        any_of: [Instances, VM_Instances, Virtual_Machines]
+        weight: 1
+      namespaces:
+        any_of: [AWS/EC2, Microsoft.Compute/virtualMachines, CWAgent]
+        weight: 1
+      cloud_providers:
+        any_of: [AWS, Azure, GCP, OCI]
+        weight: 1
+      component_patterns:
+        - {score: deviation, maximum: 0.6, weight: 2}
+        - {score: drift, maximum: 0.6, weight: 2}

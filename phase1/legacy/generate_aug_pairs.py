@@ -19,7 +19,8 @@ Output schema
 Every source row produces TWO output rows (view_a and view_b).
 A `pair_id` column groups them; `view` column marks which is which.
 
-    pair_id  view  cpu_usage  memory_usage ... hour_of_day  day_of_week  time2vec_0..7  cpu_usage_masked ...
+    pair_id  view  cpu_usage  memory_usage ... hour_of_day  day_of_week
+    time2vec_0..7  cpu_usage_masked ...
 
 Usage
 -----

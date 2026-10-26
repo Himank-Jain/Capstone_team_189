@@ -21,6 +21,15 @@ class ExplanationSection:
 
 
 @dataclass
+class MatchedThreat:
+    threat_id: str
+    title: str
+    match_confidence: str
+    matched_signals: list[str] = field(default_factory=list)
+    unmatched_signals: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Explanation:
     rca_case_id: str
     cause_category: str
@@ -28,6 +37,9 @@ class Explanation:
     sections: list[ExplanationSection] = field(default_factory=list)
     kb_version: str = "unknown"
     is_fallback: bool = False
+    matched_threats: list[MatchedThreat] = field(default_factory=list)
+    match_basis: str = ""
+    mitigation_mode: str = "generic"
 
 
 @dataclass
@@ -46,4 +58,19 @@ class KnowledgeEntry:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
-__all__ = ["RecommendedCheck", "ExplanationSection", "Explanation", "KnowledgeEntry"]
+@dataclass(frozen=True)
+class ThreatMatch:
+    threat_id: str
+    match_confidence: str
+    matched_signal_keys: list[str]
+    unmatched_signal_keys: list[str]
+
+
+__all__ = [
+    "RecommendedCheck",
+    "ExplanationSection",
+    "MatchedThreat",
+    "Explanation",
+    "KnowledgeEntry",
+    "ThreatMatch",
+]

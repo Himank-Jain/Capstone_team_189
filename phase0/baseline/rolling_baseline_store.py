@@ -79,7 +79,12 @@ class RollingBaselineStore:
         if bucket_key.is_global():
             return f"{self._key_prefix}:{bucket_key.vm_id}:{bucket_key.metric_name}:global"
 
-        parts = [self._key_prefix, bucket_key.vm_id, bucket_key.metric_name, f"hour{bucket_key.hour:02d}"]
+        parts = [
+            self._key_prefix,
+            bucket_key.vm_id,
+            bucket_key.metric_name,
+            f"hour{bucket_key.hour:02d}",
+        ]
         if bucket_key.is_weekend is True:
             parts.append("weekend")
         elif bucket_key.is_weekend is False:

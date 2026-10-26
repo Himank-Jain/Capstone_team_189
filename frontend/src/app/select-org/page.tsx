@@ -1,67 +1,74 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button, Card, EmptyState, PageHeader, Skeleton, Toast } from '../../components/ui';
 import { getTenants } from '../../services/tenantsApi';
 import { setActiveTenantId } from '../../services/apiClient';
+import { getErrorMessage } from '../../services/errors';
+
+interface TenantChoice {
+  id: string;
+  name: string;
+  live_alert_count: number;
+  health: string;
+}
 
 export default function SelectOrgPage() {
-  const [tenants, setTenants] = useState<Array<{ id: string; name: string; live_alert_count: number; health: string }>>([]);
+  const navigate = useNavigate();
+  const [tenants, setTenants] = useState<TenantChoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTenants() {
       try {
-        const data = await getTenants();
-        setTenants(data);
-      } catch (err: any) {
-        setError(err?.message || 'Unable to load tenants');
+        setTenants(await getTenants());
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Unable to load tenants'));
       } finally {
         setLoading(false);
       }
     }
-    loadTenants();
+    void loadTenants();
   }, []);
 
   const handleSelect = (tenantId: string) => {
     setActiveTenantId(tenantId);
-    window.location.href = '/';
+    navigate('/');
   };
 
   return (
-    <main style={{ minHeight: '100vh', padding: '24px', background: '#0b0f17', color: '#f8fafc' }}>
-      <div style={{ maxWidth: '980px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '12px' }}>Select your organization</h1>
-        <p style={{ color: '#94a3b8', marginBottom: '24px' }}>
-          Choose a tenant to view isolated multi-cloud alerts and live demo controls.
-        </p>
-        {loading ? (
-          <p>Loading tenants…</p>
-        ) : error ? (
-          <p style={{ color: '#fca5a5' }}>{error}</p>
-        ) : (
-          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+    <main className="app-page">
+      <div className="app-page-content">
+        <PageHeader
+          eyebrow="Workspace"
+          title="Select your organization"
+          description="Choose a tenant to view its isolated multi-cloud alerts and demonstration controls."
+        />
+        {error ? <Toast message={error} tone="error" /> : null}
+        {loading ? <Card><Skeleton rows={4} /></Card> : tenants.length ? (
+          <div className="tenant-choice-grid">
             {tenants.map((tenant) => (
-              <button
-                key={tenant.id}
-                type="button"
-                onClick={() => handleSelect(tenant.id)}
-                style={{
-                  textAlign: 'left',
-                  padding: '20px',
-                  borderRadius: '18px',
-                  border: '1px solid #1f2937',
-                  background: '#111827',
-                  color: '#f8fafc',
-                  cursor: 'pointer',
-                }}
-              >
-                <h2 style={{ margin: '0 0 8px', fontSize: '20px' }}>{tenant.name}</h2>
-                <p style={{ margin: 0, color: '#94a3b8' }}>Live alerts: {tenant.live_alert_count}</p>
-                <p style={{ margin: '8px 0 0', color: tenant.health === 'healthy' ? '#22c55e' : '#facc15' }}>
-                  {tenant.health.toUpperCase()}
-                </p>
-              </button>
+              <Card className="tenant-choice-card" key={tenant.id}>
+                <div className="tenant-choice-header">
+                  <div>
+                    <p className="ui-eyebrow">Tenant workspace</p>
+                    <h2>{tenant.name}</h2>
+                  </div>
+                  <span className={`ui-badge ${tenant.health === 'healthy' ? 'ui-status-resolved' : 'ui-severity-medium'}`}>
+                    {tenant.health}
+                  </span>
+                </div>
+                <p>{tenant.live_alert_count} recent alerts</p>
+                <Button variant="primary" type="button" onClick={() => handleSelect(tenant.id)}>
+                  Open workspace
+                </Button>
+              </Card>
             ))}
           </div>
+        ) : (
+          <Card>
+            <EmptyState title="No organizations available" description="No tenant memberships were returned for this account." />
+          </Card>
         )}
       </div>
     </main>

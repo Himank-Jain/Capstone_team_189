@@ -72,7 +72,11 @@ class AnomalyScoringWorker:
         stream at all — safe to call directly in tests.
         """
         if self._seasonality_classifier.is_seasonal(point.vm_id, point.metric_name):
-            bucket_key = self._bucket_resolver.resolve(point.vm_id, point.metric_name, point.timestamp)
+            bucket_key = self._bucket_resolver.resolve(
+                point.vm_id,
+                point.metric_name,
+                point.timestamp,
+            )
         else:
             bucket_key = BucketKeyResolver.resolve_global(point.vm_id, point.metric_name)
 
@@ -105,7 +109,9 @@ class AnomalyScoringWorker:
                 try:
                     self._on_score(result)
                 except Exception:
-                    logger_obj.exception("[AnomalyScoringWorker] on_score callback failed — continuing")
+                    logger_obj.exception(
+                        "[AnomalyScoringWorker] on_score callback failed — continuing"
+                    )
             except Exception:
                 logger_obj.exception(
                     "[AnomalyScoringWorker] Failed to process point %r — skipping", point

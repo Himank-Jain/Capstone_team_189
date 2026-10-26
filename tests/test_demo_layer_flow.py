@@ -1,7 +1,7 @@
-from backend.api_demo_ext.analytics import build_summary_payload
-from backend.api_demo_ext.auth import build_login_response
-from backend.api_demo_ext.tenants import get_demo_tenants
-from backend.api_demo_ext.ws_heartbeat import build_stage_heartbeat
+from phase3.api.analytics import build_summary_payload
+from phase3.api.auth import build_login_response
+from phase3.api.tenants import get_demo_tenants
+from phase3.api.ws_heartbeat import build_stage_heartbeat
 from demo_generator.generator import DemoGenerator
 
 
